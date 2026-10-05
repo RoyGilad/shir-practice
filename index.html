@@ -448,15 +448,104 @@ function placeDock(on){
 }
 function feed(o,i){if(!o.done)return"";if(i===o.q.ans)return"good";if(o.ans===i)return"bad";return""}
 function esc(s){return String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))}
+const MATH_OPS="+-−–×*÷/=#@";
+function isHebLetter(ch){return /[\u05D0-\u05EA]/.test(ch||"")}
+function isMathOp(ch){return typeof ch==="string"&&ch.length===1&&MATH_OPS.includes(ch)}
+function skipSpaces(src,i){while(src[i]===" ")i++;return i}
+function readNumber(src,i){
+ if(!/[0-9]/.test(src[i]||""))return i;
+ let j=i;
+ while(/[0-9]/.test(src[j]||""))j++;
+ if(src[j]==="."&&/[0-9]/.test(src[j+1]||"")){j++;while(/[0-9]/.test(src[j]||""))j++}
+ if(src[j]==="²")j++;
+ return j;
+}
+function readBlank(src,i){
+ if(src[i]==="?")return i+1;
+ if(src[i]==="_"){let j=i;while(src[j]==="_")j++;return j}
+ return i;
+}
+function readAtom(src,i){
+ if(src[i]==="("){
+  let j=skipSpaces(src,i+1);
+  const inner=readMath(src,j);
+  if(!inner)return null;
+  j=skipSpaces(src,inner.end);
+  if(src[j]!==")")return null;
+  return {end:j+1,worthy:true,num:false};
+ }
+ const n=readNumber(src,i);
+ if(n>i){
+  let j=n,juxta=false;
+  if(/[A-Za-z]/.test(src[j]||"")&&src[j+1]!=="("){while(/[A-Za-z]/.test(src[j]||""))j++;juxta=true}
+  return {end:j,worthy:juxta,num:!juxta};
+ }
+ if(/[A-Za-z]/.test(src[i]||"")){
+  let j=i+1;
+  while(/[A-Za-z]/.test(src[j]||""))j++;
+  if(src[j]==="("){
+   let k=skipSpaces(src,j+1);
+   const inner=readMath(src,k);
+   if(inner){
+    k=skipSpaces(src,inner.end);
+    if(src[k]===")")return {end:k+1,worthy:true,num:false};
+   }
+  }
+  return {end:j,worthy:true,num:false};
+ }
+ return null;
+}
+function readMath(src,i){
+ const first=readAtom(src,i);
+ if(!first)return null;
+ let end=first.end,worthy=first.worthy,numSeq=first.num;
+ while(true){
+  const k=skipSpaces(src,end);
+  if(numSeq&&(src[k]===","||src[k]==="،")){
+   const n=skipSpaces(src,k+1);
+   const blank=readBlank(src,n);
+   if(blank>n){end=blank;worthy=true;continue}
+   const num=readNumber(src,n);
+   if(num>n&&!/[A-Za-z]/.test(src[num]||"")){end=num;worthy=true;continue}
+   break;
+  }
+  if(!isMathOp(src[k]))break;
+  const n=skipSpaces(src,k+1);
+  const atom=readAtom(src,n);
+  if(!atom)break;
+  end=atom.end;worthy=true;numSeq=false;
+ }
+ return {end,worthy};
+}
+function matchMath(src,i){
+ let j=i;
+ const sign=src[i]==="+"||src[i]==="-"||src[i]==="−"||src[i]==="–";
+ if(sign){
+  if(src[i]!=="+"&&i>0&&isHebLetter(src[i-1]))return i;
+  const n=skipSpaces(src,i+1);
+  if(!(readNumber(src,n)>n))return i;
+  j=n;
+ }
+ const parsed=readMath(src,j);
+ if(!parsed)return i;
+ if(!(parsed.worthy||j!==i))return i;
+ if(/[\u05D0-\u05EA]/.test(src.slice(i,parsed.end)))return i;
+ return parsed.end;
+}
 function show(s){
  const src=String(s==null?"":s);
- const re=/(?:f\s*\(\s*x\s*\)\s*=\s*[0-9x×*+\-−–÷/=\s]+)|(?:\d+(?:[.,]\d+)?(?:\s*[,،]\s*(?:\d+(?:[.,]\d+)?|_{1,2}|\?))+)|(?:\d+(?:[.,]\d+)?(?:\s*[+\-−–×x*÷/=]\s*(?:x|\d+(?:[.,]\d+)?))+)/g;
- let out="",i=0,m;
- while((m=re.exec(src))){
-  out+=esc(src.slice(i,m.index))+`<bdi dir="ltr" class="formula">${esc(m[0])}</bdi>`;
-  i=m.index+m[0].length;
+ let out="",i=0;
+ while(i<src.length){
+  const m=matchMath(src,i);
+  if(m>i){out+=`<bdi dir="ltr" class="formula">${esc(src.slice(i,m))}</bdi>`;i=m}
+  else{
+   let j=i+1;
+   while(j<src.length&&matchMath(src,j)===j)j++;
+   out+=esc(src.slice(i,j));
+   i=j;
+  }
  }
- return out+esc(src.slice(i));
+ return out;
 }
 function cur(){const sec=S.secs[S.cur];return sec.qs[sec.idx]}
 function pick(i){const o=cur();if(o.done||sectionFrozen())return;o.ans=i;render()}
@@ -545,7 +634,7 @@ function results(){
   let mine="";if(q.t==="mc")mine=o.ans===null?"לא נענתה":q.opts[o.ans];else if(q.t==="typed")mine=o.ans?o.ans:"לא נענתה";else if(q.t==="order")mine=o.touched?o.arr.join(" ← "):"לא סודרה";else mine=o.ans===null?"לא נענתה":"צורה "+(o.perm.indexOf(o.ans)+1);
   const corr=q.t==="mc"?q.opts[q.ans]:q.t==="typed"?q.ans:q.t==="order"?q.items.join(" ← "):(q.t==="shape"?"הצורה הנכונה מוצגת במסך השאלה (תשובה: "+(o.perm.indexOf(q.ans)+1)+" מימין לפי הסדר שהוצג)":"");
   h+=`<div style="border-bottom:1px solid #ddd;padding:8px 0"><b>פרק ${sec.ch}, שאלה ${i+1}</b> <span class="${ok?"ok":"no"}">${ok?"נכון":"לא נכון"}</span>${q.chart?chartHtml(q.chart):""}<div class="q" style="font-size:17px;margin:4px 0">${show(q.q)}</div>`+
-  (q.t==="shape"?(q.matrix?matrixHtml(q.seq,56)+`<div class="box" role="img" aria-label="${escAttr("התשובה: "+shapeName(q.opts[q.ans]))}" style="border-color:#2a9d4b">${svg(q.opts[q.ans],56)}</div>`:seqStrip(q.seq,56,`<div class="box" role="img" aria-label="${escAttr("התשובה: "+shapeName(q.opts[q.ans]))}" style="border-color:#2a9d4b">${svg(q.opts[q.ans],56)}</div>`)):`<div class="small">התשובה שלך: ${esc(mine)}${ok?"":" · התשובה הנכונה: "+esc(corr)}</div>`)+
+  (q.t==="shape"?(q.matrix?matrixHtml(q.seq,56)+`<div class="box" role="img" aria-label="${escAttr("התשובה: "+shapeName(q.opts[q.ans]))}" style="border-color:#2a9d4b">${svg(q.opts[q.ans],56)}</div>`:seqStrip(q.seq,56,`<div class="box" role="img" aria-label="${escAttr("התשובה: "+shapeName(q.opts[q.ans]))}" style="border-color:#2a9d4b">${svg(q.opts[q.ans],56)}</div>`)):`<div class="small">התשובה שלך: ${show(mine)}${ok?"":" · התשובה הנכונה: "+show(corr)}</div>`)+
   `<div class="exp">${show(q.exp)}</div></div>`}));
  h+=`</div><button type="button" class="primary tap" onclick="home()">חזרה לתפריט</button>`;
  $("app").innerHTML=h;placeDock(false);S=null;
