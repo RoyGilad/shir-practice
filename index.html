@@ -28,10 +28,17 @@ select{font:inherit;padding:6px;border-radius:6px}
 .timer{font-weight:bold;font-size:22px;color:#1d7f8c}
 .timer.low{color:#c22}
 .q{font-size:22px;line-height:1.6;margin:14px 0;white-space:pre-line}
-.opt{display:block;width:100%;text-align:right;margin:8px 0;padding:12px 14px;border:2px solid #b8c7cc;border-radius:10px;background:#fff;color:#1b2a33}
+.tap{min-height:44px;min-width:44px;padding:10px 16px}
+.opt{display:flex;align-items:center;gap:8px;width:100%;text-align:right;margin:8px 0;padding:12px 14px;border:2px solid #b8c7cc;border-radius:10px;background:#fff;color:#1b2a33}
 .opt.sel{border-color:#1d7f8c;background:#e3f1f3}
 .opt.good{border-color:#2a9d4b;background:#dff3e4}
 .opt.bad{border-color:#c33;background:#fbe3e3}
+.opt .mark{flex:0 0 auto;width:1.25em;font-size:22px;font-weight:bold;line-height:1;text-align:center}
+.opt.good .mark{color:#1e7a38}
+.opt.bad .mark{color:#a32020}
+button.opt:disabled{opacity:1}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:5;display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:#fff;border-top:1px solid #d5e1e4;padding:10px 16px calc(10px + env(safe-area-inset-bottom));box-shadow:0 -4px 12px rgba(27,42,51,.06)}
 .optsvg{display:flex;flex-wrap:wrap;gap:12px}
 .optsvg .opt{width:auto;padding:6px}
 .seq{display:flex;flex-wrap:nowrap;gap:8px;align-items:center;direction:ltr;unicode-bidi:isolate;justify-content:flex-start;overflow-x:auto;max-width:100%;padding-bottom:4px}
@@ -57,7 +64,7 @@ td,th{border-bottom:1px solid #ddd;padding:6px 8px;text-align:right}
 .ok{color:#2a9d4b;font-weight:bold}.no{color:#c33;font-weight:bold}
 .small{font-size:14px;color:#556}
 .pbar{background:#dde;border-radius:6px;height:8px;overflow:hidden;margin-top:4px}.pbar i{display:block;height:100%;background:#1d7f8c}
-details.card>summary{cursor:pointer;font-weight:bold;font-size:18px}
+details.card>summary{cursor:pointer;font-weight:bold;font-size:18px;min-height:44px;display:flex;align-items:center}
 details.card>summary+p{margin-top:12px}
 .chart{margin:12px 0;padding:12px;background:#f4fafa;border-radius:8px}
 .chart b{display:block;margin-bottom:8px}
@@ -68,7 +75,7 @@ details.card>summary+p{margin-top:12px}
 </style>
 </head>
 <body>
-<header><h1>טיוטת תרגול</h1><span class="note">תרגול, לא מבחן רשמי. התאמה למבחן לא אומתה. ההתקדמות בדפדפן בלבד.</span></header>
+<header><h1>טיוטת תרגול</h1></header>
 <main id="app"></main>
 <script>
 /* ===== נתונים ===== */
@@ -226,6 +233,7 @@ function hasAnswer(o){return o.q.t==="order"?!!o.touched:(o.ans!==null&&o.ans!==
 /* ===== מסך בית ===== */
 function home(){
  stopTimer();
+ placeDock(false);
  const session=materialize(store.live);
  if(session){S=session;openRestored();return}
  S=null;
@@ -239,14 +247,17 @@ function home(){
  }else if(saved&&Array.isArray(saved.answers)&&saved.answers.length){
   status=`<p>היום נענו ${saved.answers.length} מתוך 4. ההמשך שמור בדפדפן הזה, בלי שעון.</p>`;
  }
- let h=`<div class="card"><h2>אתגר יומי: ללמוד ולנסות</h2>
- <p>זה המסלול שאפשר לתרגל עכשיו. לפני כל שאלה מופיעה דוגמה פתורה, ואז שאלה. ארבע שאלות מארבע קבוצות נושא, בלי שעון, בלי רצף חובה ובלי קנס על טעות.</p>
- <p>הבנק הוא 145 שאלות תרגול, לא מבחן רשמי. לאתגר נכנסות שאלות ש-Instinct סימן כנבדקות. Arch עבר שוב על התשובות ועל הדוגמאות. הסימון הזה אינו כיול. 72 פריטי המספרים הם שש משפחות חוקים, לא 72 מיומנויות.</p>
+ let h=`<div class="card"><h2>ארבע שאלות קצרות, בלי שעון.</h2>
  ${status}
- <p class="small">רמות ניסוי: ${[1,2,3,4,5,6].map(c=>CH[c].name+" "+levelFor(c)).join(" · ")}. הרמה זזה רק אחרי 6 תשובות בנושא: 5-6 נכונות מעלות, 0-2 מורידות, 3-4 נשארות, בטווח 1-3. אין התאמה לתאריך עד שמועד הבחינה ידוע.</p>
- <button class="primary" onclick="dailyStart()">לאתגר של היום</button>
- ${storageOn?`<p class="small">ההתקדמות נשמרת רק בדפדפן הזה. אין שם, אין חשבון ואין שליחת נתונים.</p>`:`<p><b>ההתקדמות לא נשמרת.</b> אפשר לתרגל, אבל הדפדפן הזה לא שומר את ההתקדמות.</p>`}
- <p><button class="danger" onclick="resetAll()">איפוס כל ההתקדמות</button></p></div>`;
+ <button class="primary tap" onclick="dailyStart()">לאתגר של היום</button>
+ ${storageOn?"":`<p><b>ההתקדמות לא נשמרת.</b> אפשר לתרגל, אבל הדפדפן הזה לא שומר את ההתקדמות.</p>`}
+ </div>
+ <details class="card"><summary>להורים</summary>
+ <p>תרגול, לא מבחן רשמי. התאמה למבחן לא אומתה.</p>
+ <p>ההתקדמות נשמרת רק בדפדפן הזה. אין שם, אין חשבון ואין שליחת נתונים. אין קנס אם מדלגים על יום, ואין התאמה לתאריך עד שמועד הבחינה ידוע.</p>
+ <p>לפני כל שאלה מופיעה דוגמה. ארבע שאלות מארבע קבוצות נושא, בלי שעון, בלי רצף חובה ובלי קנס על טעות.</p>
+ <div id="resetBox"><button type="button" class="danger tap" onclick="askReset()">איפוס כל ההתקדמות</button></div>
+ </details>`;
  const stat=(ids)=>{let t=0,c=0;ids.forEach(q=>{const r=store.res[q.id];if(r){t++;if(r.ok)c++}});return t?`${c}/${t} נכון`:"טרם תורגל"};
  let legacy=`<div class="card"><h2>בחירת תרגול</h2>
  <p>אפשרות א: <b>סימולציה מלאה</b> – כל 6 הפרקים בסדר טיוטת התרגול, לא סדר רשמי מאומת, עם שעון לכל פרק, בלי הסברים עד הסוף.</p>
@@ -266,10 +277,20 @@ function home(){
  legacy+=`</div></div>`;
  const last=store.sess.slice(-5).reverse();
  if(last.length){legacy+=`<div class="card"><h3>תרגולים אחרונים</h3><table><tr><th>תאריך</th><th>סוג</th><th>ציון</th></tr>`+last.map(s=>`<tr><td>${s.d}</td><td>${s.m}</td><td>${s.c}/${s.t}</td></tr>`).join("")+`</table></div>`}
- h+=`<details class="card"><summary>תרגול לפי פרקים, מאותו בנק</summary><p class="small">אותו בנק של 145 שאלות. בסימולציה יש שעון. זה לא מבחן רשמי.</p>${legacy}</details>`;
+ h+=`<details class="card"><summary>תרגול לפי פרקים</summary><p class="small">בסימולציה יש שעון לכל פרק. בתרגול לפי פרק אפשר לבדוק אחרי כל תשובה.</p>${legacy}</details>`;
  $("app").innerHTML=h;
 }
-function resetAll(){if(confirm("למחוק את כל ההתקדמות?")){stopTimer();S=null;store=blankStore();save();home()}}
+function askReset(){
+ const box=$("resetBox");
+ if(!box)return;
+ box.innerHTML=`<p>למחוק את כל ההתקדמות? אי אפשר לשחזר.</p><p><button type="button" class="danger tap" onclick="resetAll()">כן, למחוק</button> <button type="button" class="tap" onclick="cancelReset()">ביטול</button></p>`;
+}
+function cancelReset(){
+ const box=$("resetBox");
+ if(!box)return;
+ box.innerHTML=`<button type="button" class="danger tap" onclick="askReset()">איפוס כל ההתקדמות</button>`;
+}
+function resetAll(){stopTimer();S=null;store=blankStore();save();home()}
 
 /* ===== התחלת סשן ===== */
 function startSim(){
@@ -374,7 +395,7 @@ function render(){
  let h=`<div class="card"><div class="top">
   <div><select onchange="jumpSec(this.value)">${S.secs.map((s,i)=>`<option value="${i}" ${i==S.cur?"selected":""}>פרק ${s.ch}: ${CH[s.ch].name}${s.done?" · הוגש":""}</option>`).join("")}</select>
   ${S.mode==="practice"?`<span class="chip">${esc(S.label)}</span>`:""}</div>
-  <div>${timerHtml(sec,frozen)} <button onclick="abandonSession()">יציאה</button></div></div>
+  <div>${timerHtml(sec,frozen)} <button type="button" class="tap" onclick="abandonSession()">יציאה</button></div></div>
   <p class="small">רענון הדפדפן ממשיך את הסשן הזה. יציאה מוחקת אותו.</p>
   ${frozen?`<p class="exp"><b>הפרק הזה כבר הוגש.</b> התשובות נעולות, והשעון לא מתחיל מחדש.</p>`:""}
   <div class="bar">${sec.qs.map((x,i)=>`<button class="${i==sec.idx?"cur":""} ${hasAnswer(x)?"ans":""} ${x.flag?"flg":""}" onclick="goQ(${i})">${i+1}${x.flag?" ⚑":""}</button>`).join("")}</div>
@@ -384,34 +405,55 @@ function render(){
  if(q.t==="shape"){
   if(q.matrix)h+=matrixHtml(q.seq,86);
   else h+=seqStrip(q.seq,64,QMARK);
-  h+=`<p class="small">בחרו:</p><div class="optsvg" style="justify-content:center">`+o.perm.map(i=>`<button type="button" class="opt ${o.ans===i?"sel":""} ${feed(o,i)}" aria-label="${escAttr(shapeName(q.opts[i]))}" aria-pressed="${o.ans===i?"true":"false"}" onclick="pick(${i})" ${lock?"disabled":""}><div class="box" style="border:0">${svg(q.opts[i],80)}</div></button>`).join("")+`</div>`;
+  h+=`<p class="small">בחרו:</p><div class="optsvg" style="justify-content:center">`+o.perm.map(i=>`<button type="button" class="opt ${o.ans===i?"sel":""} ${feed(o,i)}" aria-label="${escAttr(shapeName(q.opts[i])+markName(o.done,i===q.ans,o.ans===i))}" aria-pressed="${o.ans===i?"true":"false"}" onclick="pick(${i})" ${lock?"disabled":""}>${markHtml(o.done,i===q.ans,o.ans===i)}<div class="box" style="border:0">${svg(q.opts[i],80)}</div></button>`).join("")+`</div>`;
  }else if(q.t==="mc"){
-  h+=o.perm.map(i=>`<button type="button" class="opt ${o.ans===i?"sel":""} ${feed(o,i)}" onclick="pick(${i})" ${lock?"disabled":""}>${show(q.opts[i])}</button>`).join("");
+  h+=o.perm.map(i=>`<button type="button" class="opt ${o.ans===i?"sel":""} ${feed(o,i)}" onclick="pick(${i})" ${lock?"disabled":""}>${markHtml(o.done,i===q.ans,o.ans===i)}${show(q.opts[i])}</button>`).join("");
  }else if(q.t==="typed"){
   h+=`<input type="text" id="ti" inputmode="decimal" value="${escAttr(o.ans??"")}" oninput="typed(this.value)" placeholder="הקלידו תשובה" ${lock?"disabled":""}>`;
  }else if(q.t==="order"){
   h+=`<p class="small">גררו את הפריט, גם במגע, או השתמשו בחצים. הראשון למעלה.</p><ul class="ord${frozen?" lock":""}" id="ord">`+o.arr.map((t,i)=>`<li data-i="${i}"><span class="n">${i+1}</span><span class="t">${esc(t)}</span><button type="button" onclick="mv(${i},-1)" ${lock?"disabled":""}>▲</button><button type="button" onclick="mv(${i},1)" ${lock?"disabled":""}>▼</button></li>`).join("")+`</ul>`;
  }
  if(o.done){const ok=isCorrect(o);h+=`<div class="exp"><b class="${ok?"ok":"no"}">${ok?"נכון!":"לא נכון."}</b>${q.t==="typed"?` התשובה: <span dir="ltr" class="formula">${esc(q.ans)}</span>`:""}${q.t==="order"?" הסדר הנכון: "+esc(q.items.join(" ← ")):""}\n${show(q.exp)}</div>`}
- h+=`<div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
-  <button onclick="goQ(${sec.idx-1})" ${sec.idx==0?"disabled":""}>◀ הקודם</button>
-  <button onclick="flag()" ${frozen?"disabled":""}>${o.flag?"הסרת סימון ⚑":"סימון לבדיקה ⚑"}</button>
-  ${S.mode==="practice"&&!o.done&&!frozen?`<button onclick="check()">בדיקה</button>`:""}
+ h+=`<div class="dock">
+  <button type="button" class="tap" onclick="goQ(${sec.idx-1})" ${sec.idx==0?"disabled":""}>◀ הקודם</button>
+  <button type="button" class="tap" onclick="flag()" ${frozen?"disabled":""}>${o.flag?"הסרת סימון ⚑":"סימון לבדיקה ⚑"}</button>
+  ${S.mode==="practice"&&!o.done&&!frozen?`<button type="button" class="tap" onclick="check()">בדיקה</button>`:""}
   ${frozen?`<span class="small">הפרק נעול אחרי ההגשה.</span>`:""}
-  ${sec.idx<sec.qs.length-1?`<button class="primary" onclick="goQ(${sec.idx+1})">הבא ▶</button>`:(frozen?"":`<button class="primary" onclick="toReview()">סיום פרק והצגת סיכום</button>`)}
+  ${sec.idx<sec.qs.length-1?`<button type="button" class="primary tap" onclick="goQ(${sec.idx+1})">הבא ▶</button>`:(frozen?"":`<button type="button" class="primary tap" onclick="toReview()">סיום פרק והצגת סיכום</button>`)}
  </div></div>`;
  $("app").innerHTML=h;
+ placeDock(true);
  if(q.t==="order"&&!lock)bindDrag(o);
  persistLive();
+}
+function markHtml(revealed,correct,chosen){
+ if(!revealed)return"";
+ if(correct)return `<span class="mark" aria-hidden="true">✓</span><span class="sr">תשובה נכונה</span>`;
+ if(chosen)return `<span class="mark" aria-hidden="true">✗</span><span class="sr">הבחירה</span>`;
+ return "";
+}
+function markName(revealed,correct,chosen){
+ if(!revealed)return "";
+ if(correct)return " , תשובה נכונה";
+ if(chosen)return " , הבחירה";
+ return "";
+}
+function placeDock(on){
+ const b=document.body;
+ if(!b||!b.classList)return;
+ if(!on){b.classList.remove("has-dock");if(b.style)b.style.paddingBottom="";return}
+ b.classList.add("has-dock");
+ const dock=document.querySelector?document.querySelector(".dock"):null;
+ if(b.style)b.style.paddingBottom=(dock&&dock.offsetHeight?dock.offsetHeight+12:80)+"px";
 }
 function feed(o,i){if(!o.done)return"";if(i===o.q.ans)return"good";if(o.ans===i)return"bad";return""}
 function esc(s){return String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))}
 function show(s){
  const src=String(s==null?"":s);
- const re=/(?:f\s*\(\s*x\s*\)\s*=\s*[0-9x×*+\-−–÷/=\s]+)|(?:\d+(?:[.,]\d+)?(?:\s*[,،]\s*(?:\d+(?:[.,]\d+)?|_{1,2}))+)|(?:\d+(?:[.,]\d+)?(?:\s*[+\-−–×x*÷/=]\s*(?:x|\d+(?:[.,]\d+)?))+)/g;
+ const re=/(?:f\s*\(\s*x\s*\)\s*=\s*[0-9x×*+\-−–÷/=\s]+)|(?:\d+(?:[.,]\d+)?(?:\s*[,،]\s*(?:\d+(?:[.,]\d+)?|_{1,2}|\?))+)|(?:\d+(?:[.,]\d+)?(?:\s*[+\-−–×x*÷/=]\s*(?:x|\d+(?:[.,]\d+)?))+)/g;
  let out="",i=0,m;
  while((m=re.exec(src))){
-  out+=esc(src.slice(i,m.index))+`<span dir="ltr" class="formula">${esc(m[0])}</span>`;
+  out+=esc(src.slice(i,m.index))+`<bdi dir="ltr" class="formula">${esc(m[0])}</bdi>`;
   i=m.index+m[0].length;
  }
  return out+esc(src.slice(i));
@@ -474,8 +516,9 @@ function renderReview(){
  const sec=S.secs[S.cur];
  if(sec.done){S.view="q";render();return}
  const un=sec.qs.filter(x=>!hasAnswer(x)).length,fl=sec.qs.filter(x=>x.flag).length;
+ placeDock(false);
  let h=`<div class="card"><h2>סיכום פרק ${sec.ch}: ${CH[sec.ch].name}</h2>
- <div class="top"><span></span><button onclick="abandonSession()">יציאה</button></div>
+ <div class="top"><span></span><button type="button" class="tap" onclick="abandonSession()">יציאה</button></div>
  <p class="small">רענון הדפדפן ממשיך את הסשן הזה. יציאה מוחקת אותו.</p>
  <p>${un?`<b class="no">${un} שאלות ללא תשובה.</b>`:`<b class="ok">כל השאלות נענו.</b>`} ${fl?`${fl} מסומנות לבדיקה.`:""} ${timerHtml(sec,false)}</p>
  <div class="bar">${sec.qs.map((x,i)=>`<button class="${hasAnswer(x)?"ans":""} ${x.flag?"flg":""}" onclick="goQ(${i})">${i+1}${x.flag?" ⚑":""}${hasAnswer(x)?"":" ✗"}</button>`).join("")}</div>
@@ -504,8 +547,8 @@ function results(){
   h+=`<div style="border-bottom:1px solid #ddd;padding:8px 0"><b>פרק ${sec.ch}, שאלה ${i+1}</b> <span class="${ok?"ok":"no"}">${ok?"נכון":"לא נכון"}</span>${q.chart?chartHtml(q.chart):""}<div class="q" style="font-size:17px;margin:4px 0">${show(q.q)}</div>`+
   (q.t==="shape"?(q.matrix?matrixHtml(q.seq,56)+`<div class="box" role="img" aria-label="${escAttr("התשובה: "+shapeName(q.opts[q.ans]))}" style="border-color:#2a9d4b">${svg(q.opts[q.ans],56)}</div>`:seqStrip(q.seq,56,`<div class="box" role="img" aria-label="${escAttr("התשובה: "+shapeName(q.opts[q.ans]))}" style="border-color:#2a9d4b">${svg(q.opts[q.ans],56)}</div>`)):`<div class="small">התשובה שלך: ${esc(mine)}${ok?"":" · התשובה הנכונה: "+esc(corr)}</div>`)+
   `<div class="exp">${show(q.exp)}</div></div>`}));
- h+=`</div><button class="primary" onclick="home()">חזרה לתפריט</button>`;
- $("app").innerHTML=h;S=null;
+ h+=`</div><button type="button" class="primary tap" onclick="home()">חזרה לתפריט</button>`;
+ $("app").innerHTML=h;placeDock(false);S=null;
 }
 
 if(typeof window!=="undefined"&&window.addEventListener)window.addEventListener("pagehide",()=>{if(S)persistLive()});
@@ -635,30 +678,34 @@ function ensureDailyChoice(){
  }
 }
 function dailyRender(){
- if(!D||!D.qs||!D.qs[D.index]){$("app").innerHTML='<div class="card"><p>לא נמצאה שאלה מסומנת כנבדקת.</p><button class="primary" onclick="home()">חזרה</button></div>';return}
+ if(!D||!D.qs||!D.qs[D.index]){placeDock(false);$("app").innerHTML='<div class="card"><p>לא נמצאה שאלה לתרגול.</p><button type="button" class="primary tap" onclick="home()">חזרה</button></div>';return}
  const q=D.qs[D.index];
- let h=`<div class="card">${storageOn?"":`<p><b>ההתקדמות לא נשמרת.</b></p>`}<div class="top"><b>מסע היום · ${D.index+1}/4 · רמה ${q.level} · בלי שעון</b><button onclick="dailyBack()">חזרה</button></div>`;
- if(D.example){h+=`<h2>קודם מבינים את הדרך</h2><div class="exp">${show(q.example)}</div><p>קראו את הדרך ואז נסו שאלה דומה. מותר לטעות.</p><button class="primary" onclick="D.example=false;ensureDailyChoice();persistDaily();dailyRender()">עכשיו אני מנסה</button>`}
- else{
+ const revealed=D.feedback!==null;
+ let h=`<div class="card">${storageOn?"":`<p><b>ההתקדמות לא נשמרת.</b></p>`}<div class="top"><b>מסע היום · ${D.index+1}/4 · רמה ${q.level} · בלי שעון</b><button type="button" class="tap" onclick="dailyBack()">חזרה</button></div>`;
+ if(D.example){
+  placeDock(false);
+  h+=`<h2>קודם מבינים את הדרך</h2><div class="exp">${show(q.example)}</div><p>קראו את הדרך ואז נסו שאלה דומה. מותר לטעות.</p><button type="button" class="primary tap" onclick="D.example=false;ensureDailyChoice();persistDaily();dailyRender()">עכשיו אני מנסה</button>`;
+ }else{
   ensureDailyChoice();
   if(q.chart)h+=chartHtml(q.chart);
   h+=`<div class="q">${show(q.q)}</div>`;
-  if(q.t==="typed")h+=`<input id="dailyAnswer" type="text" inputmode="decimal" autocomplete="off" aria-label="תשובה" value="${escAttr(D.draft==null?"":String(D.draft))}" oninput="dailyDraft(this.value)" ${D.feedback!==null?"disabled":""}>`;
-  else if(q.t==="mc")h+=D.perm.map(i=>`<button type="button" class="opt ${D.choice===i?"sel":""}" data-choice="${i}" onclick="dailyPick(${i})" ${D.feedback!==null?"disabled":""}>${show(q.opts[i])}</button>`).join("");
+  if(q.t==="typed")h+=`<input id="dailyAnswer" type="text" inputmode="decimal" autocomplete="off" aria-label="תשובה" value="${escAttr(D.draft==null?"":String(D.draft))}" oninput="dailyDraft(this.value)" ${revealed?"disabled":""}>`;
+  else if(q.t==="mc")h+=D.perm.map(i=>`<button type="button" class="opt ${!revealed&&D.choice===i?"sel":""} ${revealed&&i===q.ans?"good":""} ${revealed&&D.choice===i&&i!==q.ans?"bad":""}" data-choice="${i}" onclick="dailyPick(${i})" ${revealed?"disabled":""}>${markHtml(revealed,i===q.ans,D.choice===i)}${show(q.opts[i])}</button>`).join("");
   else if(q.t==="shape"){
    if(q.matrix)h+=matrixHtml(q.seq,86);
    else h+=seqStrip(q.seq,64,QMARK);
-   h+=`<p class="small">בחרו:</p><div class="optsvg" style="justify-content:center">`+D.perm.map(i=>`<button type="button" class="opt ${D.choice===i?"sel":""}" data-choice="${i}" aria-label="${escAttr(shapeName(q.opts[i]))}" aria-pressed="${D.choice===i?"true":"false"}" onclick="dailyPick(${i})" ${D.feedback!==null?"disabled":""}><div class="box" style="border:0">${svg(q.opts[i],80)}</div></button>`).join("")+`</div>`;
+   h+=`<p class="small">בחרו:</p><div class="optsvg" style="justify-content:center">`+D.perm.map(i=>`<button type="button" class="opt ${!revealed&&D.choice===i?"sel":""} ${revealed&&i===q.ans?"good":""} ${revealed&&D.choice===i&&i!==q.ans?"bad":""}" data-choice="${i}" aria-label="${escAttr(shapeName(q.opts[i])+markName(revealed,i===q.ans,D.choice===i))}" aria-pressed="${D.choice===i?"true":"false"}" onclick="dailyPick(${i})" ${revealed?"disabled":""}>${markHtml(revealed,i===q.ans,D.choice===i)}<div class="box" style="border:0">${svg(q.opts[i],80)}</div></button>`).join("")+`</div>`;
   }else if(q.t==="order"){
-   h+=`<p class="small">הפריט הראשון למעלה. השתמשו בחצים.</p><ul class="ord">`+D.arr.map((t,i)=>`<li><span class="n">${i+1}</span><span class="t">${esc(t)}</span><button type="button" onclick="dailyMove(${i},-1)" ${D.feedback!==null?"disabled":""}>▲</button><button type="button" onclick="dailyMove(${i},1)" ${D.feedback!==null?"disabled":""}>▼</button></li>`).join("")+`</ul>`;
+   h+=`<p class="small">הפריט הראשון למעלה. השתמשו בחצים.</p><ul class="ord">`+D.arr.map((t,i)=>`<li><span class="n">${i+1}</span><span class="t">${esc(t)}</span><button type="button" onclick="dailyMove(${i},-1)" ${revealed?"disabled":""}>▲</button><button type="button" onclick="dailyMove(${i},1)" ${revealed?"disabled":""}>▼</button></li>`).join("")+`</ul>`;
   }
-  h+=`<p><button class="primary" onclick="dailyCheck()" ${D.feedback!==null?"disabled":""}>בדיקה</button></p>`;
-  if(D.feedback!==null){
+  if(revealed){
    const corr=q.t==="typed"?` התשובה: <span dir="ltr" class="formula">${esc(q.ans)}</span>`:q.t==="order"?` הסדר: ${esc(q.items.join(" ← "))}`:"";
-   h+=`<div class="exp"><b>${D.feedback?"נכון!":"לומדים מהניסיון."}</b>${corr}<br>${show(q.exp)}</div><p>המטרה היא להבין את הדרך, לא לצבור רצף.</p><button class="primary" onclick="dailyNext()">${D.index===3?"סיכום היום":"לדוגמה הבאה"}</button>`;
-  }
+   h+=`<div class="exp"><b>${D.feedback?"נכון!":"לומדים מהניסיון."}</b>${corr}<br>${show(q.exp)}</div><p>המטרה היא להבין את הדרך, לא לצבור רצף.</p>`;
+   h+=`<div class="dock"><button type="button" class="primary tap" onclick="dailyNext()">${D.index===3?"סיכום היום":"לדוגמה הבאה"}</button></div>`;
+  }else h+=`<div class="dock"><button type="button" class="primary tap" onclick="dailyCheck()">בדיקה</button></div>`;
  }
  $("app").innerHTML=h+"</div>";
+ placeDock(!D.example);
  dailyBind();
 }
 function captureDraft(){
@@ -737,7 +784,8 @@ function dailyNext(){
 function dailySummary(entry){
  const answers=Array.isArray(entry&&entry.answers)?entry.answers:[];
  const count=answers.filter(a=>a&&a.ok).length;
- $("app").innerHTML=`<div class="card"><h2>השלמתם את מסע היום</h2><p>${count} מתוך 4 נכון. גם ניסיונות וקריאת הסבר הם חלק מהלמידה.</p><p>${storageOn?"המסע להיום נשמר בדפדפן הזה.":"ההתקדמות לא נשמרת."} אין קנס אם לא מתרגלים מחר. זה תרגול, לא מבחן רשמי.</p><p class="small">רמה משתנה רק אחרי 6 תשובות בנושא: 5-6 נכונות מעלות רמה; 0-2 מורידות; 3-4 משאירות. הרמות הן ניסוי ולא דירוג יכולת.</p><button class="primary" onclick="home()">חזרה</button></div>`;
+ placeDock(false);
+ $("app").innerHTML=`<div class="card"><h2>השלמתם את מסע היום</h2><p>${count} מתוך 4 נכון. גם ניסיונות וקריאת הסבר הם חלק מהלמידה.</p><p>${storageOn?"המסע להיום נשמר בדפדפן הזה.":"ההתקדמות לא נשמרת."} אין קנס אם לא מתרגלים מחר.</p><button type="button" class="primary tap" onclick="home()">חזרה</button></div>`;
 }
 
 home();
