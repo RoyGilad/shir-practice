@@ -43,11 +43,13 @@ select{font:inherit;padding:6px;border-radius:6px}
 .matrix{display:grid;grid-template-columns:repeat(3,92px);gap:6px;justify-content:center;direction:ltr;unicode-bidi:isolate;overflow-x:auto;max-width:100%}
 .seq .qmark{width:64px;height:64px;font-size:28px}
 .ord{list-style:none;padding:0;margin:10px 0}
-.ord li{display:flex;align-items:center;gap:8px;background:#fff;border:2px solid #b8c7cc;border-radius:10px;padding:8px 12px;margin:6px 0;cursor:grab}
+.ord li{display:flex;align-items:center;gap:8px;background:#fff;border:2px solid #b8c7cc;border-radius:10px;padding:8px 12px;margin:6px 0;cursor:grab;touch-action:none;user-select:none}
 .ord li .n{font-weight:bold;color:#1d7f8c;width:22px}
 .ord li span.t{flex:1}
 .ord li.drag{opacity:.4}
-.ord button{padding:2px 10px}
+.ord li.over{border-color:#1d7f8c;background:#f3fbfb}
+.ord.lock li{cursor:default;touch-action:auto}
+.ord button{padding:2px 10px;touch-action:manipulation}
 input[type=text]{font:inherit;padding:10px;border:2px solid #b8c7cc;border-radius:8px;width:200px;direction:ltr;text-align:center}
 .exp{background:#fff7e0;border-radius:8px;padding:10px 14px;margin-top:10px;white-space:pre-line}
 table{border-collapse:collapse;width:100%}
@@ -86,7 +88,7 @@ const Q=BANK;
 /* ===== מצב ושמירה ===== */
 const KEY="shirprep_v2";
 let storageOn=true;
-function blankStore(){return {res:{},sess:[],daily:{},mastery:{}}}
+function blankStore(){return {res:{},sess:[],daily:{},mastery:{},live:null}}
 function plain(v){return !!v&&typeof v==="object"&&!Array.isArray(v)}
 function clampLevel(v){return v===2||v===3?v:1}
 function normAnswers(v){
@@ -149,6 +151,10 @@ function normalizeStore(raw){
    next.mastery[k]=plain(m)?{level:clampLevel(m.level),history:normHistory(m.history)}:{level:1,history:[]};
   }
  }
+ try{
+  const session=materialize(raw.live);
+  next.live=session?snapshotLive(session):null;
+ }catch(e){next.live=null}
  return next;
 }
 function loadStore(){
@@ -180,10 +186,26 @@ function svg(s,size){
  }
  return `<svg viewBox="0 0 100 100" width="${size}" height="${size}" aria-hidden="true">${body}</svg>`;
 }
+function shapeName(s){
+ if(!s||typeof s!=="object")return "צורה חסרה";
+ const kind={arrow:"חץ",L:"זווית",circle:"עיגול",square:"ריבוע",tri:"משולש",diamond:"מעוין"}[s.k]||"צורה";
+ const bits=[s.k==="dots"?((s.n||0)+" נקודות"):kind];
+ if(s.k!=="dots"&&s.fill!==undefined)bits.push(s.fill?"מלא":"ריק");
+ if(s.r)bits.push("גודל "+s.r);
+ if(s.rot!==undefined)bits.push("סיבוב "+s.rot);
+ return bits.join(", ");
+}
+const QMARK='<div class="box qmark" role="img" aria-label="צורה חסרה">?</div>';
 function seqStrip(seq,size,tail){
- const steps=seq.map((s,i)=>`<div class="step"><span class="sn">${i+1}</span><div class="box">${s?svg(s,size):""}</div></div>`);
+ const steps=seq.map((s,i)=>`<div class="step"><span class="sn">${i+1}</span><div class="box" role="img" aria-label="${escAttr("שלב "+(i+1)+": "+shapeName(s))}">${s?svg(s,size):""}</div></div>`);
  if(tail)steps.push(`<div class="step"><span class="sn">${seq.length+1}</span>${tail}</div>`);
- return `<div class="seq">${steps.join("")}</div>`;
+ return `<div class="seq" role="group" aria-label="סדרת צורות">${steps.join("")}</div>`;
+}
+function matrixHtml(seq,size){
+ return `<div class="matrix" role="group" aria-label="מטריצת צורות">`+seq.map((s,i)=>{
+  const name="שורה "+(Math.floor(i/3)+1)+" עמודה "+((i%3)+1)+": "+shapeName(s);
+  return `<div class="box${s?"":" qmark"}" role="img" aria-label="${escAttr(name)}">${s?svg(s,size):"?"}</div>`;
+ }).join("")+`</div>`;
 }
 function served(q){return !!(q&&q.checked)}
 
@@ -203,7 +225,10 @@ function hasAnswer(o){return o.q.t==="order"?!!o.touched:(o.ans!==null&&o.ans!==
 
 /* ===== מסך בית ===== */
 function home(){
- stopTimer();S=null;
+ stopTimer();
+ const session=materialize(store.live);
+ if(session){S=session;openRestored();return}
+ S=null;
  const day=dayKey();
  const saved=store.daily[day];
  let status="";
@@ -244,7 +269,7 @@ function home(){
  h+=`<details class="card"><summary>תרגול לפי פרקים, מאותו בנק</summary><p class="small">אותו בנק של 145 שאלות. בסימולציה יש שעון. זה לא מבחן רשמי.</p>${legacy}</details>`;
  $("app").innerHTML=h;
 }
-function resetAll(){if(confirm("למחוק את כל ההתקדמות?")){store={res:{},sess:[],daily:{},mastery:{}};save();home()}}
+function resetAll(){if(confirm("למחוק את כל ההתקדמות?")){stopTimer();S=null;store=blankStore();save();home()}}
 
 /* ===== התחלת סשן ===== */
 function startSim(){
@@ -258,43 +283,126 @@ function startPractice(c,sub){
  S={mode:"practice",label:`תרגול: ${CH[c].name}${sub?" – "+CH[c].subs[sub]:""}`,secs:[{ch:c,qs,idx:0,time:null,done:false}],cur:0,view:"q"};
  runSection();
 }
-function runSection(){stopTimer();const sec=S.secs[S.cur];S.view="q";if(sec.time!==null){timerH=setInterval(()=>{sec.time--;const t=$("timer");if(t){t.textContent=fmt(sec.time);t.className="timer"+(sec.time<60?" low":"")}if(sec.time<=0){stopTimer();sec.time=0;alert("נגמר הזמן לפרק הזה");finishSection()}},1000)}render()}
+function sectionFrozen(){return !!(S&&S.secs&&S.secs[S.cur]&&S.secs[S.cur].done)}
 function stopTimer(){if(timerH){clearInterval(timerH);timerH=null}}
-const fmt=s=>{const m=Math.floor(s/60),r=s%60;return m+":"+String(r).padStart(2,"0")};
+const fmt=s=>{s=Math.max(0,s|0);const m=Math.floor(s/60),r=s%60;return m+":"+String(r).padStart(2,"0")};
+function timerHtml(sec,frozen){
+ if(!sec||sec.time==null)return "";
+ const cls="timer"+(sec.time<60?" low":"");
+ if(frozen)return `<span class="${cls}">${fmt(sec.time)}</span> <span class="small">השעון נעצר</span>`;
+ return `<span id="timer" class="${cls}">${fmt(sec.time)}</span>`;
+}
+function startClock(){
+ stopTimer();
+ if(!S||!S.secs)return;
+ const sec=S.secs[S.cur];
+ if(!sec||sec.done||sec.time==null)return;
+ if(sec.time<=0){sec.time=0;alert("נגמר הזמן לפרק הזה");finishSection();return}
+ timerH=setInterval(()=>{
+  if(!S||!S.secs||S.secs[S.cur]!==sec||sec.done){stopTimer();return}
+  sec.time--;
+  const t=$("timer");
+  if(t){t.textContent=fmt(sec.time);t.className="timer"+(sec.time<60?" low":"")}
+  if(sec.time<=0){stopTimer();sec.time=0;persistLive();alert("נגמר הזמן לפרק הזה");finishSection();return}
+  persistLive();
+ },1000);
+}
+function runSection(){
+ if(!S||!S.secs||!S.secs[S.cur])return;
+ const sec=S.secs[S.cur];
+ if(sec.done){stopTimer();S.view="q";render();return}
+ S.view="q";
+ startClock();
+ render();
+}
+function openRestored(){
+ if(!S||!S.secs||!S.secs[S.cur]){S=null;store.live=null;save();home();return}
+ const sec=S.secs[S.cur];
+ if(sec.done){stopTimer();S.view="q";render();return}
+ if(S.view==="review"){startClock();renderReview();return}
+ runSection();
+}
+function snapshotLive(session){
+ session=session||S;
+ if(!session||!Array.isArray(session.secs)||!session.secs.length)return null;
+ return {mode:session.mode==="sim"?"sim":"practice",label:session.label==null?"":String(session.label),cur:session.cur|0,view:session.view==="review"?"review":"q",secs:session.secs.map(sec=>({ch:sec.ch,idx:sec.idx|0,time:sec.time==null?null:Math.max(0,Math.round(Number(sec.time))||0),done:!!sec.done,qs:sec.qs.map(o=>({id:o.q.id,ans:o.ans==null?null:(o.q.t==="typed"?String(o.ans):o.ans),flag:!!o.flag,done:!!o.done,perm:Array.isArray(o.perm)?o.perm.slice():null,arr:Array.isArray(o.arr)?o.arr.slice():null,touched:!!o.touched}))}))};
+}
+function persistLive(){if(!storageOn||!S)return;const snap=snapshotLive(S);if(!snap)return;store.live=snap;save()}
+function materialize(v){
+ if(!plain(v)||(v.mode!=="sim"&&v.mode!=="practice")||!Array.isArray(v.secs)||!v.secs.length)return null;
+ const secs=[];
+ for(const sec of v.secs){
+  if(!plain(sec)||!Array.isArray(sec.qs)||!sec.qs.length)return null;
+  const qs=[];
+  for(const item of sec.qs){
+   if(!plain(item))return null;
+   const q=Q.find(x=>x&&x.id===String(item.id)&&served(x));
+   if(!q)return null;
+   const o={q,ans:null,flag:!!item.flag,done:!!item.done,touched:false};
+   if(q.t==="mc"||q.t==="shape"){
+    const n=Array.isArray(q.opts)?q.opts.length:0;
+    o.perm=isIndexPerm(item.perm,n)?item.perm.map(Number):shuffle(q.opts.map((_,i)=>i));
+    o.ans=boundedChoice(item.ans,n);
+   }else if(q.t==="order"){
+    if(isItemOrder(item.arr,q.items)){o.arr=item.arr.map(x=>String(x));o.touched=!!item.touched}
+    else{o.arr=shuffle(q.items.slice());if(o.arr.join("|")===q.items.join("|"))o.arr.reverse();o.touched=false}
+   }else o.ans=item.ans==null?null:String(item.ans);
+   qs.push(o);
+  }
+  let time=null;
+  if(sec.time!=null&&sec.time!==""){const n=Number(sec.time);if(Number.isFinite(n))time=Math.max(0,Math.round(n))}
+  let idx=Number(sec.idx);
+  if(!Number.isInteger(idx)||idx<0||idx>=qs.length)idx=0;
+  secs.push({ch:qs[0].q.ch,qs,idx,time,done:!!sec.done});
+ }
+ let cur=Number(v.cur);
+ if(!Number.isInteger(cur)||cur<0||cur>=secs.length)cur=0;
+ return {mode:v.mode,label:v.label==null?"":String(v.label),secs,cur,view:v.view==="review"?"review":"q"};
+}
+function abandonSession(){
+ if(!confirm("לצאת? ההתקדמות בסשן זה לא תישמר"))return;
+ stopTimer();S=null;store.live=null;save();home();
+}
 
 /* ===== הצגת שאלה ===== */
 function render(){
  const sec=S.secs[S.cur];
- if(S.view==="review")return renderReview();
+ if(S.view==="review"&&!sec.done)return renderReview();
+ if(sec.done)S.view="q";
  const o=sec.qs[sec.idx],q=o.q;
+ const frozen=!!sec.done,lock=!!(o.done||frozen);
  let h=`<div class="card"><div class="top">
-  <div><select onchange="jumpSec(this.value)">${S.secs.map((s,i)=>`<option value="${i}" ${i==S.cur?"selected":""}>פרק ${s.ch}: ${CH[s.ch].name}</option>`).join("")}</select>
-  ${S.mode==="practice"?`<span class="chip">${S.label}</span>`:""}</div>
-  <div>${sec.time!==null?`<span id="timer" class="timer">${fmt(sec.time)}</span>`:""} <button onclick="if(confirm('לצאת? ההתקדמות בסשן זה לא תישמר')){home()}">יציאה</button></div></div>
+  <div><select onchange="jumpSec(this.value)">${S.secs.map((s,i)=>`<option value="${i}" ${i==S.cur?"selected":""}>פרק ${s.ch}: ${CH[s.ch].name}${s.done?" · הוגש":""}</option>`).join("")}</select>
+  ${S.mode==="practice"?`<span class="chip">${esc(S.label)}</span>`:""}</div>
+  <div>${timerHtml(sec,frozen)} <button onclick="abandonSession()">יציאה</button></div></div>
+  <p class="small">רענון הדפדפן ממשיך את הסשן הזה. יציאה מוחקת אותו.</p>
+  ${frozen?`<p class="exp"><b>הפרק הזה כבר הוגש.</b> התשובות נעולות, והשעון לא מתחיל מחדש.</p>`:""}
   <div class="bar">${sec.qs.map((x,i)=>`<button class="${i==sec.idx?"cur":""} ${hasAnswer(x)?"ans":""} ${x.flag?"flg":""}" onclick="goQ(${i})">${i+1}${x.flag?" ⚑":""}</button>`).join("")}</div>
   <div class="small">שאלה ${sec.idx+1} מתוך ${sec.qs.length}</div>`;
  if(q.chart)h+=chartHtml(q.chart);
  h+=`<div class="q">${show(q.q)}</div>`;
  if(q.t==="shape"){
-  if(q.matrix){h+=`<div class="matrix">`+q.seq.map(s=>s?`<div class="box">${svg(s,86)}</div>`:`<div class="box qmark">?</div>`).join("")+`</div>`}
-  else{h+=seqStrip(q.seq,64,`<div class="box qmark">?</div>`)}
-  h+=`<p class="small">בחרו:</p><div class="optsvg" style="justify-content:center">`+o.perm.map(i=>`<button class="opt ${o.ans===i?"sel":""} ${feed(o,i)}" onclick="pick(${i})"><div class="box" style="border:0">${svg(q.opts[i],80)}</div></button>`).join("")+`</div>`;
+  if(q.matrix)h+=matrixHtml(q.seq,86);
+  else h+=seqStrip(q.seq,64,QMARK);
+  h+=`<p class="small">בחרו:</p><div class="optsvg" style="justify-content:center">`+o.perm.map(i=>`<button type="button" class="opt ${o.ans===i?"sel":""} ${feed(o,i)}" aria-label="${escAttr(shapeName(q.opts[i]))}" aria-pressed="${o.ans===i?"true":"false"}" onclick="pick(${i})" ${lock?"disabled":""}><div class="box" style="border:0">${svg(q.opts[i],80)}</div></button>`).join("")+`</div>`;
  }else if(q.t==="mc"){
-  h+=o.perm.map(i=>`<button class="opt ${o.ans===i?"sel":""} ${feed(o,i)}" onclick="pick(${i})">${show(q.opts[i])}</button>`).join("");
+  h+=o.perm.map(i=>`<button type="button" class="opt ${o.ans===i?"sel":""} ${feed(o,i)}" onclick="pick(${i})" ${lock?"disabled":""}>${show(q.opts[i])}</button>`).join("");
  }else if(q.t==="typed"){
-  h+=`<input type="text" id="ti" inputmode="decimal" value="${o.ans??""}" oninput="typed(this.value)" placeholder="הקלידו תשובה" ${o.done?"disabled":""}>`;
+  h+=`<input type="text" id="ti" inputmode="decimal" value="${escAttr(o.ans??"")}" oninput="typed(this.value)" placeholder="הקלידו תשובה" ${lock?"disabled":""}>`;
  }else if(q.t==="order"){
-  h+=`<p class="small">גררו כדי לסדר, או השתמשו בחצים. הראשון למעלה.</p><ul class="ord" id="ord">`+o.arr.map((t,i)=>`<li draggable="${!o.done}" data-i="${i}"><span class="n">${i+1}</span><span class="t">${esc(t)}</span><button onclick="mv(${i},-1)" ${o.done?"disabled":""}>▲</button><button onclick="mv(${i},1)" ${o.done?"disabled":""}>▼</button></li>`).join("")+`</ul>`;
+  h+=`<p class="small">גררו את הפריט, גם במגע, או השתמשו בחצים. הראשון למעלה.</p><ul class="ord${frozen?" lock":""}" id="ord">`+o.arr.map((t,i)=>`<li data-i="${i}"><span class="n">${i+1}</span><span class="t">${esc(t)}</span><button type="button" onclick="mv(${i},-1)" ${lock?"disabled":""}>▲</button><button type="button" onclick="mv(${i},1)" ${lock?"disabled":""}>▼</button></li>`).join("")+`</ul>`;
  }
  if(o.done){const ok=isCorrect(o);h+=`<div class="exp"><b class="${ok?"ok":"no"}">${ok?"נכון!":"לא נכון."}</b>${q.t==="typed"?` התשובה: <span dir="ltr" class="formula">${esc(q.ans)}</span>`:""}${q.t==="order"?" הסדר הנכון: "+esc(q.items.join(" ← ")):""}\n${show(q.exp)}</div>`}
  h+=`<div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
   <button onclick="goQ(${sec.idx-1})" ${sec.idx==0?"disabled":""}>◀ הקודם</button>
-  <button onclick="flag()">${o.flag?"הסרת סימון ⚑":"סימון לבדיקה ⚑"}</button>
-  ${S.mode==="practice"&&!o.done?`<button onclick="check()">בדיקה</button>`:""}
-  ${sec.idx<sec.qs.length-1?`<button class="primary" onclick="goQ(${sec.idx+1})">הבא ▶</button>`:`<button class="primary" onclick="toReview()">סיום פרק והצגת סיכום</button>`}
+  <button onclick="flag()" ${frozen?"disabled":""}>${o.flag?"הסרת סימון ⚑":"סימון לבדיקה ⚑"}</button>
+  ${S.mode==="practice"&&!o.done&&!frozen?`<button onclick="check()">בדיקה</button>`:""}
+  ${frozen?`<span class="small">הפרק נעול אחרי ההגשה.</span>`:""}
+  ${sec.idx<sec.qs.length-1?`<button class="primary" onclick="goQ(${sec.idx+1})">הבא ▶</button>`:(frozen?"":`<button class="primary" onclick="toReview()">סיום פרק והצגת סיכום</button>`)}
  </div></div>`;
  $("app").innerHTML=h;
- if(q.t==="order")bindDrag(o);
+ if(q.t==="order"&&!lock)bindDrag(o);
+ persistLive();
 }
 function feed(o,i){if(!o.done)return"";if(i===o.q.ans)return"good";if(o.ans===i)return"bad";return""}
 function esc(s){return String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))}
@@ -309,37 +417,77 @@ function show(s){
  return out+esc(src.slice(i));
 }
 function cur(){const sec=S.secs[S.cur];return sec.qs[sec.idx]}
-function pick(i){const o=cur();if(o.done)return;o.ans=i;render()}
-function typed(v){const o=cur();o.ans=v;const el=$("ti");const b=document.querySelector(".bar .cur");if(b){b.classList.toggle("ans",v.trim()!=="")}}
-function flag(){const o=cur();o.flag=!o.flag;render()}
+function pick(i){const o=cur();if(o.done||sectionFrozen())return;o.ans=i;render()}
+function typed(v){const o=cur();if(o.done||sectionFrozen())return;o.ans=v;const b=document.querySelector&&document.querySelector(".bar .cur");if(b)b.classList.toggle("ans",String(v).trim()!=="");persistLive()}
+function flag(){if(sectionFrozen())return;const o=cur();o.flag=!o.flag;render()}
 function goQ(i){const sec=S.secs[S.cur];if(i<0||i>=sec.qs.length)return;sec.idx=i;S.view="q";render()}
-function jumpSec(i){i=+i;if(S.secs[i].time===0&&S.secs[i].done){render();return}S.cur=i;runSection()}
-function check(){const o=cur();if(o.q.t==="order"&&!o.touched){alert("סדרו את הרשימה לפני הבדיקה");return}if(!hasAnswer(o)){alert("עוד לא הוקלדה או נבחרה תשובה");return}o.done=true;render()}
-function mv(i,d){const o=cur(),j=i+d;if(j<0||j>=o.arr.length)return;[o.arr[i],o.arr[j]]=[o.arr[j],o.arr[i]];o.touched=true;render()}
+function jumpSec(i){i=+i;if(!S||!S.secs[i])return;if(i===S.cur&&!S.secs[i].done)return;S.cur=i;if(S.secs[i].done){stopTimer();S.view="q";render();return}runSection()}
+function check(){if(sectionFrozen())return;const o=cur();if(o.q.t==="order"&&!o.touched){alert("סדרו את הרשימה לפני הבדיקה");return}if(!hasAnswer(o)){alert("עוד לא הוקלדה או נבחרה תשובה");return}o.done=true;render()}
+function reorder(o,from,to){
+ if(!o||o.done||sectionFrozen()||!Array.isArray(o.arr))return false;
+ from=+from;to=+to;
+ if(!Number.isInteger(from)||!Number.isInteger(to)||from===to||from<0||to<0||from>=o.arr.length||to>=o.arr.length)return false;
+ const [x]=o.arr.splice(from,1);o.arr.splice(to,0,x);o.touched=true;return true;
+}
+function mv(i,d){if(!reorder(cur(),i,i+d))return;render()}
 function bindDrag(o){
- const ul=$("ord");let from=null;
- ul.querySelectorAll("li").forEach(li=>{
-  li.addEventListener("dragstart",e=>{from=+li.dataset.i;li.classList.add("drag");e.dataTransfer.effectAllowed="move"});
-  li.addEventListener("dragend",()=>li.classList.remove("drag"));
-  li.addEventListener("dragover",e=>e.preventDefault());
-  li.addEventListener("drop",e=>{e.preventDefault();const to=+li.dataset.i;if(from===null||from===to||o.done)return;const [x]=o.arr.splice(from,1);o.arr.splice(to,0,x);o.touched=true;render()});
+ const ul=$("ord");
+ if(!ul||!ul.querySelectorAll||!o||o.done||sectionFrozen())return;
+ let from=null,pid=null,startY=0,moved=false,origin=null;
+ const rows=()=>[...ul.querySelectorAll("li")];
+ function nearest(y){
+  const list=rows();
+  let best=0,dist=1/0;
+  list.forEach((el,i)=>{const r=el.getBoundingClientRect();const d=Math.abs(y-(r.top+r.height/2));if(d<dist){dist=d;best=i}});
+  return best;
+ }
+ function clear(){rows().forEach(el=>el.classList.remove("drag","over"));from=null;pid=null;origin=null;moved=false}
+ rows().forEach(li=>{
+  li.addEventListener("dragstart",e=>e.preventDefault());
+  li.addEventListener("pointerdown",e=>{
+   if(o.done||sectionFrozen()||(e.button!=null&&e.button>0))return;
+   if(e.target&&e.target.closest&&e.target.closest("button"))return;
+   from=+li.dataset.i;origin=li;pid=e.pointerId;startY=e.clientY;moved=false;
+   try{li.setPointerCapture(e.pointerId)}catch(err){}
+  });
+  li.addEventListener("pointermove",e=>{
+   if(from===null||li!==origin||e.pointerId!==pid)return;
+   if(Math.abs(e.clientY-startY)>8)moved=true;
+   if(moved&&e.cancelable)e.preventDefault();
+   const to=nearest(e.clientY);
+   if(moved)li.classList.add("drag");
+   rows().forEach((el,i)=>el.classList.toggle("over",moved&&i===to&&i!==from));
+  },{passive:false});
+  li.addEventListener("pointerup",e=>{
+   if(from===null||li!==origin||e.pointerId!==pid)return;
+   const src=from,drop=moved?nearest(e.clientY):src;
+   clear();
+   if(reorder(o,src,drop))render();
+  });
+  li.addEventListener("pointercancel",()=>{if(li===origin)clear()});
  });
 }
 
 /* ===== סיכום פרק וסיום ===== */
-function toReview(){S.view="review";render()}
+function toReview(){if(sectionFrozen())return;S.view="review";render()}
 function renderReview(){
  const sec=S.secs[S.cur];
+ if(sec.done){S.view="q";render();return}
  const un=sec.qs.filter(x=>!hasAnswer(x)).length,fl=sec.qs.filter(x=>x.flag).length;
  let h=`<div class="card"><h2>סיכום פרק ${sec.ch}: ${CH[sec.ch].name}</h2>
- <p>${un?`<b class="no">${un} שאלות ללא תשובה.</b>`:`<b class="ok">כל השאלות נענו.</b>`} ${fl?`${fl} מסומנות לבדיקה.`:""} ${sec.time!==null?`<span class="timer" id="timer">${fmt(sec.time)}</span>`:""}</p>
+ <div class="top"><span></span><button onclick="abandonSession()">יציאה</button></div>
+ <p class="small">רענון הדפדפן ממשיך את הסשן הזה. יציאה מוחקת אותו.</p>
+ <p>${un?`<b class="no">${un} שאלות ללא תשובה.</b>`:`<b class="ok">כל השאלות נענו.</b>`} ${fl?`${fl} מסומנות לבדיקה.`:""} ${timerHtml(sec,false)}</p>
  <div class="bar">${sec.qs.map((x,i)=>`<button class="${hasAnswer(x)?"ans":""} ${x.flag?"flg":""}" onclick="goQ(${i})">${i+1}${x.flag?" ⚑":""}${hasAnswer(x)?"":" ✗"}</button>`).join("")}</div>
  <p class="small">ניחוש עדיף על השארת שאלה ריקה. אפשר לחזור לכל שאלה לפני הסיום.</p>
  <button class="primary" onclick="finishSection()">${S.mode==="sim"&&S.cur<S.secs.length-1?"סיום פרק והמשך לפרק הבא":"סיום והצגת תוצאות"}</button></div>`;
  $("app").innerHTML=h;
+ persistLive();
 }
 function finishSection(){
- stopTimer();const sec=S.secs[S.cur];sec.done=true;
+ stopTimer();
+ if(!S||!S.secs||!S.secs[S.cur]||S.secs[S.cur].done)return;
+ S.secs[S.cur].done=true;
  if(S.mode==="sim"&&S.cur<S.secs.length-1){S.cur++;runSection();return}
  results();
 }
@@ -348,18 +496,19 @@ function results(){
  let tot=0,cor=0,rows="";
  S.secs.forEach(sec=>{let c=0;sec.qs.forEach(o=>{const ok=isCorrect(o);if(ok)c++;tot++;store.res[o.q.id]={ok:!!ok,ts:Date.now()}});cor+=c;
   rows+=`<tr><td>פרק ${sec.ch}: ${CH[sec.ch].name}</td><td>${c} מתוך ${sec.qs.length}</td></tr>`});
- store.sess.push({d:new Date().toLocaleDateString("he-IL"),m:S.mode==="sim"?"סימולציה מלאה":S.label,c:cor,t:tot});save();
+ store.sess.push({d:new Date().toLocaleDateString("he-IL"),m:S.mode==="sim"?"סימולציה מלאה":S.label,c:cor,t:tot});store.live=null;save();
  let h=`<div class="card"><h2>תוצאות: ${cor} מתוך ${tot}</h2><table>${rows}</table></div><div class="card"><h3>סקירת שאלות</h3>`;
  S.secs.forEach(sec=>sec.qs.forEach((o,i)=>{const q=o.q,ok=isCorrect(o);
   let mine="";if(q.t==="mc")mine=o.ans===null?"לא נענתה":q.opts[o.ans];else if(q.t==="typed")mine=o.ans?o.ans:"לא נענתה";else if(q.t==="order")mine=o.touched?o.arr.join(" ← "):"לא סודרה";else mine=o.ans===null?"לא נענתה":"צורה "+(o.perm.indexOf(o.ans)+1);
   const corr=q.t==="mc"?q.opts[q.ans]:q.t==="typed"?q.ans:q.t==="order"?q.items.join(" ← "):(q.t==="shape"?"הצורה הנכונה מוצגת במסך השאלה (תשובה: "+(o.perm.indexOf(q.ans)+1)+" מימין לפי הסדר שהוצג)":"");
   h+=`<div style="border-bottom:1px solid #ddd;padding:8px 0"><b>פרק ${sec.ch}, שאלה ${i+1}</b> <span class="${ok?"ok":"no"}">${ok?"נכון":"לא נכון"}</span>${q.chart?chartHtml(q.chart):""}<div class="q" style="font-size:17px;margin:4px 0">${show(q.q)}</div>`+
-  (q.t==="shape"?(q.matrix?`<div class="matrix">`+q.seq.map(s=>s?`<div class="box">${svg(s,56)}</div>`:`<div class="box qmark">?</div>`).join("")+`</div><div class="box" style="border-color:#2a9d4b">${svg(q.opts[q.ans],56)}</div>`:seqStrip(q.seq,56,`<div class="box" style="border-color:#2a9d4b">${svg(q.opts[q.ans],56)}</div>`)):`<div class="small">התשובה שלך: ${esc(mine)}${ok?"":" · התשובה הנכונה: "+esc(corr)}</div>`)+
+  (q.t==="shape"?(q.matrix?matrixHtml(q.seq,56)+`<div class="box" role="img" aria-label="${escAttr("התשובה: "+shapeName(q.opts[q.ans]))}" style="border-color:#2a9d4b">${svg(q.opts[q.ans],56)}</div>`:seqStrip(q.seq,56,`<div class="box" role="img" aria-label="${escAttr("התשובה: "+shapeName(q.opts[q.ans]))}" style="border-color:#2a9d4b">${svg(q.opts[q.ans],56)}</div>`)):`<div class="small">התשובה שלך: ${esc(mine)}${ok?"":" · התשובה הנכונה: "+esc(corr)}</div>`)+
   `<div class="exp">${show(q.exp)}</div></div>`}));
  h+=`</div><button class="primary" onclick="home()">חזרה לתפריט</button>`;
  $("app").innerHTML=h;S=null;
 }
 
+if(typeof window!=="undefined"&&window.addEventListener)window.addEventListener("pagehide",()=>{if(S)persistLive()});
 let D=null;
 function dayKey(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
 function levelFor(ch){return clampLevel(store.mastery[ch]&&store.mastery[ch].level)}
@@ -497,9 +646,9 @@ function dailyRender(){
   if(q.t==="typed")h+=`<input id="dailyAnswer" type="text" inputmode="decimal" autocomplete="off" aria-label="תשובה" value="${escAttr(D.draft==null?"":String(D.draft))}" oninput="dailyDraft(this.value)" ${D.feedback!==null?"disabled":""}>`;
   else if(q.t==="mc")h+=D.perm.map(i=>`<button type="button" class="opt ${D.choice===i?"sel":""}" data-choice="${i}" onclick="dailyPick(${i})" ${D.feedback!==null?"disabled":""}>${show(q.opts[i])}</button>`).join("");
   else if(q.t==="shape"){
-   if(q.matrix)h+=`<div class="matrix">`+q.seq.map(s=>s?`<div class="box">${svg(s,86)}</div>`:`<div class="box qmark">?</div>`).join("")+`</div>`;
-   else h+=seqStrip(q.seq,64,`<div class="box qmark">?</div>`);
-   h+=`<p class="small">בחרו:</p><div class="optsvg" style="justify-content:center">`+D.perm.map(i=>`<button type="button" class="opt ${D.choice===i?"sel":""}" data-choice="${i}" onclick="dailyPick(${i})" ${D.feedback!==null?"disabled":""}><div class="box" style="border:0">${svg(q.opts[i],80)}</div></button>`).join("")+`</div>`;
+   if(q.matrix)h+=matrixHtml(q.seq,86);
+   else h+=seqStrip(q.seq,64,QMARK);
+   h+=`<p class="small">בחרו:</p><div class="optsvg" style="justify-content:center">`+D.perm.map(i=>`<button type="button" class="opt ${D.choice===i?"sel":""}" data-choice="${i}" aria-label="${escAttr(shapeName(q.opts[i]))}" aria-pressed="${D.choice===i?"true":"false"}" onclick="dailyPick(${i})" ${D.feedback!==null?"disabled":""}><div class="box" style="border:0">${svg(q.opts[i],80)}</div></button>`).join("")+`</div>`;
   }else if(q.t==="order"){
    h+=`<p class="small">הפריט הראשון למעלה. השתמשו בחצים.</p><ul class="ord">`+D.arr.map((t,i)=>`<li><span class="n">${i+1}</span><span class="t">${esc(t)}</span><button type="button" onclick="dailyMove(${i},-1)" ${D.feedback!==null?"disabled":""}>▲</button><button type="button" onclick="dailyMove(${i},1)" ${D.feedback!==null?"disabled":""}>▼</button></li>`).join("")+`</ul>`;
   }
