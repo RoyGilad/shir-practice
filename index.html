@@ -1164,7 +1164,7 @@ function results(){
   const corr=q.t==="mc"?q.opts[q.ans]:q.t==="typed"?q.ans:q.t==="order"?q.items.join(" ← "):(q.t==="shape"?"הצורה הנכונה מוצגת במסך השאלה (תשובה: "+(o.perm.indexOf(q.ans)+1)+" מימין לפי הסדר שהוצג)":"");
   const answered=q.t==="order"?!!o.touched:(o.ans!==null&&o.ans!=="");
   const tone=answered?(ok?"good":"bad"):"";
-  const rightShape=`<div class="box goodbox" role="img" aria-label="${escAttr("התשובה: "+shapeName(q.opts[q.ans]))}">${markHtml(true,true,false)}${svg(q.opts[q.ans],56)}</div>`;
+  const rightShape=q.t!=="shape"?"":`<div class="box goodbox" role="img" aria-label="${escAttr("התשובה: "+shapeName(q.opts[q.ans]))}">${markHtml(true,true,false)}${svg(q.opts[q.ans],56)}</div>`;
   const userShape=q.t==="shape"&&o.ans!=null?`<div class="pick ${tone}">${markHtml(true,ok,!ok)}<span class="small">הבחירה שלך</span><div class="box ${ok?"goodbox":"badbox"}" role="img" aria-label="${escAttr(shapeName(q.opts[o.ans]))}">${svg(q.opts[o.ans],56)}</div></div>`:q.t==="shape"?`<div class="small">לא נבחרה צורה.</div>`:"";
   h+=`<div style="border-bottom:1px solid #ddd;padding:8px 0"><b>פרק ${sec.ch}, שאלה ${i+1}</b> <span class="${ok?"ok":"no"}">${ok?"נכון":"לא נכון"}</span>${q.chart?chartHtml(q.chart):""}<div class="q" style="font-size:17px;margin:4px 0">${show(q.q)}</div>`+
   (q.t==="shape"?(q.matrix?matrixHtml(q.seq,56)+rightShape:seqStrip(q.seq,56,rightShape))+userShape:`<div class="pick ${tone}">${markHtml(answered,ok,answered&&!ok)}<span class="small">התשובה שלך: ${show(mine)}${ok?"":" · התשובה הנכונה: "+show(corr)}</span></div>`)+
