@@ -117,8 +117,89 @@ const Q=BANK;
 /* ===== מצב ושמירה ===== */
 const KEY="shirprep_v2";
 let storageOn=true;
-function blankStore(){return {res:{},sess:[],daily:{},mastery:{},live:null}}
+const BRIDGE_SCHEMA=1;
+const PROBE_MS=150;
+const HEARTBEAT_MS=400;
+const PEER_TTL_MS=1200;
+let tabId="t"+Math.random().toString(36).slice(2,10)+Date.now().toString(36);
+let writeRole="writer";
+let schemaBlocked=false;
+let rememberedRev=0;
+let rememberedDc={};
+let repairLog=[];
+let peerSeen={};
+let pendingPatches=[];
+let probeTimer=null;
+let heartTimer=null;
+let bc=null;
+let saveChain=Promise.resolve();
+let adopting=false;
+function blankStore(){return {res:{},sess:[],daily:{},mastery:{},live:null,rev:0}}
 function plain(v){return !!v&&typeof v==="object"&&!Array.isArray(v)}
+function isDcKey(k){return typeof k==="string"&&k.indexOf("dc:")===0}
+function copyDcEntry(v){
+ if(!plain(v))return null;
+ const draft=v.draft;
+ const shell={};
+ for(const key of Object.keys(v)){if(key!=="draft")shell[key]=v[key]}
+ let cloned;
+ try{cloned=JSON.parse(JSON.stringify(shell))}catch(e){cloned={}}
+ cloned.draft=draft==null?"":(typeof draft==="string"?draft:String(draft));
+ return cloned;
+}
+function snapshotDc(src){
+ const out={};
+ const daily=src&&src.daily;
+ if(!plain(daily))return out;
+ for(const k of Object.keys(daily)){
+  if(isDcKey(k)&&plain(daily[k]))out[k]=copyDcEntry(daily[k]);
+ }
+ return out;
+}
+function inertDc(draft){
+ return {complete:false,day:"",index:0,example:true,feedback:null,draft:draft==null?"":String(draft),choice:null,perm:null,arr:null,touched:false,answers:[],ids:[]};
+}
+function parseDraftObject(draft){
+ if(typeof draft!=="string"||draft==="")return null;
+ try{const o=JSON.parse(draft);return plain(o)?o:null}catch(e){return null}
+}
+function schemaOfDraft(draft){
+ const o=parseDraftObject(draft);
+ const n=o?Number(o.schema):0;
+ return Number.isFinite(n)?n:0;
+}
+function metaSchema(src){
+ const meta=src&&src.daily&&src.daily["dc:meta"];
+ if(!plain(meta))return 0;
+ return schemaOfDraft(meta.draft);
+}
+function rawSchema(base){
+ const meta=base&&base.daily&&base.daily["dc:meta"];
+ if(!plain(meta))return 0;
+ return schemaOfDraft(meta.draft);
+}
+function answersMatch(a,b){
+ if(!a||!b)return false;
+ return String(a.id)===String(b.id)&&!!a.ok===!!b.ok;
+}
+function mergeDailyEntry(fresh,patch){
+ if(!plain(patch))return plain(fresh)?fresh:null;
+ if(!plain(fresh))return patch;
+ if(isDcKey(fresh.day)||isDcKey(patch.day))return fresh;
+ const fa=Array.isArray(fresh.answers)?fresh.answers:[];
+ const pa=Array.isArray(patch.answers)?patch.answers:[];
+ if(fa.length&&Array.isArray(fresh.ids)&&fresh.ids.length&&Array.isArray(patch.ids)&&fresh.ids.map(String).join("|")!==patch.ids.map(String).join("|"))return fresh;
+ if(fresh.complete&&!patch.complete)return fresh;
+ if(fa.length>pa.length)return fresh;
+ if(fa.length&&pa.length>=fa.length){
+  for(let i=0;i<fa.length;i++){if(!answersMatch(fa[i],pa[i]))return fresh}
+ }
+ if(fa.length===pa.length){
+  const fi=Number(fresh.index)||0,pi=Number(patch.index)||0;
+  if(fi>pi&&!patch.complete)return fresh;
+ }
+ return patch;
+}
 function clampLevel(v){return v===2||v===3?v:1}
 function normAnswers(v){
  if(!Array.isArray(v))return [];
@@ -153,6 +234,8 @@ function normDay(v){
 function normalizeStore(raw){
  const next=blankStore();
  if(!plain(raw))return next;
+ const rev=Number(raw.rev);
+ next.rev=Number.isFinite(rev)&&rev>=0?Math.round(rev):0;
  if(plain(raw.res)){
   for(const id of Object.keys(raw.res)){
    const r=raw.res[id];
@@ -170,8 +253,13 @@ function normalizeStore(raw){
  }
  if(plain(raw.daily)){
   for(const k of Object.keys(raw.daily)){
-   const d=normDay(raw.daily[k]);
-   if(d)next.daily[k]=d;
+   if(isDcKey(k)){
+    const d=copyDcEntry(raw.daily[k]);
+    if(d)next.daily[k]=d;
+   }else{
+    const d=normDay(raw.daily[k]);
+    if(d)next.daily[k]=d;
+   }
   }
  }
  if(plain(raw.mastery)){
@@ -183,6 +271,7 @@ function normalizeStore(raw){
    next.mastery.shapes={level:next.mastery["6"].level,history:next.mastery["6"].history.slice()};
   }
  }
+ if(plain(raw.hb)&&raw.hb.id)next.hb={id:String(raw.hb.id),role:raw.hb.role==null?"":String(raw.hb.role),ts:Number(raw.hb.ts)||0,type:raw.hb.type==null?"":String(raw.hb.type)};
  try{
   const session=materialize(raw.live);
   next.live=session?snapshotLive(session):null;
@@ -195,8 +284,266 @@ function loadStore(){
  if(raw==null||raw==="")return blankStore();
  try{return normalizeStore(JSON.parse(raw))}catch(e){return blankStore()}
 }
+function readRaw(){
+ let raw;
+ try{raw=localStorage.getItem(KEY)}catch(e){storageOn=false;return null}
+ if(raw==null||raw==="")return {};
+ try{const parsed=JSON.parse(raw);return plain(parsed)?parsed:{}}catch(e){return {}}
+}
+function ensureDcMeta(base){
+ if(!plain(base.daily))base.daily={};
+ if(plain(base.daily["dc:meta"]))return;
+ if(schemaBlocked)return;
+ if(rawSchema(base)>BRIDGE_SCHEMA)return;
+ base.daily["dc:meta"]=inertDc(JSON.stringify({schema:BRIDGE_SCHEMA,rev:Number(base.rev)||0}));
+}
+function ensureShape(base){
+ if(base.res==null)base.res={};
+ if(base.sess==null)base.sess=[];
+ if(base.daily==null)base.daily={};
+ if(base.mastery==null)base.mastery={};
+ if(!("live" in base))base.live=null;
+}
+function commitPatch(patch){
+ if(!storageOn)return false;
+ patch=patch||{};
+ const base=readRaw();
+ if(base==null)return false;
+ ensureShape(base);
+ const seenSchema=rawSchema(base);
+ if(seenSchema>BRIDGE_SCHEMA){
+  schemaBlocked=true;
+  if(patch.dailyKey||patch.mastery){
+   showUpdateRequired();
+   return false;
+  }
+ }
+ if(patch.reset){
+  const rev=(Number(base.rev)||0)+1;
+  const cleared={res:{},sess:[],daily:{},mastery:{},live:null,rev:rev};
+  ensureDcMeta(cleared);
+  return writeRaw(cleared);
+ }
+ if(patch.res){
+  if(!plain(base.res))base.res={};
+  for(const id of Object.keys(patch.res))base.res[id]=patch.res[id];
+ }
+ if(patch.sessAppend){
+  if(!Array.isArray(base.sess))base.sess=[];
+  base.sess.push(patch.sessAppend);
+ }
+ if(patch.liveSet)base.live=patch.live;
+ if(patch.mastery&&!(seenSchema>BRIDGE_SCHEMA))base.mastery=patch.mastery;
+ if(patch.dailyKey&&!isDcKey(patch.dailyKey)&&!(seenSchema>BRIDGE_SCHEMA)){
+  if(!plain(base.daily))base.daily={};
+  base.daily[patch.dailyKey]=mergeDailyEntry(base.daily[patch.dailyKey],patch.dailyEntry);
+ }
+ if(patch.dc){
+  if(!plain(base.daily))base.daily={};
+  for(const k of Object.keys(patch.dc)){
+   if(isDcKey(k)&&plain(patch.dc[k]))base.daily[k]=copyDcEntry(patch.dc[k]);
+  }
+ }
+ if(patch.hb)base.hb=patch.hb;
+ let nextRev=(Number(base.rev)||0)+1;
+ if(patch.revAtLeast&&nextRev<=patch.revAtLeast)nextRev=patch.revAtLeast+1;
+ base.rev=nextRev;
+ ensureDcMeta(base);
+ return writeRaw(base);
+}
+function writeRaw(base){
+ let text;
+ try{text=JSON.stringify(base)}catch(e){storageOn=false;return false}
+ try{localStorage.setItem(KEY,text)}catch(e){storageOn=false;return false}
+ let parsed;
+ try{parsed=JSON.parse(text)}catch(e){parsed=base}
+ const norm=normalizeStore(parsed);
+ store=norm;
+ rememberedRev=Number(store.rev)||0;
+ rememberedDc=snapshotDc(store);
+ if(metaSchema(store)>BRIDGE_SCHEMA)schemaBlocked=true;
+ return true;
+}
+function savePatch(patch,opt){
+ if(!storageOn)return;
+ opt=opt||{};
+ patch=patch||{};
+ if(schemaBlocked&&(patch.dailyKey||patch.mastery)){showUpdateRequired();return}
+ if(!opt.force&&(writeRole==="readonly"||writeRole==="conflict"))return;
+ if(!opt.force&&writeRole==="probing"){pendingPatches.push(patch);return}
+ const run=()=>{try{commitPatch(patch)}catch(e){storageOn=false}};
+ if(locksOn()&&!opt.sync){
+  let req;
+  try{req=navigator.locks.request(KEY,{mode:"exclusive"},run)}catch(e){storageOn=false;return}
+  if(req&&typeof req.then==="function"){
+   saveChain=saveChain.then(()=>req).catch(()=>{storageOn=false});
+   return req;
+  }
+  return req;
+ }
+ run();
+}
+function locksOn(){
+ return typeof navigator!=="undefined"&&navigator&&navigator.locks&&typeof navigator.locks.request==="function";
+}
+function canPersist(){return !!storageOn&&writeRole==="writer"&&!schemaBlocked}
+function persistNote(){
+ if(!storageOn)return `<p><b>ההתקדמות לא נשמרת.</b> אפשר לתרגל, אבל הדפדפן הזה לא שומר את ההתקדמות.</p>`;
+ if(writeRole==="readonly"||writeRole==="conflict")return `<p><b>האתגר פתוח בלשונית אחרת.</b> סגרו את הלשונית האחרת ורעננו את הדף. <b>ההתקדמות לא נשמרת.</b></p>`;
+ return "";
+}
+function savedDayLine(){
+ if(!storageOn||writeRole==="readonly"||writeRole==="conflict")return "ההתקדמות לא נשמרת.";
+ return "המסע להיום נשמר בדפדפן הזה.";
+}
+function updateRequiredHtml(){
+ return `<div class="card"><h2>יש גרסה חדשה יותר</h2><p>רעננו את הדף כדי להמשיך. הגרסה הזו לא שומרת את מסע היום.</p><p><button type="button" class="primary tap" onclick="reloadPage()">רענון</button></p></div>`;
+}
+function reloadPage(){if(typeof location!=="undefined"&&location&&location.reload)location.reload()}
+function showUpdateRequired(){
+ if(typeof placeDock==="function")placeDock(false);
+ const app=typeof $==="function"?$("app"):null;
+ if(app)app.innerHTML=updateRequiredHtml();
+}
+function channel(){
+ if(bc)return bc;
+ if(typeof BroadcastChannel!=="function")return null;
+ try{
+  bc=new BroadcastChannel(KEY);
+  bc.onmessage=ev=>notePeer(ev&&ev.data);
+ }catch(e){bc=null}
+ return bc;
+}
+function announce(msg){
+ msg=Object.assign({id:tabId,ts:Date.now()},msg||{});
+ const ch=channel();
+ if(ch){try{ch.postMessage(msg)}catch(e){}}
+ else commitPatch({hb:{id:msg.id,role:msg.role||msg.type||"",ts:msg.ts,type:msg.type||""},hbOnly:true});
+}
+function livePeers(){
+ const now=Date.now();
+ const out=[];
+ for(const id of Object.keys(peerSeen)){
+  const p=peerSeen[id];
+  if(!p||now-(Number(p.ts)||0)>PEER_TTL_MS)continue;
+  out.push(p);
+ }
+ return out;
+}
+function notePeer(msg){
+ if(!plain(msg))return;
+ const id=msg.id==null?"":String(msg.id);
+ if(!id||id===tabId)return;
+ peerSeen[id]={id:id,role:msg.role?String(msg.role):String(msg.type||"probe"),ts:Number(msg.ts)||Date.now(),type:msg.type?String(msg.type):""};
+ if((msg.type==="writer"||msg.role==="writer")&&(writeRole==="probing"||writeRole==="conflict"))becomeReadonly();
+ else if((msg.type==="writer"||msg.role==="writer")&&writeRole==="writer")enterConflict();
+ if(writeRole==="writer"&&msg.type==="probe")announce({type:"writer",role:"writer"});
+}
+function flushPending(){
+ const q=pendingPatches;pendingPatches=[];
+ for(const p of q)savePatch(p,{force:true});
+}
+function becomeWriter(){
+ writeRole="writer";
+ if(heartTimer&&typeof clearInterval==="function"){clearInterval(heartTimer);heartTimer=null}
+ announce({type:"writer",role:"writer"});
+ if(typeof setInterval==="function")heartTimer=setInterval(()=>announce({type:"heartbeat",role:"writer"}),HEARTBEAT_MS);
+ flushPending();
+ refreshRoleScreen();
+}
+function becomeReadonly(){
+ if(writeRole==="readonly")return;
+ writeRole="readonly";
+ pendingPatches=[];
+ if(heartTimer&&typeof clearInterval==="function"){clearInterval(heartTimer);heartTimer=null}
+ refreshRoleScreen();
+}
+function enterConflict(){
+ if(writeRole==="conflict")return;
+ writeRole="conflict";
+ pendingPatches=[];
+ if(heartTimer&&typeof clearInterval==="function"){clearInterval(heartTimer);heartTimer=null}
+ announce({type:"conflict",role:"conflict"});
+ if(typeof setTimeout==="function")probeTimer=setTimeout(finishConflict,PROBE_MS);
+ refreshRoleScreen();
+}
+function finishProbe(){
+ if(writeRole!=="probing")return;
+ const peers=livePeers();
+ if(peers.some(p=>p.role==="writer")){becomeReadonly();return}
+ if(peers.length){enterConflict();return}
+ becomeWriter();
+}
+function finishConflict(){
+ if(writeRole!=="conflict")return;
+ const peers=livePeers();
+ if(peers.some(p=>p.role==="writer")){becomeReadonly();return}
+ const ids=peers.map(p=>p.id);
+ ids.push(tabId);
+ ids.sort();
+ if(ids[0]===tabId)becomeWriter();
+ else becomeReadonly();
+}
+function beginNoLock(){
+ writeRole="probing";
+ announce({type:"probe",role:"probing"});
+ if(typeof setTimeout==="function")probeTimer=setTimeout(finishProbe,PROBE_MS);
+ else becomeWriter();
+}
+function refreshRoleScreen(){
+ if(schemaBlocked){showUpdateRequired();return}
+ if(typeof D!=="undefined"&&D){if(typeof dailyRender==="function")dailyRender();return}
+ if(typeof S!=="undefined"&&S){if(typeof render==="function")render();return}
+ if(typeof home==="function")home();
+}
+function onStorageEvent(ev){
+ if(!ev||ev.key!==KEY||ev.newValue==null)return;
+ let parsed;
+ try{parsed=JSON.parse(ev.newValue)}catch(e){return}
+ if(!plain(parsed))return;
+ if(plain(parsed.hb))notePeer(parsed.hb);
+ const incomingRev=Number(parsed.rev)||0;
+ const incomingSchema=rawSchema(parsed);
+ if(incomingSchema>BRIDGE_SCHEMA){
+  schemaBlocked=true;
+  adopting=true;
+  try{store=normalizeStore(parsed);rememberedRev=Number(store.rev)||0;rememberedDc=snapshotDc(store);showUpdateRequired()}finally{adopting=false}
+  return;
+ }
+ const incomingMeta=plain(parsed.daily)&&plain(parsed.daily["dc:meta"]);
+ const hadMeta=rememberedDc&&rememberedDc["dc:meta"];
+ if((rememberedRev>0&&incomingRev<rememberedRev)||(hadMeta&&!incomingMeta)){
+  repairLog.push({reason:!incomingMeta&&hadMeta?"meta":"rev",incomingRev:incomingRev,rememberedRev:rememberedRev,ts:Date.now()});
+  try{console.info("shirprep live-tab repair",repairLog[repairLog.length-1])}catch(e){}
+  commitPatch({dc:rememberedDc,revAtLeast:rememberedRev});
+  refreshRoleScreen();
+  return;
+ }
+ if(incomingRev<rememberedRev)return;
+ adopting=true;
+ try{
+  store=normalizeStore(parsed);
+  rememberedRev=Number(store.rev)||0;
+  rememberedDc=snapshotDc(store);
+  refreshRoleScreen();
+ }finally{adopting=false}
+}
+function listenStorage(){
+ if(typeof window==="undefined"||!window||!window.addEventListener)return;
+ window.addEventListener("pagehide",()=>{if(typeof S!=="undefined"&&S)persistLive({sync:true})});
+ window.addEventListener("storage",onStorageEvent);
+}
+function initConcurrency(){
+ schemaBlocked=metaSchema(store)>BRIDGE_SCHEMA;
+ rememberedRev=Number(store.rev)||0;
+ rememberedDc=snapshotDc(store);
+ listenStorage();
+ if(locksOn()){writeRole="writer";return}
+ if(typeof window!=="undefined"&&window&&typeof setTimeout==="function"){beginNoLock();return}
+ writeRole="writer";
+}
 let store=loadStore();
-function save(){if(!storageOn)return;try{localStorage.setItem(KEY,JSON.stringify(store))}catch(e){storageOn=false}}
+
 let S=null, timerH=null;
 const $=id=>document.getElementById(id);
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
@@ -304,10 +651,10 @@ function home(){
  }else if(saved&&Array.isArray(saved.answers)&&saved.answers.length){
   status=`<p>היום נענו ${saved.answers.length} מתוך 4. ההמשך שמור בדפדפן הזה, בלי שעון.</p>`;
  }
- let h=`<div class="card"><h2>ארבע שאלות קצרות, בלי שעון.</h2>
+ let h=schemaBlocked?updateRequiredHtml():`<div class="card"><h2>ארבע שאלות קצרות, בלי שעון.</h2>
  ${status}
  <button class="primary tap" onclick="dailyStart()">לאתגר של היום</button>
- ${storageOn?"":`<p><b>ההתקדמות לא נשמרת.</b> אפשר לתרגל, אבל הדפדפן הזה לא שומר את ההתקדמות.</p>`}
+ ${persistNote()}
  </div>
  <details class="card"><summary>להורים</summary>
  <p>תרגול, לא מבחן רשמי. התאמה למבחן לא אומתה.</p>
@@ -348,7 +695,7 @@ function cancelReset(){
  if(!box)return;
  box.innerHTML=`<button type="button" class="danger tap" onclick="askReset()">איפוס כל ההתקדמות</button>`;
 }
-function resetAll(){stopTimer();S=null;store=blankStore();save();home()}
+function resetAll(){stopTimer();S=null;D=null;store=blankStore();savePatch({reset:true});home()}
 
 /* ===== התחלת סשן ===== */
 function shortSimItems(){
@@ -423,7 +770,7 @@ function runSection(){
  render();
 }
 function openRestored(){
- if(!S||!S.secs||!S.secs[S.cur]){S=null;store.live=null;save();home();return}
+ if(!S||!S.secs||!S.secs[S.cur]){S=null;store.live=null;savePatch({liveSet:true,live:null});home();return}
  const sec=S.secs[S.cur];
  if(sec.done){stopTimer();S.view="q";render();return}
  if(S.view==="review"){startClock();renderReview();return}
@@ -434,7 +781,7 @@ function snapshotLive(session){
  if(!session||!Array.isArray(session.secs)||!session.secs.length)return null;
  return {mode:session.mode==="sim"?"sim":"practice",label:session.label==null?"":String(session.label),cur:session.cur|0,view:session.view==="review"?"review":"q",secs:session.secs.map(sec=>({ch:sec.ch,idx:sec.idx|0,time:sec.time==null?null:Math.max(0,Math.round(Number(sec.time))||0),done:!!sec.done,qs:sec.qs.map(o=>({id:o.q.id,ans:o.ans==null?null:(o.q.t==="typed"?String(o.ans):o.ans),flag:!!o.flag,done:!!o.done,perm:Array.isArray(o.perm)?o.perm.slice():null,arr:Array.isArray(o.arr)?o.arr.slice():null,touched:!!o.touched}))}))};
 }
-function persistLive(){if(!storageOn||!S)return;const snap=snapshotLive(S);if(!snap)return;store.live=snap;save()}
+function persistLive(opt){if(adopting||!storageOn||!S)return;const snap=snapshotLive(S);if(!snap)return;store.live=snap;savePatch({liveSet:true,live:snap},opt||{})}
 function materialize(v){
  if(!plain(v)||(v.mode!=="sim"&&v.mode!=="practice")||!Array.isArray(v.secs)||!v.secs.length)return null;
  const secs=[];
@@ -468,7 +815,7 @@ function materialize(v){
 }
 function abandonSession(){
  if(!confirm("לצאת? ההתקדמות בסשן זה לא תישמר"))return;
- stopTimer();S=null;store.live=null;save();home();
+ stopTimer();S=null;store.live=null;savePatch({liveSet:true,live:null});home();
 }
 
 /* ===== הצגת שאלה ===== */
@@ -478,7 +825,7 @@ function render(){
  if(sec.done)S.view="q";
  const o=sec.qs[sec.idx],q=o.q;
  const frozen=!!sec.done,lock=!!(o.done||frozen);
- let h=`<div class="card"><div class="top">
+ let h=`<div class="card">${persistNote()}<div class="top">
   <div><select onchange="jumpSec(this.value)">${S.secs.map((s,i)=>`<option value="${i}" ${i==S.cur?"selected":""}>פרק ${s.ch}: ${CH[s.ch].name}${s.done?" · הוגש":""}</option>`).join("")}</select>
   ${S.mode==="practice"?`<span class="chip">${esc(S.label)}</span>`:""}</div>
   <div>${timerHtml(sec,frozen)} <button type="button" class="tap" onclick="abandonSession()">יציאה</button></div></div>
@@ -711,7 +1058,7 @@ function renderReview(){
  if(sec.done){S.view="q";render();return}
  const un=sec.qs.filter(x=>!hasAnswer(x)).length,fl=sec.qs.filter(x=>x.flag).length;
  placeDock(false);
- let h=`<div class="card"><h2>סיכום פרק ${sec.ch}: ${CH[sec.ch].name}</h2>
+ let h=`<div class="card">${persistNote()}<h2>סיכום פרק ${sec.ch}: ${CH[sec.ch].name}</h2>
  <div class="top"><span></span><button type="button" class="tap" onclick="abandonSession()">יציאה</button></div>
  <p class="small">רענון הדפדפן ממשיך את הסשן הזה. יציאה מוחקת אותו.</p>
  <p>${un?`<b class="no">${un} שאלות ללא תשובה.</b>`:`<b class="ok">כל השאלות נענו.</b>`} ${fl?`${fl} מסומנות לבדיקה.`:""} ${timerHtml(sec,false)}</p>
@@ -731,9 +1078,11 @@ function finishSection(){
 function results(){
  stopTimer();
  let tot=0,cor=0,rows="";
- S.secs.forEach(sec=>{let c=0;sec.qs.forEach(o=>{const ok=isCorrect(o);if(ok)c++;tot++;store.res[o.q.id]={ok:!!ok,ts:Date.now()}});cor+=c;
+ const resPatch={};
+ S.secs.forEach(sec=>{let c=0;sec.qs.forEach(o=>{const ok=isCorrect(o);if(ok)c++;tot++;const rec={ok:!!ok,ts:Date.now()};store.res[o.q.id]=rec;resPatch[o.q.id]=rec});cor+=c;
   rows+=`<tr><td>פרק ${sec.ch}: ${CH[sec.ch].name}</td><td>${c} מתוך ${sec.qs.length}</td></tr>`});
- store.sess.push({d:new Date().toLocaleDateString("he-IL"),m:S.mode==="sim"?(S.label||"סימולציית תרגול קצרה"):S.label,c:cor,t:tot});store.live=null;save();
+ const sessEntry={d:new Date().toLocaleDateString("he-IL"),m:S.mode==="sim"?(S.label||"סימולציית תרגול קצרה"):S.label,c:cor,t:tot};
+ store.sess.push(sessEntry);store.live=null;savePatch({res:resPatch,sessAppend:sessEntry,liveSet:true,live:null});
  let h=`<div class="card"><h2>תוצאות: ${cor} מתוך ${tot}</h2><h2>זה תרגול, לא תוצאת מבחן.</h2><table>${rows}</table><p><button type="button" class="primary tap" onclick="continueUntimed()">המשך בלי שעון</button></p></div><div class="card"><h3>סקירת שאלות</h3>`;
  S.secs.forEach(sec=>sec.qs.forEach((o,i)=>{const q=o.q,ok=isCorrect(o);
   let mine="";if(q.t==="mc")mine=o.ans===null?"לא נענתה":q.opts[o.ans];else if(q.t==="typed")mine=o.ans?o.ans:"לא נענתה";else if(q.t==="order")mine=o.touched?o.arr.join(" ← "):"לא סודרה";else mine=o.ans===null?"לא נענתה":"צורה "+(o.perm.indexOf(o.ans)+1);
@@ -749,7 +1098,6 @@ function results(){
  $("app").innerHTML=h;placeDock(false);S=null;
 }
 
-if(typeof window!=="undefined"&&window.addEventListener)window.addEventListener("pagehide",()=>{if(S)persistLive()});
 let D=null;
 function dayKey(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
 function topicKey(q){return q&&Number(q.ch)===6?"shapes":""}
@@ -770,7 +1118,7 @@ function levelsKey(){return "s"+levelForTopic("shapes")}
 function savedSig(){
  const d=store&&store.daily;
  if(!d)return "";
- return Object.keys(d).sort().map(k=>{const ids=d[k]&&Array.isArray(d[k].ids)?d[k].ids.join(","):"";return k+"="+ids}).join(";");
+ return Object.keys(d).filter(k=>k.indexOf("dc:")!==0).sort().map(k=>{const ids=d[k]&&Array.isArray(d[k].ids)?d[k].ids.join(","):"";return k+"="+ids}).join(";");
 }
 function savedDayQuestions(day){
  const saved=store&&store.daily&&store.daily[day];
@@ -851,9 +1199,10 @@ function chartHtml(c){
  return `<div class="chart"><b>${esc(c.title||"")}</b><div class="bars">${cols}</div></div>`;
 }
 function persistDaily(){
- if(!D)return;
- store.daily[D.day]={complete:false,day:D.day,index:D.index,example:!!D.example,feedback:D.feedback===true?true:D.feedback===false?false:null,draft:D.draft==null?"":String(D.draft),choice:D.choice==null?null:D.choice,perm:Array.isArray(D.perm)?D.perm.slice():null,arr:Array.isArray(D.arr)?D.arr.slice():null,touched:!!D.touched,answers:D.answers.map(a=>({id:a.id,ch:a.ch,sub:a.sub||"",ok:!!a.ok})),ids:D.qs.map(q=>q.id)};
- save();
+ if(!D||adopting)return;
+ const entry={complete:false,day:D.day,index:D.index,example:!!D.example,feedback:D.feedback===true?true:D.feedback===false?false:null,draft:D.draft==null?"":String(D.draft),choice:D.choice==null?null:D.choice,perm:Array.isArray(D.perm)?D.perm.slice():null,arr:Array.isArray(D.arr)?D.arr.slice():null,touched:!!D.touched,answers:D.answers.map(a=>({id:a.id,ch:a.ch,sub:a.sub||"",ok:!!a.ok})),ids:D.qs.map(q=>q.id)};
+ store.daily[D.day]=entry;
+ savePatch({dailyKey:D.day,dailyEntry:entry});
 }
 function isIndexPerm(perm,n){
  if(!Array.isArray(perm)||perm.length!==n)return false;
@@ -918,6 +1267,7 @@ function restoreDaily(qs,saved){
 }
 function dailyStart(){
  stopTimer();
+ if(schemaBlocked){showUpdateRequired();return}
  const day=dayKey();
  const saved=store.daily[day];
  if(saved&&saved.complete){dailySummary(saved);return}
@@ -950,7 +1300,7 @@ function dailyRender(){
  if(!D||!D.qs||!D.qs[D.index]){placeDock(false);$("app").innerHTML='<div class="card"><p>לא נמצאה שאלה לתרגול.</p><button type="button" class="primary tap" onclick="home()">חזרה</button></div>';return}
  const q=D.qs[D.index];
  const revealed=D.feedback!==null;
- let h=`<div class="card">${storageOn?"":`<p><b>ההתקדמות לא נשמרת.</b></p>`}<div class="top"><div><b>מסע היום · ${D.index+1}/4 · ${q.ch===6?"צורות · רמה "+q.level:"היכרות"} · בלי שעון</b>${marksHtml(D.answers.length)}</div><button type="button" class="tap" onclick="dailyBack()">חזרה</button></div>`;
+ let h=`<div class="card">${persistNote()}<div class="top"><div><b>מסע היום · ${D.index+1}/4 · ${q.ch===6?"צורות · רמה "+q.level:"היכרות"} · בלי שעון</b>${marksHtml(D.answers.length)}</div><button type="button" class="tap" onclick="dailyBack()">חזרה</button></div>`;
  h+=`<p class="small">${q.ch===6?"רמת הצורות לפי סוג הכלל. זו הגדרת תרגול, לא כיול.":"הנושא הזה בתרגול היכרות, בלי עליית רמה."}</p>`;
  if(D.example){
   placeDock(false);
@@ -1057,14 +1407,14 @@ function dailyNext(){
  const entry={complete:true,answers:D.answers.map(a=>({id:a.id,ch:a.ch,sub:a.sub||"",ok:!!a.ok})),day:D.day,ids:D.qs.map(q=>q.id)};
  store.daily[D.day]=entry;
  applyMastery(entry.answers);
- save();
+ savePatch({dailyKey:D.day,dailyEntry:entry,mastery:store.mastery});
  dailySummary(entry);
 }
 function dailySummary(entry){
  const answers=Array.isArray(entry&&entry.answers)?entry.answers:[];
  const count=answers.filter(a=>a&&a.ok).length;
  placeDock(false);
- $("app").innerHTML=`<div class="card"><h2>השלמתם את מסע היום</h2><p class="scoreline">${count} מתוך 4 נכון.</p><p class="scoreline">זה תרגול, לא תוצאת מבחן.</p><p>גם ניסיונות וקריאת הסבר הם חלק מהלמידה.</p><p>${storageOn?"המסע להיום נשמר בדפדפן הזה.":"ההתקדמות לא נשמרת."} אין קנס אם לא מתרגלים מחר.</p><p><button type="button" class="primary tap" onclick="continueUntimed()">המשך בלי שעון</button> <button type="button" class="tap" onclick="home()">חזרה</button></p></div>`;
+ $("app").innerHTML=`<div class="card"><h2>השלמתם את מסע היום</h2><p class="scoreline">${count} מתוך 4 נכון.</p><p class="scoreline">זה תרגול, לא תוצאת מבחן.</p><p>גם ניסיונות וקריאת הסבר הם חלק מהלמידה.</p><p>${savedDayLine()} אין קנס אם לא מתרגלים מחר.</p><p><button type="button" class="primary tap" onclick="continueUntimed()">המשך בלי שעון</button> <button type="button" class="tap" onclick="home()">חזרה</button></p></div>`;
 }
 function linkSentence(exp){
  const s=String(exp==null?"":exp).trim();
@@ -1086,10 +1436,11 @@ function continueUntimed(){
  stopTimer();
  S=null;
  store.live=null;
- save();
+ savePatch({liveSet:true,live:null});
  home();
 }
 
+initConcurrency();
 home();
 </script>
 </body>
