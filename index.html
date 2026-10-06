@@ -901,7 +901,7 @@ function render(){
  const o=sec.qs[sec.idx],q=o.q;
  const frozen=!!sec.done,lock=!!(o.done||frozen);
  let h=`<div class="card">${persistNote()}<div class="top">
-  <div><select onchange="jumpSec(this.value)">${S.secs.map((s,i)=>`<option value="${i}" ${i==S.cur?"selected":""}>פרק ${s.ch}: ${CH[s.ch].name}${s.done?" · הוגש":""}</option>`).join("")}</select>
+  <div>${sectionSelectHtml()}
   ${S.mode==="practice"?`<span class="chip">${esc(S.label)}</span>`:""}</div>
   <div>${timerHtml(sec,frozen)} <button type="button" class="tap" onclick="abandonSession()">יציאה</button></div></div>
   <p class="small">רענון הדפדפן ממשיך את הסשן הזה. יציאה מוחקת אותו.</p>
@@ -1079,6 +1079,30 @@ function pick(i){const o=cur();if(o.done||sectionFrozen())return;o.ans=i;render(
 function typed(v){const o=cur();if(o.done||sectionFrozen())return;o.ans=v;const b=document.querySelector&&document.querySelector(".bar .cur");if(b)b.classList.toggle("ans",String(v).trim()!=="");persistLive()}
 function flag(){if(sectionFrozen())return;const o=cur();o.flag=!o.flag;render()}
 function goQ(i){const sec=S.secs[S.cur];if(i<0||i>=sec.qs.length)return;sec.idx=i;S.view="q";render()}
+function sectionSelectHtml(){
+ if(S&&S.mode==="practice"){
+  const cur=+S.secs[S.cur].ch;
+  let opts="";
+  for(let c=1;c<=6;c++)opts+=`<option id="${c}" value="${c}"${c===cur?" selected":""}>פרק ${c}: ${CH[c].name}</option>`;
+  return `<select onchange="switchPracticeChapter(this.value,this)">${opts}</select>`;
+ }
+ return `<select onchange="jumpSec(this.value)">${S.secs.map((s,i)=>`<option value="${i}" ${i==S.cur?"selected":""}>פרק ${s.ch}: ${CH[s.ch].name}${s.done?" · הוגש":""}</option>`).join("")}</select>`;
+}
+function switchPracticeChapter(v,el){
+ const next=+v;
+ if(!S||S.mode!=="practice"||!S.secs||!S.secs[S.cur])return;
+ const curCh=+S.secs[S.cur].ch;
+ if(next===curCh)return;
+ const reset=()=>{if(el)el.value=String(curCh);render()};
+ if(!CH[next]){reset();return}
+ if(!confirm("להחליף לפרק אחר? ההתקדמות בפרק הנוכחי לא תישמר.")){reset();return}
+ stopTimer();
+ S=null;
+ store.live=null;
+ savePatch({liveSet:true,live:null});
+ startPractice(next);
+ if(!S)home();
+}
 function jumpSec(i){i=+i;if(!S||!S.secs[i])return;if(i===S.cur&&!S.secs[i].done)return;S.cur=i;if(S.secs[i].done){stopTimer();S.view="q";render();return}runSection()}
 function check(){if(sectionFrozen())return;const o=cur();if(o.q.t==="order"&&!o.touched){alert("סדרו את הרשימה לפני הבדיקה");return}if(!hasAnswer(o)){alert("עוד לא הוקלדה או נבחרה תשובה");return}o.done=true;render()}
 function reorder(o,from,to){
