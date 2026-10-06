@@ -909,7 +909,7 @@ function render(){
  if(sec.done)S.view="q";
  const o=sec.qs[sec.idx],q=o.q;
  const frozen=!!sec.done,lock=!!(o.done||frozen);
- let h=`<div class="card">${persistNote()}<div class="top">
+ let h=`${sessionCardOpen()}${persistNote()}<div class="top">
   <div>${sectionSelectHtml()}
   ${S.mode==="practice"?`<span class="chip">${esc(S.label)}</span>`:""}</div>
   <div>${timerHtml(sec,frozen)} <button type="button" class="tap" onclick="abandonSession()">יציאה</button></div></div>
@@ -944,7 +944,7 @@ function render(){
  $("app").innerHTML=h;
  placeDock(true);
  if(q.t==="order"&&!lock)bindDrag(o);
- persistLive();
+ if(!quietSkinPaint)persistLive();
 }
 function markHtml(revealed,correct,chosen){
  if(!revealed)return"";
@@ -1166,7 +1166,7 @@ function renderReview(){
  if(sec.done){S.view="q";render();return}
  const un=sec.qs.filter(x=>!hasAnswer(x)).length,fl=sec.qs.filter(x=>x.flag).length;
  placeDock(false);
- let h=`<div class="card">${persistNote()}<h2>סיכום פרק ${sec.ch}: ${CH[sec.ch].name}</h2>
+ let h=`${sessionCardOpen()}${persistNote()}<h2>סיכום פרק ${sec.ch}: ${CH[sec.ch].name}</h2>
  <div class="top"><span></span><button type="button" class="tap" onclick="abandonSession()">יציאה</button></div>
  <p class="small">רענון הדפדפן ממשיך את הסשן הזה. יציאה מוחקת אותו.</p>
  <p>${un?`<b class="no">${un} שאלות ללא תשובה.</b>`:`<b class="ok">כל השאלות נענו.</b>`} ${fl?`${fl} מסומנות לבדיקה.`:""} ${timerHtml(sec,false)}</p>
@@ -1174,7 +1174,7 @@ function renderReview(){
  <p class="small">ניחוש עדיף על השארת שאלה ריקה. אפשר לחזור לכל שאלה לפני הסיום.</p>
  <button class="primary" onclick="finishSection()">${S.mode==="sim"&&S.cur<S.secs.length-1?"סיום פרק והמשך לפרק הבא":"סיום והצגת תוצאות"}</button></div>`;
  $("app").innerHTML=h;
- persistLive();
+ if(!quietSkinPaint)persistLive();
 }
 function finishSection(){
  stopTimer();
@@ -1210,7 +1210,10 @@ let D=null;
 let screen="home";
 let sessionUi=null;
 let summaryHold=null;
+let quietSkinPaint=false;
 function onDailySurface(){return !S&&(screen==="daily"||screen==="summary")}
+function onPracticeSurface(){return !!(S&&S.mode==="practice")}
+function onSkinSurface(){return onDailySurface()||onPracticeSurface()}
 function readMetaUi(){
  const meta=store&&store.daily&&store.daily["dc:meta"];
  const obj=meta&&parseDraftObject(meta.draft);
@@ -1246,14 +1249,21 @@ function paintUiChoice(skin,motion){
  else settle();
 }
 function chooseSkin(id){
- if((id!=="kinetic"&&id!=="expedition")||!onDailySurface())return;
+ if((id!=="kinetic"&&id!=="expedition")||!onSkinSurface())return;
  paintUiChoice(id,currentMotion());
 }
 function chooseMotion(mode){
- if((mode!=="on"&&mode!=="reduced"&&mode!=="off")||!onDailySurface())return;
+ if((mode!=="on"&&mode!=="reduced"&&mode!=="off")||!onSkinSurface())return;
  paintUiChoice(currentSkin(),mode);
 }
 function repaintDaily(){
+ if(onPracticeSurface()){
+  quietSkinPaint=true;
+  try{
+   if(S.view==="review")return renderReview();
+   return render();
+  }finally{quietSkinPaint=false}
+ }
  if(screen==="summary")return dailySummary(summaryHold);
  if(screen==="daily"&&D)return dailyRender();
 }
@@ -1273,6 +1283,10 @@ function skinAttrs(){return `data-skin="${currentSkin()}" data-motion="${current
 function skinBlock(){
  const face=skinFace();
  return `<div class="skinhead"><span class="skinmark" aria-hidden="true"></span><span class="skinbrand">${face.brand}</span></div><p class="small skinhint">${face.hint}</p><div class="skinmenu" id="skinMenu" role="group" aria-label="בחירת סגנון">${skinChoice("kinetic","קצב")}${skinChoice("expedition","משלחת")}</div><div class="motionmenu" id="motionMenu" role="group" aria-label="תנועה">${motionChoice("on","תנועה")}${motionChoice("reduced","מופחת")}${motionChoice("off","עצירת תנועה")}</div>`;
+}
+function sessionCardOpen(){
+ if(!(S&&S.mode==="practice"))return `<div class="card">`;
+ return `<div class="card dailyskin" ${skinAttrs()}>${skinBlock()}`;
 }
 function dailyHasDraft(){
  if(!D||!D.qs||!D.qs[D.index]||D.example||D.feedback!==null)return false;
