@@ -99,13 +99,22 @@ details.link>summary{cursor:pointer;min-height:44px;display:flex;align-items:cen
 .dailyskin .skinbrand{font-weight:bold;color:#28379b}
 .dailyskin .skinhint{margin:0 0 8px}
 .dailyskin .skinmark{width:28px;height:28px;flex:0 0 auto;display:inline-block;background:#ffbc8e;border:3px solid #334cc1;border-radius:40% 60% 50% 50%}
-.dailyskin .skinmenu{margin:8px 0 12px}
+.dailyskin .skinmenu,.dailyskin .motionmenu{margin:8px 0 12px}
 .dailyskin button{border-color:#334cc1;color:#334cc1}
 .dailyskin button.primary,.dailyskin button[aria-pressed="true"]{background:#334cc1;color:#fff}
+.dailyskin[data-skin="expedition"]{background:#eef8f8;border:1px solid #c2dddd;border-radius:21px;color:#203a42;box-shadow:0 4px 0 #deeeee}
+.dailyskin[data-skin="expedition"] .skinbrand{color:#326b79}
+.dailyskin[data-skin="expedition"] .skinmark{background:#e3f0eb;border:3px solid #397c8b;border-radius:4px;transform:rotate(45deg)}
+.dailyskin[data-skin="expedition"] button{border-color:#397c8b;color:#326b79}
+.dailyskin[data-skin="expedition"] button.primary,.dailyskin[data-skin="expedition"] button[aria-pressed="true"]{background:#397c8b;color:#fff}
 @keyframes skinfloat{from{transform:translateY(0)}to{transform:translateY(-5px)}}
+@keyframes skinsway{from{transform:rotate(39deg)}to{transform:rotate(51deg)}}
 @media (prefers-reduced-motion:no-preference){
  .dailyskin .skinmark{animation:skinfloat 1.1s ease-in-out infinite alternate}
+ .dailyskin[data-skin="expedition"] .skinmark{animation:none}
+ .dailyskin[data-skin="expedition"][data-motion="on"] .skinmark{animation:skinsway 1.6s ease-in-out infinite alternate}
 }
+.dailyskin[data-motion="off"] .skinmark{animation:none}
 .bar button.qnav-open{background:#fff;color:#1b2a33}
 .bar button.qnav-filled{background:#e7edf2;color:#1b2a33}
 .bar button.qnav-right{background:#1e7a38;color:#fff;border-color:#145c28}
@@ -319,7 +328,7 @@ function ensureDcMeta(base){
  base.daily["dc:meta"]=inertDc(JSON.stringify({schema:BRIDGE_SCHEMA,rev:Number(base.rev)||0}));
 }
 function mergeUiIntoMeta(base, ui){
- if(!ui||!plain(ui)||ui.skin!=="kinetic")return false;
+ if(!ui||!plain(ui))return false;
  if(!plain(base.daily))base.daily={};
  let entry=base.daily["dc:meta"];
  if(!plain(entry)){
@@ -331,7 +340,7 @@ function mergeUiIntoMeta(base, ui){
  const prev=plain(obj.ui)?obj.ui:{};
  const next={};
  for(const k of Object.keys(prev))next[k]=prev[k];
- next.skin="kinetic";
+ next.skin=ui.skin==="expedition"?"expedition":"kinetic";
  if(ui.motion==="on"||ui.motion==="reduced"||ui.motion==="off")next.motion=ui.motion;
  else if(next.motion!=="on"&&next.motion!=="reduced"&&next.motion!=="off")next.motion="reduced";
  if(typeof ui.setAt==="string"&&ui.setAt)next.setAt=ui.setAt;
@@ -1202,24 +1211,68 @@ let screen="home";
 let sessionUi=null;
 let summaryHold=null;
 function onDailySurface(){return !S&&(screen==="daily"||screen==="summary")}
-function currentSkin(){return "kinetic"}
-function chooseSkin(id){
- if(id!=="kinetic"||!onDailySurface())return;
- if(!canPersist()){
-  sessionUi={skin:"kinetic"};
-  repaintDaily();
-  return;
- }
- sessionUi=null;
- savePatch({uiSet:true,ui:{skin:"kinetic",motion:"reduced",setAt:new Date().toISOString()}});
+function readMetaUi(){
+ const meta=store&&store.daily&&store.daily["dc:meta"];
+ const obj=meta&&parseDraftObject(meta.draft);
+ return obj&&plain(obj.ui)?obj.ui:null;
+}
+function currentSkin(){
+ if(sessionUi&&(sessionUi.skin==="kinetic"||sessionUi.skin==="expedition"))return sessionUi.skin;
+ const ui=readMetaUi();
+ if(ui&&(ui.skin==="kinetic"||ui.skin==="expedition"))return ui.skin;
+ return "kinetic";
+}
+function currentMotion(){
+ if(sessionUi&&(sessionUi.motion==="on"||sessionUi.motion==="reduced"||sessionUi.motion==="off"))return sessionUi.motion;
+ const ui=readMetaUi();
+ if(ui&&(ui.motion==="on"||ui.motion==="reduced"||ui.motion==="off"))return ui.motion;
+ return "reduced";
+}
+function paintUiChoice(skin,motion){
+ const stamp={skin:skin,motion:motion};
+ sessionUi=stamp;
  repaintDaily();
+ if(!canPersist())return;
+ const saved=savePatch({uiSet:true,ui:{skin:skin,motion:motion,setAt:new Date().toISOString()}});
+ const settle=()=>{
+  if(sessionUi!==stamp)return;
+  const ui=readMetaUi();
+  if(ui&&ui.skin===skin&&ui.motion===motion){
+   sessionUi=null;
+   repaintDaily();
+  }
+ };
+ if(saved&&typeof saved.then==="function")saved.then(settle,function(){});
+ else settle();
+}
+function chooseSkin(id){
+ if((id!=="kinetic"&&id!=="expedition")||!onDailySurface())return;
+ paintUiChoice(id,currentMotion());
+}
+function chooseMotion(mode){
+ if((mode!=="on"&&mode!=="reduced"&&mode!=="off")||!onDailySurface())return;
+ paintUiChoice(currentSkin(),mode);
 }
 function repaintDaily(){
  if(screen==="summary")return dailySummary(summaryHold);
  if(screen==="daily"&&D)return dailyRender();
 }
+function skinFace(){
+ if(currentSkin()==="expedition")return {brand:"משלחת חשיבה",hint:"ארבע משימות קטנות. מסע בקצב שלך."};
+ return {brand:"מסלול רעיונות",hint:"הסגנון של המסע הוא קצב."};
+}
+function skinChoice(id,label){
+ const on=currentSkin()===id;
+ return `<button type="button" class="tap" data-skin="${id}" aria-pressed="${on?"true":"false"}" onclick="chooseSkin('${id}')">${label}</button>`;
+}
+function motionChoice(mode,label){
+ const on=currentMotion()===mode;
+ return `<button type="button" class="tap" data-motion="${mode}" aria-pressed="${on?"true":"false"}" onclick="chooseMotion('${mode}')">${label}</button>`;
+}
+function skinAttrs(){return `data-skin="${currentSkin()}" data-motion="${currentMotion()}"`}
 function skinBlock(){
- return `<div class="skinhead"><span class="skinmark" aria-hidden="true"></span><span class="skinbrand">מסלול רעיונות</span></div><p class="small skinhint">הסגנון של המסע הוא קצב.</p><div class="skinmenu" id="skinMenu" role="group" aria-label="בחירת סגנון"><button type="button" class="tap" data-skin="kinetic" aria-pressed="true" onclick="chooseSkin('kinetic')">קצב</button></div>`;
+ const face=skinFace();
+ return `<div class="skinhead"><span class="skinmark" aria-hidden="true"></span><span class="skinbrand">${face.brand}</span></div><p class="small skinhint">${face.hint}</p><div class="skinmenu" id="skinMenu" role="group" aria-label="בחירת סגנון">${skinChoice("kinetic","קצב")}${skinChoice("expedition","משלחת")}</div><div class="motionmenu" id="motionMenu" role="group" aria-label="תנועה">${motionChoice("on","תנועה")}${motionChoice("reduced","מופחת")}${motionChoice("off","עצירת תנועה")}</div>`;
 }
 function dailyHasDraft(){
  if(!D||!D.qs||!D.qs[D.index]||D.example||D.feedback!==null)return false;
@@ -1460,7 +1513,7 @@ function dailyRender(){
  screen="daily";
  const q=D.qs[D.index];
  const revealed=D.feedback!==null;
- let h=`<div class="card dailyskin">${skinBlock()}${persistNote()}<div class="top"><div><b>מסע היום · ${D.index+1}/4 · ${q.ch===6?"צורות · רמה "+q.level:"היכרות"} · בלי שעון</b>${marksHtml(D.answers.length)}</div><button type="button" class="tap" onclick="dailyBack()">חזרה</button></div>${dailyQNavHtml()}`;
+ let h=`<div class="card dailyskin" ${skinAttrs()}>${skinBlock()}${persistNote()}<div class="top"><div><b>מסע היום · ${D.index+1}/4 · ${q.ch===6?"צורות · רמה "+q.level:"היכרות"} · בלי שעון</b>${marksHtml(D.answers.length)}</div><button type="button" class="tap" onclick="dailyBack()">חזרה</button></div>${dailyQNavHtml()}`;
  h+=`<p class="small">${q.ch===6?"רמת הצורות לפי סוג הכלל. זו הגדרת תרגול, לא כיול.":"הנושא הזה בתרגול היכרות, בלי עליית רמה."}</p>`;
  if(D.example){
   placeDock(false);
@@ -1577,7 +1630,7 @@ function dailySummary(entry){
  const answers=Array.isArray(entry&&entry.answers)?entry.answers:[];
  const count=answers.filter(a=>a&&a.ok).length;
  placeDock(false);
- $("app").innerHTML=`<div class="card dailyskin">${skinBlock()}<h2>השלמתם את מסע היום</h2>${summaryQNavHtml(answers)}<p class="scoreline">${count} מתוך 4 נכון.</p><p class="scoreline">זה תרגול, לא תוצאת מבחן.</p><p>גם ניסיונות וקריאת הסבר הם חלק מהלמידה.</p><p>${savedDayLine()} אין קנס אם לא מתרגלים מחר.</p><p><button type="button" class="primary tap" onclick="continueUntimed()">המשך בלי שעון</button> <button type="button" class="tap" onclick="home()">חזרה</button></p></div>`;
+ $("app").innerHTML=`<div class="card dailyskin" ${skinAttrs()}>${skinBlock()}<h2>השלמתם את מסע היום</h2>${summaryQNavHtml(answers)}<p class="scoreline">${count} מתוך 4 נכון.</p><p class="scoreline">זה תרגול, לא תוצאת מבחן.</p><p>גם ניסיונות וקריאת הסבר הם חלק מהלמידה.</p><p>${savedDayLine()} אין קנס אם לא מתרגלים מחר.</p><p><button type="button" class="primary tap" onclick="continueUntimed()">המשך בלי שעון</button> <button type="button" class="tap" onclick="home()">חזרה</button></p></div>`;
 }
 function linkSentence(exp){
  const s=String(exp==null?"":exp).trim();
