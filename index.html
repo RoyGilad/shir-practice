@@ -115,6 +115,8 @@ details.link>summary{cursor:pointer;min-height:44px;display:flex;align-items:cen
  .dailyskin[data-skin="expedition"][data-motion="on"] .skinmark{animation:skinsway 1.6s ease-in-out infinite alternate}
 }
 .dailyskin[data-motion="off"] .skinmark{animation:none}
+.dailyskin .stylefold{margin:0 0 4px}
+.dailyskin .stylefold>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:bold}
 .bar button.qnav-open{background:#fff;color:#1b2a33}
 .bar button.qnav-filled{background:#e7edf2;color:#1b2a33}
 .bar button.qnav-right{background:#1e7a38;color:#fff;border-color:#145c28}
@@ -1211,6 +1213,7 @@ let screen="home";
 let sessionUi=null;
 let summaryHold=null;
 let quietSkinPaint=false;
+let styleOpen=false;
 function onDailySurface(){return !S&&(screen==="daily"||screen==="summary")}
 function onPracticeSurface(){return !!(S&&S.mode==="practice")}
 function onSkinSurface(){return onDailySurface()||onPracticeSurface()}
@@ -1280,9 +1283,15 @@ function motionChoice(mode,label){
  return `<button type="button" class="tap" data-motion="${mode}" aria-pressed="${on?"true":"false"}" onclick="chooseMotion('${mode}')">${label}</button>`;
 }
 function skinAttrs(){return `data-skin="${currentSkin()}" data-motion="${currentMotion()}"`}
+function rememberStyle(open){styleOpen=!!open}
+function setStyleOpen(open){
+ styleOpen=!!open;
+ if(onSkinSurface())repaintDaily();
+}
 function skinBlock(){
  const face=skinFace();
- return `<div class="skinhead"><span class="skinmark" aria-hidden="true"></span><span class="skinbrand">${face.brand}</span></div><p class="small skinhint">${face.hint}</p><div class="skinmenu" id="skinMenu" role="group" aria-label="בחירת סגנון">${skinChoice("kinetic","קצב")}${skinChoice("expedition","משלחת")}</div><div class="motionmenu" id="motionMenu" role="group" aria-label="תנועה">${motionChoice("on","תנועה")}${motionChoice("reduced","מופחת")}${motionChoice("off","עצירת תנועה")}</div>`;
+ const fold=styleOpen?" open":"";
+ return `<details class="stylefold"${fold} ontoggle="rememberStyle(this.open)"><summary>סגנון</summary><div class="skinhead"><span class="skinmark" aria-hidden="true"></span><span class="skinbrand">${face.brand}</span></div><p class="small skinhint">${face.hint}</p><div class="skinmenu" id="skinMenu" role="group" aria-label="בחירת סגנון">${skinChoice("kinetic","קצב")}${skinChoice("expedition","משלחת")}</div><div class="motionmenu" id="motionMenu" role="group" aria-label="תנועה">${motionChoice("on","תנועה")}${motionChoice("reduced","מופחת")}${motionChoice("off","עצירת תנועה")}</div></details>`;
 }
 function sessionCardOpen(){
  if(!(S&&S.mode==="practice"))return `<div class="card">`;
