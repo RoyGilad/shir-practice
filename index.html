@@ -94,6 +94,27 @@ details.card>summary+p{margin-top:12px}
 .scoreline{font-size:22px;font-weight:bold;margin:8px 0}
 details.link{margin-top:8px}
 details.link>summary{cursor:pointer;min-height:44px;display:flex;align-items:center}
+.dailyskin{background:#fff9ef;border:1px solid #d9d7dd;border-radius:18px;color:#252953}
+.dailyskin .skinhead{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.dailyskin .skinbrand{font-weight:bold;color:#28379b}
+.dailyskin .skinhint{margin:0 0 8px}
+.dailyskin .skinmark{width:28px;height:28px;flex:0 0 auto;display:inline-block;background:#ffbc8e;border:3px solid #334cc1;border-radius:40% 60% 50% 50%}
+.dailyskin .skinmenu{margin:8px 0 12px}
+.dailyskin button{border-color:#334cc1;color:#334cc1}
+.dailyskin button.primary,.dailyskin button[aria-pressed="true"]{background:#334cc1;color:#fff}
+@keyframes skinfloat{from{transform:translateY(0)}to{transform:translateY(-5px)}}
+@media (prefers-reduced-motion:no-preference){
+ .dailyskin .skinmark{animation:skinfloat 1.1s ease-in-out infinite alternate}
+}
+.bar button.qnav-open{background:#fff;color:#1b2a33}
+.bar button.qnav-filled{background:#e7edf2;color:#1b2a33}
+.bar button.qnav-right{background:#1e7a38;color:#fff;border-color:#145c28}
+.bar button.qnav-wrong{background:#a32020;color:#fff;border-color:#7d1414}
+.qmarkstate{display:inline-block;min-width:1em;margin-inline-start:3px;font-weight:bold;line-height:1}
+.bar button.qnav-right .qmarkstate{border-radius:50%;outline:2px solid #fff;padding:0 2px}
+.bar button.qnav-wrong .qmarkstate{border-radius:0;outline:2px solid #fff;padding:0 2px}
+.bar button.qnav-open .qmarkstate{border-radius:50%;outline:2px solid #1b2a33;padding:0 2px}
+.bar button.qnav.cur{box-shadow:inset 0 0 0 3px #1b2a33}
 </style>
 </head>
 <body>
@@ -297,6 +318,27 @@ function ensureDcMeta(base){
  if(rawSchema(base)>BRIDGE_SCHEMA)return;
  base.daily["dc:meta"]=inertDc(JSON.stringify({schema:BRIDGE_SCHEMA,rev:Number(base.rev)||0}));
 }
+function mergeUiIntoMeta(base, ui){
+ if(!ui||!plain(ui)||ui.skin!=="kinetic")return false;
+ if(!plain(base.daily))base.daily={};
+ let entry=base.daily["dc:meta"];
+ if(!plain(entry)){
+  entry=inertDc(JSON.stringify({schema:BRIDGE_SCHEMA,rev:Number(base.rev)||0}));
+  base.daily["dc:meta"]=entry;
+ }
+ const obj=parseDraftObject(entry.draft);
+ if(!obj)return false;
+ const prev=plain(obj.ui)?obj.ui:{};
+ const next={};
+ for(const k of Object.keys(prev))next[k]=prev[k];
+ next.skin="kinetic";
+ if(ui.motion==="on"||ui.motion==="reduced"||ui.motion==="off")next.motion=ui.motion;
+ else if(next.motion!=="on"&&next.motion!=="reduced"&&next.motion!=="off")next.motion="reduced";
+ if(typeof ui.setAt==="string"&&ui.setAt)next.setAt=ui.setAt;
+ obj.ui=next;
+ entry.draft=JSON.stringify(obj);
+ return true;
+}
 function ensureShape(base){
  if(base.res==null)base.res={};
  if(base.sess==null)base.sess=[];
@@ -345,6 +387,10 @@ function commitPatch(patch){
   }
  }
  if(patch.hb)base.hb=patch.hb;
+ if(patch.uiSet){
+  if(seenSchema>BRIDGE_SCHEMA)return false;
+  if(!mergeUiIntoMeta(base,patch.ui))return false;
+ }
  let nextRev=(Number(base.rev)||0)+1;
  if(patch.revAtLeast&&nextRev<=patch.revAtLeast)nextRev=patch.revAtLeast+1;
  base.rev=nextRev;
@@ -633,11 +679,40 @@ function isCorrect(o){
  if(q.t==="order")return o.arr.join("|")===q.items.join("|")&&o.touched;
 }
 function hasAnswer(o){return o.q.t==="order"?!!o.touched:(o.ans!==null&&o.ans!=="")}
+function navBits(state, current, flagged){
+ let cls="qnav";
+ let icon="○";
+ let name="בלי בדיקה";
+ if(state==="right"){cls+=" qnav-right";icon="✓";name="נכונה"}
+ else if(state==="wrong"){cls+=" qnav-wrong";icon="✗";name="לא נכונה"}
+ else if(state==="filled"){cls+=" qnav-filled";icon="●";name="יש תשובה"}
+ else cls+=" qnav-open";
+ if(current) cls+=" cur";
+ if(flagged) cls+=" flg";
+ return {cls:cls,icon:icon,name:name};
+}
+function questionBar(sec, withCurrent){
+ if(!S||S.mode==="sim"){
+  if(withCurrent)return `<div class="bar">${sec.qs.map((x,i)=>`<button class="${i==sec.idx?"cur":""} ${hasAnswer(x)?"ans":""} ${x.flag?"flg":""}" onclick="goQ(${i})">${i+1}${x.flag?" ⚑":""}</button>`).join("")}</div>`;
+  return `<div class="bar">${sec.qs.map((x,i)=>`<button class="${hasAnswer(x)?"ans":""} ${x.flag?"flg":""}" onclick="goQ(${i})">${i+1}${x.flag?" ⚑":""}${hasAnswer(x)?"":" ✗"}</button>`).join("")}</div>`;
+ }
+ const buttons=sec.qs.map((x,i)=>{
+  let state="open";
+  if(x.done) state=isCorrect(x)?"right":"wrong";
+  else if(hasAnswer(x)) state="filled";
+  const current=!!withCurrent&&i===sec.idx;
+  const bits=navBits(state,current,!!x.flag);
+  const label="שאלה "+(i+1)+(current?", נוכחית":"")+", "+bits.name+(x.flag?", מסומנת":"");
+  return `<button type="button" class="${bits.cls}" aria-current="${current?"true":"false"}" aria-label="${escAttr(label)}" onclick="goQ(${i})">${i+1}<span class="qmarkstate" aria-hidden="true">${bits.icon}</span>${x.flag?" ⚑":""}</button>`;
+ }).join("");
+ return `<div class="bar" role="navigation" aria-label="מספרי שאלות">${buttons}</div>`;
+}
 
 /* ===== מסך בית ===== */
 function home(){
  stopTimer();
  placeDock(false);
+ screen="home";
  const session=materialize(store.live);
  if(session){S=session;openRestored();return}
  S=null;
@@ -831,7 +906,7 @@ function render(){
   <div>${timerHtml(sec,frozen)} <button type="button" class="tap" onclick="abandonSession()">יציאה</button></div></div>
   <p class="small">רענון הדפדפן ממשיך את הסשן הזה. יציאה מוחקת אותו.</p>
   ${frozen?`<p class="exp"><b>הפרק הזה כבר הוגש.</b> התשובות נעולות, והשעון לא מתחיל מחדש.</p>`:""}
-  <div class="bar">${sec.qs.map((x,i)=>`<button class="${i==sec.idx?"cur":""} ${hasAnswer(x)?"ans":""} ${x.flag?"flg":""}" onclick="goQ(${i})">${i+1}${x.flag?" ⚑":""}</button>`).join("")}</div>
+  ${questionBar(sec,true)}
   <div class="small">שאלה ${sec.idx+1} מתוך ${sec.qs.length}</div>`;
  if(S.mode==="practice")h+=`<p class="small">${q.ch===6?"רמת הצורות לפי סוג הכלל. זו הגדרת תרגול, לא כיול.":"הנושא הזה בתרגול היכרות, בלי עליית רמה."}</p>`;
  if(q.chart)h+=chartHtml(q.chart);
@@ -1062,7 +1137,7 @@ function renderReview(){
  <div class="top"><span></span><button type="button" class="tap" onclick="abandonSession()">יציאה</button></div>
  <p class="small">רענון הדפדפן ממשיך את הסשן הזה. יציאה מוחקת אותו.</p>
  <p>${un?`<b class="no">${un} שאלות ללא תשובה.</b>`:`<b class="ok">כל השאלות נענו.</b>`} ${fl?`${fl} מסומנות לבדיקה.`:""} ${timerHtml(sec,false)}</p>
- <div class="bar">${sec.qs.map((x,i)=>`<button class="${hasAnswer(x)?"ans":""} ${x.flag?"flg":""}" onclick="goQ(${i})">${i+1}${x.flag?" ⚑":""}${hasAnswer(x)?"":" ✗"}</button>`).join("")}</div>
+ ${questionBar(sec,false)}
  <p class="small">ניחוש עדיף על השארת שאלה ריקה. אפשר לחזור לכל שאלה לפני הסיום.</p>
  <button class="primary" onclick="finishSection()">${S.mode==="sim"&&S.cur<S.secs.length-1?"סיום פרק והמשך לפרק הבא":"סיום והצגת תוצאות"}</button></div>`;
  $("app").innerHTML=h;
@@ -1099,6 +1174,66 @@ function results(){
 }
 
 let D=null;
+let screen="home";
+let sessionUi=null;
+let summaryHold=null;
+function onDailySurface(){return !S&&(screen==="daily"||screen==="summary")}
+function currentSkin(){return "kinetic"}
+function chooseSkin(id){
+ if(id!=="kinetic"||!onDailySurface())return;
+ if(!canPersist()){
+  sessionUi={skin:"kinetic"};
+  repaintDaily();
+  return;
+ }
+ sessionUi=null;
+ savePatch({uiSet:true,ui:{skin:"kinetic",motion:"reduced",setAt:new Date().toISOString()}});
+ repaintDaily();
+}
+function repaintDaily(){
+ if(screen==="summary")return dailySummary(summaryHold);
+ if(screen==="daily"&&D)return dailyRender();
+}
+function skinBlock(){
+ return `<div class="skinhead"><span class="skinmark" aria-hidden="true"></span><span class="skinbrand">מסלול רעיונות</span></div><p class="small skinhint">הסגנון של המסע הוא קצב.</p><div class="skinmenu" id="skinMenu" role="group" aria-label="בחירת סגנון"><button type="button" class="tap" data-skin="kinetic" aria-pressed="true" onclick="chooseSkin('kinetic')">קצב</button></div>`;
+}
+function dailyHasDraft(){
+ if(!D||!D.qs||!D.qs[D.index]||D.example||D.feedback!==null)return false;
+ const q=D.qs[D.index];
+ if(q.t==="typed")return String(D.draft||"").trim()!=="";
+ if(q.t==="mc"||q.t==="shape")return D.choice!=null&&D.choice!=="";
+ if(q.t==="order")return !!D.touched;
+ return false;
+}
+function dailyNavStay(){}
+function dailyQNavHtml(){
+ const n=Math.max(0,Math.min(4,D.qs.length));
+ const buttons=[];
+ for(let i=0;i<n;i++){
+  let state="open";
+  const a=D.answers&&D.answers[i];
+  const checked=!!(a&&(i<D.index||(i===D.index&&D.feedback!==null)));
+  if(checked) state=a.ok?"right":"wrong";
+  else if(i===D.index&&dailyHasDraft()) state="filled";
+  const current=i===D.index;
+  const bits=navBits(state,current,false);
+  const label="שאלה "+(i+1)+(current?", נוכחית":"")+", "+bits.name;
+  buttons.push(`<button type="button" class="${bits.cls}" aria-current="${current?"true":"false"}" aria-label="${escAttr(label)}" onclick="dailyNavStay()">${i+1}<span class="qmarkstate" aria-hidden="true">${bits.icon}</span></button>`);
+ }
+ return `<div class="bar" role="navigation" aria-label="מספרי שאלות">${buttons.join("")}</div>`;
+}
+function summaryQNavHtml(answers){
+ const n=Math.max(0,Math.min(4,Array.isArray(answers)?answers.length:0));
+ const buttons=[];
+ for(let i=0;i<n;i++){
+  const a=answers[i];
+  const state=a&&a.ok?"right":"wrong";
+  const bits=navBits(state,false,false);
+  const label="שאלה "+(i+1)+", "+bits.name;
+  buttons.push(`<button type="button" class="${bits.cls}" aria-current="false" aria-label="${escAttr(label)}" onclick="dailyNavStay()">${i+1}<span class="qmarkstate" aria-hidden="true">${bits.icon}</span></button>`);
+ }
+ return `<div class="bar" role="navigation" aria-label="מספרי שאלות">${buttons.join("")}</div>`;
+}
 function dayKey(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
 function topicKey(q){return q&&Number(q.ch)===6?"shapes":""}
 function levelForTopic(key){return clampLevel(store.mastery[key]&&store.mastery[key].level)}
@@ -1298,9 +1433,10 @@ function ensureDailyChoice(){
 }
 function dailyRender(){
  if(!D||!D.qs||!D.qs[D.index]){placeDock(false);$("app").innerHTML='<div class="card"><p>לא נמצאה שאלה לתרגול.</p><button type="button" class="primary tap" onclick="home()">חזרה</button></div>';return}
+ screen="daily";
  const q=D.qs[D.index];
  const revealed=D.feedback!==null;
- let h=`<div class="card">${persistNote()}<div class="top"><div><b>מסע היום · ${D.index+1}/4 · ${q.ch===6?"צורות · רמה "+q.level:"היכרות"} · בלי שעון</b>${marksHtml(D.answers.length)}</div><button type="button" class="tap" onclick="dailyBack()">חזרה</button></div>`;
+ let h=`<div class="card dailyskin">${skinBlock()}${persistNote()}<div class="top"><div><b>מסע היום · ${D.index+1}/4 · ${q.ch===6?"צורות · רמה "+q.level:"היכרות"} · בלי שעון</b>${marksHtml(D.answers.length)}</div><button type="button" class="tap" onclick="dailyBack()">חזרה</button></div>${dailyQNavHtml()}`;
  h+=`<p class="small">${q.ch===6?"רמת הצורות לפי סוג הכלל. זו הגדרת תרגול, לא כיול.":"הנושא הזה בתרגול היכרות, בלי עליית רמה."}</p>`;
  if(D.example){
   placeDock(false);
@@ -1411,10 +1547,13 @@ function dailyNext(){
  dailySummary(entry);
 }
 function dailySummary(entry){
+ if(entry)summaryHold=entry;
+ else entry=summaryHold;
+ screen="summary";
  const answers=Array.isArray(entry&&entry.answers)?entry.answers:[];
  const count=answers.filter(a=>a&&a.ok).length;
  placeDock(false);
- $("app").innerHTML=`<div class="card"><h2>השלמתם את מסע היום</h2><p class="scoreline">${count} מתוך 4 נכון.</p><p class="scoreline">זה תרגול, לא תוצאת מבחן.</p><p>גם ניסיונות וקריאת הסבר הם חלק מהלמידה.</p><p>${savedDayLine()} אין קנס אם לא מתרגלים מחר.</p><p><button type="button" class="primary tap" onclick="continueUntimed()">המשך בלי שעון</button> <button type="button" class="tap" onclick="home()">חזרה</button></p></div>`;
+ $("app").innerHTML=`<div class="card dailyskin">${skinBlock()}<h2>השלמתם את מסע היום</h2>${summaryQNavHtml(answers)}<p class="scoreline">${count} מתוך 4 נכון.</p><p class="scoreline">זה תרגול, לא תוצאת מבחן.</p><p>גם ניסיונות וקריאת הסבר הם חלק מהלמידה.</p><p>${savedDayLine()} אין קנס אם לא מתרגלים מחר.</p><p><button type="button" class="primary tap" onclick="continueUntimed()">המשך בלי שעון</button> <button type="button" class="tap" onclick="home()">חזרה</button></p></div>`;
 }
 function linkSentence(exp){
  const s=String(exp==null?"":exp).trim();
