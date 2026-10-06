@@ -126,6 +126,8 @@ details.link>summary{cursor:pointer;min-height:44px;display:flex;align-items:cen
 .bar button.qnav-wrong .qmarkstate{border-radius:0;outline:2px solid #fff;padding:0 2px}
 .bar button.qnav-open .qmarkstate{border-radius:50%;outline:2px solid #1b2a33;padding:0 2px}
 .bar button.qnav.cur{box-shadow:inset 0 0 0 3px #1b2a33}
+.bar.navscroll{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;scrollbar-width:thin;scroll-padding-inline:8px}
+.bar.navscroll button{flex:0 0 auto}
 </style>
 </head>
 <body>
@@ -702,6 +704,14 @@ function navBits(state, current, flagged){
  if(flagged) cls+=" flg";
  return {cls:cls,icon:icon,name:name};
 }
+function revealCurrentNav(){
+ const cur=document.getElementById("qnav-current");
+ if(!cur||cur.id!=="qnav-current"||typeof cur.scrollIntoView!=="function")return;
+ const root=typeof window!=="undefined"?window:null;
+ const x=root?(root.pageXOffset||0):0,y=root?(root.pageYOffset||0):0;
+ try{cur.scrollIntoView({block:"nearest",inline:"nearest"})}catch(e){try{cur.scrollIntoView(false)}catch(e2){return}}
+ if(root&&root.scrollTo)root.scrollTo(x,y);
+}
 function questionBar(sec, withCurrent){
  if(!S||S.mode==="sim"){
   if(withCurrent)return `<div class="bar">${sec.qs.map((x,i)=>`<button class="${i==sec.idx?"cur":""} ${hasAnswer(x)?"ans":""} ${x.flag?"flg":""}" onclick="goQ(${i})">${i+1}${x.flag?" ⚑":""}</button>`).join("")}</div>`;
@@ -714,9 +724,10 @@ function questionBar(sec, withCurrent){
   const current=!!withCurrent&&i===sec.idx;
   const bits=navBits(state,current,!!x.flag);
   const label="שאלה "+(i+1)+(current?", נוכחית":"")+", "+bits.name+(x.flag?", מסומנת":"");
-  return `<button type="button" class="${bits.cls}" aria-current="${current?"true":"false"}" aria-label="${escAttr(label)}" onclick="goQ(${i})">${i+1}<span class="qmarkstate" aria-hidden="true">${bits.icon}</span>${x.flag?" ⚑":""}</button>`;
+  const curId=current?' id="qnav-current"':"";
+  return `<button type="button"${curId} class="${bits.cls}" aria-current="${current?"true":"false"}" aria-label="${escAttr(label)}" onclick="goQ(${i})">${i+1}<span class="qmarkstate" aria-hidden="true">${bits.icon}</span>${x.flag?" ⚑":""}</button>`;
  }).join("");
- return `<div class="bar" role="navigation" aria-label="מספרי שאלות">${buttons}</div>`;
+ return `<div class="bar navscroll" role="navigation" aria-label="מספרי שאלות">${buttons}</div>`;
 }
 
 /* ===== מסך בית ===== */
@@ -945,6 +956,7 @@ function render(){
  </div></div>`;
  $("app").innerHTML=h;
  placeDock(true);
+ revealCurrentNav();
  if(q.t==="order"&&!lock)bindDrag(o);
  if(!quietSkinPaint)persistLive();
 }
@@ -1318,9 +1330,10 @@ function dailyQNavHtml(){
   const current=i===D.index;
   const bits=navBits(state,current,false);
   const label="שאלה "+(i+1)+(current?", נוכחית":"")+", "+bits.name;
-  buttons.push(`<button type="button" class="${bits.cls}" aria-current="${current?"true":"false"}" aria-label="${escAttr(label)}" onclick="dailyNavStay()">${i+1}<span class="qmarkstate" aria-hidden="true">${bits.icon}</span></button>`);
+  const curId=current?' id="qnav-current"':"";
+  buttons.push(`<button type="button"${curId} class="${bits.cls}" aria-current="${current?"true":"false"}" aria-label="${escAttr(label)}" onclick="dailyNavStay()">${i+1}<span class="qmarkstate" aria-hidden="true">${bits.icon}</span></button>`);
  }
- return `<div class="bar" role="navigation" aria-label="מספרי שאלות">${buttons.join("")}</div>`;
+ return `<div class="bar navscroll" role="navigation" aria-label="מספרי שאלות">${buttons.join("")}</div>`;
 }
 function summaryQNavHtml(answers){
  const n=Math.max(0,Math.min(4,Array.isArray(answers)?answers.length:0));
@@ -1332,7 +1345,7 @@ function summaryQNavHtml(answers){
   const label="שאלה "+(i+1)+", "+bits.name;
   buttons.push(`<button type="button" class="${bits.cls}" aria-current="false" aria-label="${escAttr(label)}" onclick="dailyNavStay()">${i+1}<span class="qmarkstate" aria-hidden="true">${bits.icon}</span></button>`);
  }
- return `<div class="bar" role="navigation" aria-label="מספרי שאלות">${buttons.join("")}</div>`;
+ return `<div class="bar navscroll" role="navigation" aria-label="מספרי שאלות">${buttons.join("")}</div>`;
 }
 function dayKey(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
 function topicKey(q){return q&&Number(q.ch)===6?"shapes":""}
@@ -1564,6 +1577,7 @@ function dailyRender(){
  }
  $("app").innerHTML=h+"</div>";
  placeDock(!D.example);
+ revealCurrentNav();
  dailyBind();
 }
 function captureDraft(){
