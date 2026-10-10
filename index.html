@@ -768,7 +768,7 @@ function home(){
  <p class="clocknote">זמן וסדר לא מאומתים. זהו שעון תרגול, לא הדמיה של הבחינה.</p></div>
  <div class="card"><h2>תרגול לפי פרק ותת-נושא</h2><p class="small">אחרי כל תשובה אפשר ללחוץ ״בדיקה״ ולראות הסבר.</p><div class="grid">`;
  for(const c in CH){
-  const qs=Q.filter(q=>q.ch==c&&served(q));
+  const qs=Q.filter(q=>q.ch==c&&inChapterPool(q));
   const held=Q.filter(q=>q.ch==c&&!served(q)).length;
   legacy+=`<div class="card" style="margin:0"><b>פרק ${c}: ${CH[c].name}</b><div class="small">${qs.length} שאלות לתרגול${held?` · ${held} מחוץ ליום`:""} · ${stat(qs)}</div>
   <div class="pbar"><i style="width:${qs.length?Math.round(100*qs.filter(q=>store.res[q.id]&&store.res[q.id].ok).length/qs.length):0}%"></i></div><p>
@@ -827,7 +827,7 @@ function startSim(){
  runSection();
 }
 function startPractice(c,sub){
- const qs=shuffle(Q.filter(q=>served(q)&&q.ch==c&&(!sub||q.sub===sub))).map(prepare);
+ const qs=shuffle(Q.filter(q=>inChapterPool(q)&&q.ch==c&&(!sub||q.sub===sub))).map(prepare);
  if(!qs.length){alert("אין שאלות זמינות בנושא הזה");return}
  S={mode:"practice",label:`תרגול: ${CH[c].name}${sub?" – "+CH[c].subs[sub]:""}`,secs:[{ch:c,qs,idx:0,time:null,done:false}],cur:0,view:"q"};
  runSection();
@@ -1351,11 +1351,19 @@ function dayKey(){const d=new Date();return `${d.getFullYear()}-${String(d.getMo
 function topicKey(q){return q&&Number(q.ch)===6?"shapes":""}
 function levelForTopic(key){return clampLevel(store.mastery[key]&&store.mastery[key].level)}
 function familyOf(q){return q.origin==="v2-parameter-variation"?"v:"+q.rule:"o:"+q.sub}
+/* Three disjoint pools inside one bank (decision log 2026-10-10).
+   Simulation: the ids shortSimItems() picks, exclusive to the short form.
+   Daily: the ids listed here, about half of each larger topic.
+   Chapter practice: every other served item.
+   Saved sessions are restored by id and do not read these pools. */
+const DAILY_IDS=new Set(["mvp-word-2","mvp-word-4","mvp-word-5","q11","q12","q19","q21","mvp-order-2","mvp-order-4","mvp-order-5","ship2-order-01","mvp-analogy-2","q27","q30","q33","mvp-analogy-4","q31","mvp-analogy-6","q37","q36","mvp-data-2","mvp-data-4","mvp-data-6","q46","ship2-shape-01","ship2-shape-04","ship2-shape-06","ship2-shape-08","ship2-shape-10"]);
+function simIds(){return simIds.cache||(simIds.cache=new Set(shortSimItems().map(q=>q.id)))}
+function inSimPool(q){return !!q&&served(q)&&simIds().has(q.id)}
 function inDailyPool(q){
- if(!q||q.origin==="v2-parameter-variation")return false;
- if(q.sub==="family")return q.id==="q23";
- return true;
+ if(!q||!served(q)||q.origin==="v2-parameter-variation")return false;
+ return DAILY_IDS.has(q.id)&&!simIds().has(q.id);
 }
+function inChapterPool(q){return !!q&&served(q)&&!inDailyPool(q)&&!inSimPool(q)}
 function dayShift(day,delta){
  const p=String(day).split("-").map(Number);
  const dt=new Date(Date.UTC(p[0],p[1]-1,p[2]));
@@ -1374,15 +1382,23 @@ function savedDayQuestions(day){
  const qs=saved.ids.map(id=>BANK.find(q=>q&&q.id===String(id)&&served(q)&&q.example));
  return qs.every(Boolean)?qs:null;
 }
-function chooseFromPool(pool,n,slot,blocked){
+/* seen (optional) maps an id to the day number it was last shown.
+   With seen, the topic and then the item shown longest ago come first, so every
+   daily item is reached. The old date rotation only breaks ties. Without seen
+   (invalid day strings) the old rotation is used as before. */
+function chooseFromPool(pool,n,slot,blocked,seen){
  const fams={};
  pool.forEach(q=>{const k=familyOf(q);(fams[k]||(fams[k]=[])).push(q)});
  const keys=Object.keys(fams).sort();
  if(!keys.length)return null;
- for(let step=0;step<keys.length;step++){
-  const arr=fams[keys[(n+slot+step)%keys.length]];
-  for(let j=0;j<arr.length;j++){
-   const q=arr[(Math.floor(n/6)+slot+j)%arr.length];
+ const last=id=>seen&&seen.has(id)?seen.get(id):-1;
+ let order=keys.map((_,step)=>keys[(n+slot+step)%keys.length]);
+ if(seen)order=order.map((k,i)=>({k,i,t:Math.max(...fams[k].map(q=>last(q.id)))})).sort((a,b)=>a.t-b.t||a.i-b.i).map(x=>x.k);
+ for(const k of order){
+  const arr=fams[k];
+  let items=arr.map((_,j)=>arr[(Math.floor(n/6)+slot+j)%arr.length]);
+  if(seen)items=items.map((q,i)=>({q,i,t:last(q.id)})).sort((a,b)=>a.t-b.t||a.i-b.i).map(x=>x.q);
+  for(const q of items){
    if(!blocked(q.id))return q;
   }
  }
@@ -1391,28 +1407,26 @@ function chooseFromPool(pool,n,slot,blocked){
 function poolAt(ch){
  if(Number(ch)===6){
   const level=levelForTopic("shapes");
-  let pool=BANK.filter(q=>served(q)&&q.ch===6&&q.level===level&&q.example);
-  if(!pool.length)pool=BANK.filter(q=>served(q)&&q.ch===6&&q.example);
+  let pool=BANK.filter(q=>inDailyPool(q)&&q.ch===6&&q.level===level&&q.example);
+  if(!pool.length)pool=BANK.filter(q=>inDailyPool(q)&&q.ch===6&&q.example);
   return pool;
  }
- let pool=BANK.filter(q=>served(q)&&Number(q.ch)===Number(ch)&&q.example&&inDailyPool(q));
- if(!pool.length)pool=BANK.filter(q=>served(q)&&Number(q.ch)===Number(ch)&&q.example&&q.origin!=="v2-parameter-variation");
- return pool;
+ return BANK.filter(q=>inDailyPool(q)&&Number(q.ch)===Number(ch)&&q.example);
 }
-function pickOne(ch,slot,n,avoid,used){
+function pickOne(ch,slot,n,avoid,used,seen){
  const blocked=id=>avoid.has(id)||used.has(id);
  const pool=poolAt(ch);
- const hit=chooseFromPool(pool,n,slot,blocked);
+ const hit=chooseFromPool(pool,n,slot,blocked,seen);
  if(hit)return hit;
  const wider=BANK.filter(q=>served(q)&&Number(q.ch)===Number(ch)&&q.example&&inDailyPool(q)&&!blocked(q.id)).sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0);
  if(wider.length)return wider[(n+slot)%wider.length];
  return chooseFromPool(pool,n,slot,id=>used.has(id))||chooseFromPool(pool,n,slot,()=>false);
 }
-function pickDay(day,avoid){
+function pickDay(day,avoid,seen){
  const n=Number(String(day).replaceAll("-",""));
  const chapters=[0,1,2,3].map(i=>(n+i)%6+1);
  const used=new Set();
- return chapters.map((ch,slot)=>{const q=pickOne(ch,slot,n,avoid,used);used.add(q.id);return q});
+ return chapters.map((ch,slot)=>{const q=pickOne(ch,slot,n,avoid,used,seen);used.add(q.id);return q});
 }
 function isRealDay(day){return /^\d{4}-\d{2}-\d{2}$/.test(String(day))&&dayShift(day,0)===String(day)}
 function questionsForDay(day){
@@ -1424,13 +1438,18 @@ function questionsForDay(day){
  const origin="2024-01-01";
  let cursor=String(day)<origin?String(day):origin;
  let prev=[];
+ const lastShown=new Map();
+ let t=0;
  while(cursor<=day){
-  if(!bucket[cursor])bucket[cursor]=pickDay(cursor,new Set(prev.map(q=>q.id)));
+  if(!bucket[cursor])bucket[cursor]=pickDay(cursor,new Set(prev.map(q=>q.id)),lastShown);
   prev=bucket[cursor].slice();
+  let shown=prev;
   if(cursor!==day){
    const saved=savedDayQuestions(cursor);
-   if(saved){const seen=new Set(prev.map(q=>q.id));saved.forEach(q=>{if(!seen.has(q.id))prev.push(q)})}
+   if(saved){const seen=new Set(prev.map(q=>q.id));saved.forEach(q=>{if(!seen.has(q.id))prev.push(q)});shown=saved}
   }
+  shown.forEach(q=>lastShown.set(q.id,t));
+  t++;
   if(cursor===day)return bucket[cursor];
   cursor=dayShift(cursor,1);
  }
