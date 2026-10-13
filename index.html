@@ -160,6 +160,16 @@ let writeRole="writer";
 let schemaBlocked=false;
 let rememberedRev=0;
 let rememberedDc={};
+let rememberedProg={};
+let migratePending=false;
+function cloneProg(p){
+ try{return JSON.parse(JSON.stringify(p||{}))}catch(e){return {}}
+}
+function rememberProgKey(key,val){
+ if(!plain(rememberedProg))rememberedProg={};
+ if(val==null)delete rememberedProg[key];
+ else rememberedProg[key]=cloneProg(val);
+}
 let repairLog=[];
 let peerSeen={};
 let pendingPatches=[];
@@ -168,7 +178,7 @@ let heartTimer=null;
 let bc=null;
 let saveChain=Promise.resolve();
 let adopting=false;
-function blankStore(){return {res:{},sess:[],daily:{},mastery:{},live:null,rev:0}}
+function blankStore(){return {res:{},sess:[],daily:{},mastery:{},live:null,prog:{},rev:0}}
 function plain(v){return !!v&&typeof v==="object"&&!Array.isArray(v)}
 function isDcKey(k){return typeof k==="string"&&k.indexOf("dc:")===0}
 function copyDcEntry(v){
@@ -306,9 +316,25 @@ function normalizeStore(raw){
   }
  }
  if(plain(raw.hb)&&raw.hb.id)next.hb={id:String(raw.hb.id),role:raw.hb.role==null?"":String(raw.hb.role),ts:Number(raw.hb.ts)||0,type:raw.hb.type==null?"":String(raw.hb.type)};
+ if(plain(raw.prog)){
+  next.prog={};
+  for(const k of Object.keys(raw.prog)){
+   if(!plain(raw.prog[k]))continue;
+   try{
+    const session=materialize(raw.prog[k]);
+    const snap=session?snapshotLive(session):null;
+    if(snap)next.prog[k]=snap;
+   }catch(e){}
+  }
+ }
  try{
   const session=materialize(raw.live);
-  next.live=session?snapshotLive(session):null;
+  if(session&&session.mode==="practice"){
+   const snap=snapshotLive(session);
+   const key=snap?keyFromSnap(snap):null;
+   if(snap&&key&&!next.prog[key])next.prog[key]=snap;
+   next.live=null;
+  }else next.live=session?snapshotLive(session):null;
  }catch(e){next.live=null}
  return next;
 }
@@ -316,7 +342,11 @@ function loadStore(){
  let raw;
  try{raw=localStorage.getItem(KEY)}catch(e){storageOn=false;return blankStore()}
  if(raw==null||raw==="")return blankStore();
- try{return normalizeStore(JSON.parse(raw))}catch(e){return blankStore()}
+ try{
+  const parsed=JSON.parse(raw);
+  if(plain(parsed)&&plain(parsed.live)&&parsed.live.mode==="practice")migratePending=true;
+  return normalizeStore(parsed);
+ }catch(e){return blankStore()}
 }
 function readRaw(){
  let raw;
@@ -375,7 +405,7 @@ function commitPatch(patch){
  }
  if(patch.reset){
   const rev=(Number(base.rev)||0)+1;
-  const cleared={res:{},sess:[],daily:{},mastery:{},live:null,rev:rev};
+  const cleared={res:{},sess:[],daily:{},mastery:{},live:null,prog:{},rev:rev};
   ensureDcMeta(cleared);
   return writeRaw(cleared);
  }
@@ -388,6 +418,13 @@ function commitPatch(patch){
   base.sess.push(patch.sessAppend);
  }
  if(patch.liveSet)base.live=patch.live;
+ if((!("prog" in base)||base.prog==null)&&rememberedProg&&Object.keys(rememberedProg).length)base.prog=cloneProg(rememberedProg);
+ if(patch.progReplace&&plain(patch.progReplace))base.prog=cloneProg(patch.progReplace);
+ if(patch.progKey){
+  if(!plain(base.prog))base.prog={};
+  if(patch.progVal==null)delete base.prog[patch.progKey];
+  else base.prog[patch.progKey]=patch.progVal;
+ }
  if(patch.mastery&&!(seenSchema>BRIDGE_SCHEMA))base.mastery=patch.mastery;
  if(patch.dailyKey&&!isDcKey(patch.dailyKey)&&!(seenSchema>BRIDGE_SCHEMA)){
   if(!plain(base.daily))base.daily={};
@@ -420,6 +457,7 @@ function writeRaw(base){
  store=norm;
  rememberedRev=Number(store.rev)||0;
  rememberedDc=snapshotDc(store);
+ if(plain(base.prog))rememberedProg=cloneProg(base.prog);
  if(metaSchema(store)>BRIDGE_SCHEMA)schemaBlocked=true;
  return true;
 }
@@ -566,7 +604,14 @@ function onStorageEvent(ev){
  if(incomingSchema>BRIDGE_SCHEMA){
   schemaBlocked=true;
   adopting=true;
-  try{store=normalizeStore(parsed);rememberedRev=Number(store.rev)||0;rememberedDc=snapshotDc(store);showUpdateRequired()}finally{adopting=false}
+  try{
+   store=normalizeStore(parsed);
+   if(!plain(parsed.prog))store.prog=mergeRememberedProg(store.prog);
+   else rememberedProg=cloneProg(store.prog);
+   rememberedRev=Number(store.rev)||0;
+   rememberedDc=snapshotDc(store);
+   showUpdateRequired();
+  }finally{adopting=false}
   return;
  }
  const incomingMeta=plain(parsed.daily)&&plain(parsed.daily["dc:meta"]);
@@ -582,10 +627,27 @@ function onStorageEvent(ev){
  adopting=true;
  try{
   store=normalizeStore(parsed);
+  const practiceLive=plain(parsed.live)&&parsed.live.mode==="practice";
+  if(!plain(parsed.prog)){
+   store.prog=mergeRememberedProg(store.prog);
+   if(Object.keys(store.prog).length||practiceLive){
+    const patch={progReplace:cloneProg(store.prog)};
+    if(practiceLive){patch.liveSet=true;patch.live=null}
+    commitPatch(patch);
+   }
+  }else rememberedProg=cloneProg(store.prog);
   rememberedRev=Number(store.rev)||0;
   rememberedDc=snapshotDc(store);
   refreshRoleScreen();
  }finally{adopting=false}
+}
+function mergeRememberedProg(incoming){
+ const merged=cloneProg(rememberedProg);
+ if(plain(incoming)){
+  for(const k of Object.keys(incoming))if(!merged[k])merged[k]=incoming[k];
+ }
+ rememberedProg=cloneProg(merged);
+ return merged;
 }
 function listenStorage(){
  if(typeof window==="undefined"||!window||!window.addEventListener)return;
@@ -602,10 +664,15 @@ function initConcurrency(){
  writeRole="writer";
 }
 let store=loadStore();
+rememberedProg=cloneProg(store.prog);
+if(migratePending){
+ migratePending=false;
+ savePatch({liveSet:true,live:null,progReplace:cloneProg(store.prog)});
+}
 
 let S=null, timerH=null;
 const $=id=>document.getElementById(id);
-const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 function dotLayout(n){
  n=Math.round(Number(n));
  if(!Number.isFinite(n)||n<1)return {r:8,p:[]};
@@ -736,7 +803,7 @@ function home(){
  placeDock(false);
  screen="home";
  const session=materialize(store.live);
- if(session){S=session;openRestored();return}
+ if(session&&session.mode==="sim"){S=session;openRestored();return}
  S=null;
  const day=dayKey();
  const saved=store.daily[day];
@@ -772,8 +839,8 @@ function home(){
   const held=Q.filter(q=>q.ch==c&&!served(q)).length;
   legacy+=`<div class="card" style="margin:0"><b>פרק ${c}: ${CH[c].name}</b><div class="small">${qs.length} שאלות לתרגול${held?` · ${held} מחוץ ליום`:""} · ${stat(qs)}</div>
   <div class="pbar"><i style="width:${qs.length?Math.round(100*qs.filter(q=>store.res[q.id]&&store.res[q.id].ok).length/qs.length):0}%"></i></div><p>
-  <button class="primary" onclick="startPractice(${c})">כל הפרק</button></p>`;
-  for(const s in CH[c].subs){const sq=qs.filter(q=>q.sub===s);if(!sq.length)continue;legacy+=`<div><button style="margin:3px 0" onclick="startPractice(${c},'${s}')">${CH[c].subs[s]} (${sq.length})</button> <span class="small">${stat(sq)}</span></div>`}
+  ${progActions(String(c))||`<button class="primary" onclick="startPractice(${c})">כל הפרק</button>`}</p>`;
+  for(const s in CH[c].subs){const sq=qs.filter(q=>q.sub===s);if(!sq.length)continue;const savedTopic=progActions(String(c)+":"+s);legacy+=savedTopic?`<div><span>${CH[c].subs[s]} (${sq.length})</span> ${savedTopic} <span class="small">${stat(sq)}</span></div>`:`<div><button style="margin:3px 0" onclick="startPractice(${c},'${s}')">${CH[c].subs[s]} (${sq.length})</button> <span class="small">${stat(sq)}</span></div>`}
   legacy+=`</div>`;
  }
  legacy+=`</div></div>`;
@@ -815,10 +882,24 @@ function startSim(){
  S={mode:"sim",label:"סימולציית תרגול קצרה",secs,cur:0,view:"q"};
  runSection();
 }
+function practiceQuestions(c,sub){
+ const pool=Q.filter(q=>inChapterPool(q)&&q.ch==c&&(!sub||q.sub===sub));
+ const groups=[];
+ const index={};
+ pool.forEach(q=>{
+  const k=q.sub||"";
+  if(!index[k]){index[k]={sub:k,items:[]};groups.push(index[k])}
+  index[k].items.push(q);
+ });
+ const out=[];
+ shuffle(groups).forEach(b=>shuffle(b.items).forEach(q=>out.push(prepare(q))));
+ return out;
+}
 function startPractice(c,sub){
- const qs=shuffle(Q.filter(q=>inChapterPool(q)&&q.ch==c&&(!sub||q.sub===sub))).map(prepare);
+ const qs=practiceQuestions(c,sub);
  if(!qs.length){alert("אין שאלות זמינות בנושא הזה");return}
- S={mode:"practice",label:`תרגול: ${CH[c].name}${sub?" – "+CH[c].subs[sub]:""}`,secs:[{ch:c,qs,idx:0,time:null,done:false}],cur:0,view:"q"};
+ const key=progKey(c,sub);
+ S={mode:"practice",pk:key,intro:[],label:`תרגול: ${CH[c].name}${sub?" – "+CH[c].subs[sub]:""}`,secs:[{ch:c,qs,idx:0,time:null,done:false}],cur:0,view:"q"};
  runSection();
 }
 function sectionFrozen(){return !!(S&&S.secs&&S.secs[S.cur]&&S.secs[S.cur].done)}
@@ -865,19 +946,54 @@ function openRestored(){
 function snapshotLive(session){
  session=session||S;
  if(!session||!Array.isArray(session.secs)||!session.secs.length)return null;
- return {mode:session.mode==="sim"?"sim":"practice",label:session.label==null?"":String(session.label),cur:session.cur|0,view:session.view==="review"?"review":"q",secs:session.secs.map(sec=>({ch:sec.ch,idx:sec.idx|0,time:sec.time==null?null:Math.max(0,Math.round(Number(sec.time))||0),done:!!sec.done,qs:sec.qs.map(o=>({id:o.q.id,ans:o.ans==null?null:(o.q.t==="typed"?String(o.ans):o.ans),flag:!!o.flag,done:!!o.done,perm:Array.isArray(o.perm)?o.perm.slice():null,arr:Array.isArray(o.arr)?o.arr.slice():null,touched:!!o.touched}))}))};
+ const snap={mode:session.mode==="sim"?"sim":"practice",label:session.label==null?"":String(session.label),cur:session.cur|0,view:session.view==="review"?"review":"q",secs:session.secs.map(sec=>({ch:sec.ch,idx:sec.idx|0,time:sec.time==null?null:Math.max(0,Math.round(Number(sec.time))||0),done:!!sec.done,qs:sec.qs.map(o=>({id:o.q.id,ans:o.ans==null?null:(o.q.t==="typed"?String(o.ans):o.ans),flag:!!o.flag,done:!!o.done,perm:Array.isArray(o.perm)?o.perm.slice():null,arr:Array.isArray(o.arr)?o.arr.slice():null,touched:!!o.touched}))}))};
+ if(Array.isArray(session.intro))snap.intro=session.intro.map(x=>String(x));
+ return snap;
 }
-function persistLive(opt){if(adopting||!storageOn||!S)return;const snap=snapshotLive(S);if(!snap)return;store.live=snap;savePatch({liveSet:true,live:snap},opt||{})}
+function progKey(ch,sub){return sub?String(ch)+":"+String(sub):String(ch)}
+function keyFromSnap(snap){
+ const sec=snap&&Array.isArray(snap.secs)?snap.secs[0]:null;
+ if(!sec)return null;
+ const ch=sec.ch;
+ const text=String(snap.label||"");
+ const sep=" – ";
+ const at=text.indexOf(sep);
+ if(at>=0&&CH[ch]){
+  const name=text.slice(at+sep.length);
+  for(const s in CH[ch].subs)if(CH[ch].subs[s]===name)return progKey(ch,s);
+ }
+ return progKey(ch);
+}
+function persistLive(opt){
+ if(adopting||!storageOn||!S)return;
+ const snap=snapshotLive(S);
+ if(!snap)return;
+ if(S.mode==="practice"){
+  const key=S.pk||keyFromSnap(snap);
+  if(!key)return;
+  S.pk=key;
+  if(!plain(store.prog))store.prog={};
+  store.prog[key]=snap;
+  rememberProgKey(key,snap);
+  const patch={progKey:key,progVal:snap};
+  if(store.live&&store.live.mode==="practice"){store.live=null;patch.liveSet=true;patch.live=null}
+  savePatch(patch,opt||{});
+  return;
+ }
+ store.live=snap;
+ savePatch({liveSet:true,live:snap},opt||{});
+}
 function materialize(v){
  if(!plain(v)||(v.mode!=="sim"&&v.mode!=="practice")||!Array.isArray(v.secs)||!v.secs.length)return null;
  const secs=[];
  for(const sec of v.secs){
   if(!plain(sec)||!Array.isArray(sec.qs)||!sec.qs.length)return null;
-  const qs=[];
-  for(const item of sec.qs){
+  const kept=[];
+  for(let i=0;i<sec.qs.length;i++){
+   const item=sec.qs[i];
    if(!plain(item))return null;
    const q=Q.find(x=>x&&x.id===String(item.id)&&served(x));
-   if(!q)return null;
+   if(!q)continue;
    const o={q,ans:null,flag:!!item.flag,done:!!item.done,touched:false};
    if(q.t==="mc"||q.t==="shape"){
     const n=Array.isArray(q.opts)?q.opts.length:0;
@@ -887,21 +1003,102 @@ function materialize(v){
     if(isItemOrder(item.arr,q.items)){o.arr=item.arr.map(x=>String(x));o.touched=!!item.touched}
     else{o.arr=shuffle(q.items.slice());if(o.arr.join("|")===q.items.join("|"))o.arr.reverse();o.touched=false}
    }else o.ans=item.ans==null?null:String(item.ans);
-   qs.push(o);
+   kept.push({o:o,at:i});
+  }
+  if(!kept.length)continue;
+  let want=Number(sec.idx);
+  let mapped=0;
+  if(kept.length===sec.qs.length){
+   mapped=Number.isInteger(want)&&want>=0&&want<kept.length?want:0;
+  }else{
+   if(!Number.isInteger(want)||want<0)want=0;
+   mapped=kept.findIndex(k=>k.at===want);
+   if(mapped<0){
+    mapped=kept.findIndex(k=>k.at>want);
+    if(mapped<0)mapped=kept.length-1;
+   }
   }
   let time=null;
   if(sec.time!=null&&sec.time!==""){const n=Number(sec.time);if(Number.isFinite(n))time=Math.max(0,Math.round(n))}
-  let idx=Number(sec.idx);
-  if(!Number.isInteger(idx)||idx<0||idx>=qs.length)idx=0;
-  secs.push({ch:qs[0].q.ch,qs,idx,time,done:!!sec.done});
+  secs.push({ch:kept[0].o.q.ch,qs:kept.map(k=>k.o),idx:mapped,time,done:!!sec.done});
  }
+ if(!secs.length)return null;
  let cur=Number(v.cur);
  if(!Number.isInteger(cur)||cur<0||cur>=secs.length)cur=0;
- return {mode:v.mode,label:v.label==null?"":String(v.label),secs,cur,view:v.view==="review"?"review":"q"};
+ const out={mode:v.mode,label:v.label==null?"":String(v.label),secs,cur,view:v.view==="review"?"review":"q"};
+ if(Array.isArray(v.intro))out.intro=v.intro.map(x=>String(x));
+ return out;
 }
 function abandonSession(){
  if(!confirm("לצאת? ההתקדמות בסשן זה לא תישמר"))return;
  stopTimer();S=null;store.live=null;savePatch({liveSet:true,live:null});home();
+}
+function exitPractice(){
+ persistLive({sync:true});
+ stopTimer();
+ S=null;
+ home();
+}
+function clearProgKey(key){
+ rememberProgKey(key,null);
+ if(store.prog)delete store.prog[key];
+ savePatch({progKey:key,progVal:null});
+}
+function resumePractice(key){
+ const snap=store.prog&&store.prog[key];
+ const session=snap?materialize(snap):null;
+ if(!session){clearProgKey(key);home();return}
+ session.pk=key;
+ S=session;
+ openRestored();
+}
+function restartPractice(key){
+ if(!confirm("להתחיל מחדש? ההתקדמות השמורה בנושא הזה תימחק."))return;
+ if(S&&S.pk===key){stopTimer();S=null}
+ clearProgKey(key);
+ home();
+}
+function progActions(key){
+ const snap=store.prog&&store.prog[key];
+ if(!snap)return "";
+ const session=materialize(snap);
+ if(!session){clearProgKey(key);return ""}
+ const sec=session.secs[session.cur]||session.secs[0];
+ const m=sec&&sec.qs?sec.qs.length:0;
+ if(!m){clearProgKey(key);return ""}
+ const n=Math.min(Math.max(0,sec.idx|0),m-1)+1;
+ return `<button type="button" class="primary tap" onclick="resumePractice('${key}')">להמשיך מהשאלה ${n} מתוך ${m}</button> <button type="button" class="tap" onclick="restartPractice('${key}')">להתחיל מחדש</button>`;
+}
+function exitControl(){
+ if(S&&S.mode==="practice")return `<button type="button" class="tap" onclick="exitPractice()">יציאה</button>`;
+ return `<button type="button" class="tap" onclick="abandonSession()">יציאה</button>`;
+}
+function exitNote(){
+ if(S&&S.mode==="practice")return `<p class="small">רענון הדפדפן ממשיך את הסשן הזה. היציאה שומרת את ההתקדמות.</p>`;
+ return `<p class="small">רענון הדפדפן ממשיך את הסשן הזה. יציאה מוחקת אותו.</p>`;
+}
+function blockSubAt(sec,idx){
+ const q=sec&&sec.qs&&sec.qs[idx]&&sec.qs[idx].q;
+ return q?String(q.sub||""):"";
+}
+function introPending(sec){
+ if(!S||S.mode!=="practice"||!Array.isArray(S.intro)||!sec||!sec.qs||!sec.qs.length)return false;
+ const idx=sec.idx|0;
+ if(idx>0&&blockSubAt(sec,idx)===blockSubAt(sec,idx-1))return false;
+ return S.intro.indexOf(blockSubAt(sec,idx))<0;
+}
+function dismissIntro(){
+ if(!S||!Array.isArray(S.intro))return;
+ const sec=S.secs[S.cur];
+ const sub=blockSubAt(sec,sec.idx|0);
+ if(S.intro.indexOf(sub)<0)S.intro.push(sub);
+ render();
+}
+function practiceIntroHtml(q){
+ return `<h2>קודם מבינים את הדרך</h2><div class="exp">${show(q.example)}</div><p>קראו את הדרך ואז נסו שאלה דומה. מותר לטעות.</p><button type="button" class="primary tap" onclick="dismissIntro()">עכשיו אני מנסה</button>`;
+}
+function practiceExampleHtml(q){
+ return `<details><summary>הצגת דוגמה</summary><div class="exp">${show(q.example)}</div></details>`;
 }
 
 /* ===== הצגת שאלה ===== */
@@ -914,14 +1111,23 @@ function render(){
  let h=`${sessionCardOpen()}${persistNote()}<div class="top">
   <div>${sectionSelectHtml()}
   ${S.mode==="practice"?`<span class="chip">${esc(S.label)}</span>`:""}</div>
-  <div>${timerHtml(sec,frozen)} <button type="button" class="tap" onclick="abandonSession()">יציאה</button></div></div>
-  <p class="small">רענון הדפדפן ממשיך את הסשן הזה. יציאה מוחקת אותו.</p>
+  <div>${timerHtml(sec,frozen)} ${exitControl()}</div></div>
+  ${exitNote()}
   ${frozen?`<p class="exp"><b>הפרק הזה כבר הוגש.</b> התשובות נעולות, והשעון לא מתחיל מחדש.</p>`:""}
   ${questionBar(sec,true)}
   <div class="small">שאלה ${sec.idx+1} מתוך ${sec.qs.length}</div>`;
  if(S.mode==="practice")h+=`<p class="small">${q.ch===6?"רמת הצורות לפי סוג הכלל. זו הגדרת תרגול, לא כיול.":"הנושא הזה בתרגול היכרות, בלי עליית רמה."}</p>`;
+ if(introPending(sec)){
+  h+=practiceIntroHtml(q)+`</div>`;
+  $("app").innerHTML=h;
+  placeDock(false);
+  revealCurrentNav();
+  if(!quietSkinPaint)persistLive();
+  return;
+ }
  if(q.chart)h+=chartHtml(q.chart);
  h+=`<div class="q">${show(q.q)}</div>`;
+ if(S.mode==="practice")h+=practiceExampleHtml(q);
  if(q.t==="shape"){
   if(q.matrix)h+=matrixHtml(q.seq,86);
   else h+=seqStrip(q.seq,64,QMARK);
@@ -1105,13 +1311,14 @@ function switchPracticeChapter(v,el){
  if(!S||S.mode!=="practice"||!S.secs||!S.secs[S.cur])return;
  const curCh=+S.secs[S.cur].ch;
  if(next===curCh)return;
- const reset=()=>{if(el)el.value=String(curCh);render()};
- if(!CH[next]){reset();return}
- if(!confirm("להחליף לפרק אחר? ההתקדמות בפרק הנוכחי לא תישמר.")){reset();return}
+ if(!CH[next]){if(el)el.value=String(curCh);render();return}
+ persistLive({sync:true});
  stopTimer();
+ const key=progKey(next);
+ const saved=store.prog&&store.prog[key];
+ const session=saved?materialize(saved):null;
+ if(session){session.pk=key;S=session;openRestored();return}
  S=null;
- store.live=null;
- savePatch({liveSet:true,live:null});
  startPractice(next);
  if(!S)home();
 }
@@ -1170,8 +1377,8 @@ function renderReview(){
  const un=sec.qs.filter(x=>!hasAnswer(x)).length,fl=sec.qs.filter(x=>x.flag).length;
  placeDock(false);
  let h=`${sessionCardOpen()}${persistNote()}<h2>סיכום פרק ${sec.ch}: ${CH[sec.ch].name}</h2>
- <div class="top"><span></span><button type="button" class="tap" onclick="abandonSession()">יציאה</button></div>
- <p class="small">רענון הדפדפן ממשיך את הסשן הזה. יציאה מוחקת אותו.</p>
+ <div class="top"><span></span>${exitControl()}</div>
+ ${exitNote()}
  <p>${un?`<b class="no">${un} שאלות ללא תשובה.</b>`:`<b class="ok">כל השאלות נענו.</b>`} ${fl?`${fl} מסומנות לבדיקה.`:""} ${timerHtml(sec,false)}</p>
  ${questionBar(sec,false)}
  <p class="small">ניחוש עדיף על השארת שאלה ריקה. אפשר לחזור לכל שאלה לפני הסיום.</p>
@@ -1193,7 +1400,14 @@ function results(){
  S.secs.forEach(sec=>{let c=0;sec.qs.forEach(o=>{const ok=isCorrect(o);if(ok)c++;tot++;const rec={ok:!!ok,ts:Date.now()};store.res[o.q.id]=rec;resPatch[o.q.id]=rec});cor+=c;
   rows+=`<tr><td>פרק ${sec.ch}: ${CH[sec.ch].name}</td><td>${c} מתוך ${sec.qs.length}</td></tr>`});
  const sessEntry={d:new Date().toLocaleDateString("he-IL"),m:S.mode==="sim"?(S.label||"סימולציית תרגול קצרה"):S.label,c:cor,t:tot};
- store.sess.push(sessEntry);store.live=null;savePatch({res:resPatch,sessAppend:sessEntry,liveSet:true,live:null});
+ store.sess.push(sessEntry);
+ const patch={res:resPatch,sessAppend:sessEntry};
+ if(S.mode==="practice"){
+  const pk=S.pk||keyFromSnap(snapshotLive(S));
+  if(pk){rememberProgKey(pk,null);if(store.prog)delete store.prog[pk];patch.progKey=pk;patch.progVal=null}
+  if(store.live&&store.live.mode==="practice"){store.live=null;patch.liveSet=true;patch.live=null}
+ }else{store.live=null;patch.liveSet=true;patch.live=null}
+ savePatch(patch);
  let h=`<div class="card"><h2>תוצאות: ${cor} מתוך ${tot}</h2><h2>זה תרגול, לא תוצאת מבחן.</h2><table>${rows}</table><p><button type="button" class="primary tap" onclick="continueUntimed()">המשך בלי שעון</button></p></div><div class="card"><h3>סקירת שאלות</h3>`;
  S.secs.forEach(sec=>sec.qs.forEach((o,i)=>{const q=o.q,ok=isCorrect(o);
   let mine="";if(q.t==="mc")mine=o.ans===null?"לא נענתה":q.opts[o.ans];else if(q.t==="typed")mine=o.ans?o.ans:"לא נענתה";else if(q.t==="order")mine=o.touched?o.arr.join(" ← "):"לא סודרה";else mine=o.ans===null?"לא נענתה":"צורה "+(o.perm.indexOf(o.ans)+1);
