@@ -12,6 +12,11 @@ header h1{font-size:20px;margin:0}
 header .note{font-size:13px;opacity:.9}
 main{max-width:980px;margin:0 auto;padding:16px}
 .card{background:#fff;border-radius:10px;padding:18px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.12)}
+#backupCard{max-width:100%}
+#backupText{display:block;width:100%;max-width:100%;min-height:96px;box-sizing:border-box;font:inherit;padding:8px;border:2px solid #b8c7cc;border-radius:8px}
+#backupPreview{margin-top:10px;overflow-wrap:anywhere}
+.backupActions{display:flex;flex-wrap:wrap;gap:8px;max-width:100%}
+.backupActions button{max-width:100%}
 button{font:inherit;cursor:pointer;border:1px solid #1d7f8c;background:#fff;color:#1d7f8c;border-radius:8px;padding:8px 16px}
 button.primary{background:#1d7f8c;color:#fff}
 button:disabled{opacity:.4;cursor:default}
@@ -275,6 +280,683 @@ function normDay(v){
  else{choice=Number(choice);if(!Number.isInteger(choice)||choice<0)choice=null}
  return {complete:!!v.complete,day:v.day==null?"":String(v.day),index:Number.isFinite(index)?index:0,example:v.example!==false,feedback:v.feedback===true?true:v.feedback===false?false:null,draft:v.draft==null?"":String(v.draft),choice,perm:normPerm(v.perm),arr:Array.isArray(v.arr)?v.arr.map(x=>String(x)):null,touched:!!v.touched,answers:normAnswers(v.answers),ids:Array.isArray(v.ids)?v.ids.map(x=>String(x)):[]};
 }
+/* ===== אתגר: חוזה אירועים =====
+   The log lives at shirprep_v2.challenge. State is challengeReduce(events).
+   Stage names live only in CHALLENGE_STAGES. Algorithm 1 derives the stage.
+   Writes go through canPersist and savePatch. There is no separate screen and no trophy.
+   An ordinary save does not rewrite challenge. A future or corrupt value stays as stored. */
+const CHALLENGE_VERSION=1;
+const CHALLENGE_EVENT_SCHEMA=1;
+const CHALLENGE_ALGORITHM=1;
+const CHALLENGE_FORMAT=1;
+const CHALLENGE_KEY="challenge";
+const CHALLENGE_MAX_EVENTS=10000;
+const CHALLENGE_MAX_CHARS=1500000;
+const challengeLimits={events:CHALLENGE_MAX_EVENTS,chars:CHALLENGE_MAX_CHARS};
+const CHALLENGE_STAGES=Object.freeze(["התחלה","התקדמות","התבססות","העמקה","הרחבה"]);
+const CHALLENGE_COMMON=["schema","algorithm","seq","t","id","attemptId","at","session","localDay","contentVersion","authoredLevel","topic"];
+const CHALLENGE_EVENT_FIELDS={
+ session_start:CHALLENGE_COMMON,
+ session_end:CHALLENGE_COMMON,
+ session_paused:CHALLENGE_COMMON,
+ rest_token_used:CHALLENGE_COMMON,
+ answer_submitted:CHALLENGE_COMMON.concat(["qid","ok","stage","firstGraded"]),
+ stage_changed:CHALLENGE_COMMON.concat(["from","to"]),
+ weekly_goal_chosen:CHALLENGE_COMMON.concat(["goal"]),
+ sound_pref_changed:CHALLENGE_COMMON.concat(["sound"])
+};
+const CHALLENGE_ID=/^[A-Za-z0-9_-]{1,80}$/;
+const CHALLENGE_DAY=/^\d{4}-\d{2}-\d{2}$/;
+const CHALLENGE_CONTENT=/^[A-Za-z0-9._-]{1,64}$/;
+const CHALLENGE_TOPIC=/^[a-z0-9_-]{1,40}$/;
+function challengeFail(code){
+ const err=new Error(code);
+ err.name="ChallengeError";
+ err.code=code;
+ return err;
+}
+function challengeExactKeys(obj,allowed){
+ const keys=Object.keys(obj);
+ if(keys.length!==allowed.length)return false;
+ for(let i=0;i<keys.length;i++){if(allowed.indexOf(keys[i])<0)return false}
+ return true;
+}
+function challengeIdOk(v){return typeof v==="string"&&CHALLENGE_ID.test(v)}
+function challengeAtOk(v){return typeof v==="number"&&Number.isSafeInteger(v)&&v>=0}
+function challengeSeqOk(v){return typeof v==="number"&&Number.isSafeInteger(v)&&v>=0}
+function challengeStageOk(v){return typeof v==="string"&&CHALLENGE_STAGES.indexOf(v)>=0}
+function challengeDayOk(v){
+ if(typeof v!=="string"||!CHALLENGE_DAY.test(v))return false;
+ const m=+v.slice(5,7),d=+v.slice(8,10);
+ return m>=1&&m<=12&&d>=1&&d<=31;
+}
+function challengeContentOk(v){return typeof v==="string"&&CHALLENGE_CONTENT.test(v)}
+function challengeLevelOk(v){return v===1||v===2||v===3}
+function challengeTopicOk(v){return typeof v==="string"&&CHALLENGE_TOPIC.test(v)}
+function challengeGoalOk(v){return typeof v==="number"&&Number.isSafeInteger(v)&&v>=1&&v<=7}
+function challengeSoundOk(v){return v==="on"||v==="off"}
+function challengeUtf8(str){
+ const out=[];
+ for(let i=0;i<str.length;i++){
+  let c=str.charCodeAt(i);
+  if(c>=0xD800&&c<=0xDBFF&&i+1<str.length){
+   const n=str.charCodeAt(i+1);
+   if(n>=0xDC00&&n<=0xDFFF){c=0x10000+((c-0xD800)<<10)+(n-0xDC00);i++}
+  }
+  if(c<0x80)out.push(c);
+  else if(c<0x800)out.push(0xC0|(c>>6),0x80|(c&63));
+  else if(c<0x10000)out.push(0xE0|(c>>12),0x80|((c>>6)&63),0x80|(c&63));
+  else out.push(0xF0|(c>>18),0x80|((c>>12)&63),0x80|((c>>6)&63),0x80|(c&63));
+ }
+ return out;
+}
+function challengeSha256(text){
+ const K=[
+  0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+  0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+  0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+  0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+  0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+  0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+  0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+  0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2
+ ];
+ const bytes=challengeUtf8(String(text));
+ const bitLen=bytes.length*8;
+ bytes.push(0x80);
+ while((bytes.length%64)!==56)bytes.push(0);
+ const hi=Math.floor(bitLen/0x100000000);
+ const lo=bitLen>>>0;
+ bytes.push((hi>>>24)&255,(hi>>>16)&255,(hi>>>8)&255,hi&255,(lo>>>24)&255,(lo>>>16)&255,(lo>>>8)&255,lo&255);
+ let h0=0x6a09e667,h1=0xbb67ae85,h2=0x3c6ef372,h3=0xa54ff53a,h4=0x510e527f,h5=0x9b05688c,h6=0x1f83d9ab,h7=0x5be0cd19;
+ const w=new Array(64);
+ for(let i=0;i<bytes.length;i+=64){
+  for(let t=0;t<16;t++)w[t]=((bytes[i+t*4]<<24)|(bytes[i+t*4+1]<<16)|(bytes[i+t*4+2]<<8)|bytes[i+t*4+3])>>>0;
+  for(let t=16;t<64;t++){
+   const x=w[t-15],y=w[t-2];
+   const s0=(((x>>>7)|(x<<25))^((x>>>18)|(x<<14))^(x>>>3))>>>0;
+   const s1=(((y>>>17)|(y<<15))^((y>>>19)|(y<<13))^(y>>>10))>>>0;
+   w[t]=(w[t-16]+s0+w[t-7]+s1)>>>0;
+  }
+  let a=h0,b=h1,c=h2,d=h3,e=h4,f=h5,g=h6,h=h7;
+  for(let t=0;t<64;t++){
+   const S1=(((e>>>6)|(e<<26))^((e>>>11)|(e<<21))^((e>>>25)|(e<<7)))>>>0;
+   const ch=(((e&f)^((~e)&g)))>>>0;
+   const temp1=(h+S1+ch+K[t]+w[t])>>>0;
+   const S0=(((a>>>2)|(a<<30))^((a>>>13)|(a<<19))^((a>>>22)|(a<<10)))>>>0;
+   const maj=(((a&b)^(a&c)^(b&c)))>>>0;
+   const temp2=(S0+maj)>>>0;
+   h=g;g=f;f=e;e=(d+temp1)>>>0;d=c;c=b;b=a;a=(temp1+temp2)>>>0;
+  }
+  h0=(h0+a)>>>0;h1=(h1+b)>>>0;h2=(h2+c)>>>0;h3=(h3+d)>>>0;
+  h4=(h4+e)>>>0;h5=(h5+f)>>>0;h6=(h6+g)>>>0;h7=(h7+h)>>>0;
+ }
+ function hex(n){return ("00000000"+(n>>>0).toString(16)).slice(-8)}
+ return hex(h0)+hex(h1)+hex(h2)+hex(h3)+hex(h4)+hex(h5)+hex(h6)+hex(h7);
+}
+function challengeChecksum(text){return challengeSha256(text)}
+function challengeOpaque(value){
+ if(value===undefined)return undefined;
+ try{
+  const text=JSON.stringify(value);
+  if(typeof text!=="string")return value;
+  return JSON.parse(text);
+ }catch(e){return value}
+}
+function challengeCore(ev){
+ return {
+  schema:ev.schema,algorithm:ev.algorithm,seq:ev.seq,t:ev.t,id:ev.id,attemptId:ev.attemptId,at:ev.at,session:ev.session,
+  localDay:ev.localDay,contentVersion:ev.contentVersion,authoredLevel:ev.authoredLevel,topic:ev.topic
+ };
+}
+function challengeCoreOk(ev){
+ return ev.schema===CHALLENGE_EVENT_SCHEMA&&ev.algorithm===CHALLENGE_ALGORITHM&&challengeSeqOk(ev.seq)&&challengeIdOk(ev.id)&&challengeIdOk(ev.attemptId)&&challengeAtOk(ev.at)&&challengeIdOk(ev.session)&&challengeDayOk(ev.localDay)&&challengeContentOk(ev.contentVersion)&&challengeLevelOk(ev.authoredLevel)&&challengeTopicOk(ev.topic);
+}
+function challengeCanonicalEvent(ev){
+ if(!plain(ev)||typeof ev.t!=="string")return null;
+ if(Number.isInteger(ev.schema)&&ev.schema>CHALLENGE_EVENT_SCHEMA)return null;
+ if(Number.isInteger(ev.algorithm)&&ev.algorithm>CHALLENGE_ALGORITHM)return null;
+ const fields=CHALLENGE_EVENT_FIELDS[ev.t];
+ if(!fields||!challengeExactKeys(ev,fields)||!challengeCoreOk(ev))return null;
+ const core=challengeCore(ev);
+ if(ev.t==="session_start"||ev.t==="session_end"||ev.t==="session_paused"||ev.t==="rest_token_used")return core;
+ if(ev.t==="answer_submitted"){
+  if(!challengeIdOk(ev.qid)||typeof ev.ok!=="boolean"||!challengeStageOk(ev.stage)||ev.firstGraded!==true)return null;
+  core.qid=ev.qid;core.ok=ev.ok;core.stage=ev.stage;core.firstGraded=true;
+  return core;
+ }
+ if(ev.t==="stage_changed"){
+  if(!challengeStageOk(ev.from)||!challengeStageOk(ev.to)||ev.from===ev.to)return null;
+  core.from=ev.from;core.to=ev.to;
+  return core;
+ }
+ if(ev.t==="weekly_goal_chosen"){
+  if(!challengeGoalOk(ev.goal))return null;
+  core.goal=ev.goal;
+  return core;
+ }
+ if(ev.t==="sound_pref_changed"){
+  if(!challengeSoundOk(ev.sound))return null;
+  core.sound=ev.sound;
+  return core;
+ }
+ return null;
+}
+function challengeOrder(events){
+ return events.slice().sort(function(a,b){
+  if(a.seq!==b.seq)return a.seq<b.seq?-1:1;
+  if(a.id===b.id)return 0;
+  return a.id<b.id?-1:1;
+ });
+}
+function challengeBlankCursor(){
+ return {stage:CHALLENGE_STAGES[0],open:null,paused:false,sessions:Object.create(null),ids:new Set(),graded:new Set()};
+}
+function challengeStep(cursor,ev){
+ if(cursor.ids.has(ev.id))return "duplicate";
+ if(ev.t==="session_start"){
+  if(cursor.sessions[ev.session])return "duplicate";
+  if(cursor.open)return "mismatch";
+  cursor.ids.add(ev.id);
+  cursor.sessions[ev.session]={ended:false};
+  cursor.open=ev.session;
+  cursor.paused=false;
+  return null;
+ }
+ if(ev.t==="session_end"){
+  const row=cursor.sessions[ev.session];
+  if(row&&row.ended)return "duplicate";
+  if(!cursor.open)return "orphan";
+  if(ev.session!==cursor.open)return "mismatch";
+  cursor.ids.add(ev.id);
+  row.ended=true;
+  cursor.open=null;
+  cursor.paused=false;
+  return null;
+ }
+ if(ev.t==="session_paused"){
+  if(!cursor.open)return "orphan";
+  if(ev.session!==cursor.open)return "mismatch";
+  if(cursor.paused)return "duplicate";
+  cursor.ids.add(ev.id);
+  cursor.paused=true;
+  return null;
+ }
+ if(ev.t==="answer_submitted"){
+  if(!cursor.open)return "orphan";
+  if(ev.session!==cursor.open)return "mismatch";
+  if(ev.stage!==cursor.stage)return "mismatch";
+  if(ev.firstGraded!==true)return "mismatch";
+  if(cursor.graded.has(ev.attemptId))return "duplicate";
+  cursor.ids.add(ev.id);
+  cursor.graded.add(ev.attemptId);
+  return null;
+ }
+ if(ev.t==="stage_changed"){
+  if(!cursor.open)return "orphan";
+  if(ev.session!==cursor.open)return "mismatch";
+  if(ev.from!==cursor.stage)return "stale";
+  cursor.ids.add(ev.id);
+  cursor.stage=ev.to;
+  return null;
+ }
+ if(ev.t==="weekly_goal_chosen"||ev.t==="rest_token_used"||ev.t==="sound_pref_changed"){
+  if(!cursor.open)return "orphan";
+  if(ev.session!==cursor.open)return "mismatch";
+  cursor.ids.add(ev.id);
+  return null;
+ }
+ return "corrupt";
+}
+function challengeEmptyState(){
+ return {
+  v:CHALLENGE_VERSION,
+  algorithm:CHALLENGE_ALGORITHM,
+  stage:CHALLENGE_STAGES[0],
+  session:null,
+  sessions:[],
+  answers:[],
+  stageChanges:[],
+  pauses:[],
+  weeklyGoal:null,
+  weeklyGoals:[],
+  rests:[],
+  sound:null,
+  soundChanges:[],
+  counts:{sessions:0,answers:0,correct:0,restTokens:0}
+ };
+}
+function challengeProject(state,ev){
+ if(ev.t==="session_start"){
+  const row={id:ev.session,startedAt:ev.at,endedAt:null,open:true,paused:false,pausedAt:null};
+  state.sessions.push(row);
+  state.session=row;
+  state.counts.sessions+=1;
+  return;
+ }
+ if(ev.t==="session_end"){
+  for(let i=state.sessions.length-1;i>=0;i--){
+   const row=state.sessions[i];
+   if(row.id===ev.session&&row.open){row.open=false;row.endedAt=ev.at;state.session=row;break}
+  }
+  return;
+ }
+ if(ev.t==="session_paused"){
+  state.pauses.push(ev);
+  for(let i=state.sessions.length-1;i>=0;i--){
+   const row=state.sessions[i];
+   if(row.id===ev.session&&row.open){row.paused=true;row.pausedAt=ev.at;break}
+  }
+  return;
+ }
+ if(ev.t==="answer_submitted"){
+  state.answers.push(ev);
+  state.counts.answers+=1;
+  if(ev.ok)state.counts.correct+=1;
+  return;
+ }
+ if(ev.t==="stage_changed"){
+  state.stageChanges.push(ev);
+  state.stage=ev.to;
+  return;
+ }
+ if(ev.t==="weekly_goal_chosen"){
+  state.weeklyGoals.push(ev);
+  state.weeklyGoal=ev.goal;
+  return;
+ }
+ if(ev.t==="rest_token_used"){
+  state.rests.push(ev);
+  state.counts.restTokens+=1;
+  return;
+ }
+ if(ev.t==="sound_pref_changed"){
+  state.soundChanges.push(ev);
+  state.sound=ev.sound;
+ }
+}
+function challengeReduce(events){
+ const state=challengeEmptyState();
+ if(!Array.isArray(events))return state;
+ const ready=[];
+ for(let i=0;i<events.length;i++){
+  const canon=challengeCanonicalEvent(events[i]);
+  if(canon)ready.push(canon);
+ }
+ const ordered=challengeOrder(ready);
+ const cursor=challengeBlankCursor();
+ for(let i=0;i<ordered.length;i++){
+  if(challengeStep(cursor,ordered[i]))continue;
+  challengeProject(state,ordered[i]);
+ }
+ return state;
+}
+function challengeTooBig(ns){
+ if(!ns||!Array.isArray(ns.events))return true;
+ if(ns.events.length>challengeLimits.events)return true;
+ try{if(JSON.stringify(ns).length>challengeLimits.chars)return true}catch(e){return true}
+ return false;
+}
+function challengeNextSeq(events){
+ let max=0;
+ for(let i=0;i<events.length;i++){if(events[i].seq>max)max=events[i].seq}
+ return max+1;
+}
+function challengeLookFuture(events){
+ if(!Array.isArray(events))return false;
+ for(let i=0;i<events.length;i++){
+  const ev=events[i];
+  if(!plain(ev))continue;
+  if(Number.isInteger(ev.schema)&&ev.schema>CHALLENGE_EVENT_SCHEMA)return true;
+  if(Number.isInteger(ev.algorithm)&&ev.algorithm>CHALLENGE_ALGORITHM)return true;
+ }
+ return false;
+}
+function challengeTake(events){
+ if(!Array.isArray(events))throw challengeFail("corrupt");
+ if(events.length>challengeLimits.events)throw challengeFail("limit");
+ if(challengeLookFuture(events))throw challengeFail("future");
+ const canon=[];
+ for(let i=0;i<events.length;i++){
+  const row=challengeCanonicalEvent(events[i]);
+  if(!row)throw challengeFail("corrupt");
+  canon.push(row);
+ }
+ const ordered=challengeOrder(canon);
+ const cursor=challengeBlankCursor();
+ for(let i=0;i<ordered.length;i++){
+  const code=challengeStep(cursor,ordered[i]);
+  if(code)throw challengeFail(code);
+ }
+ const ns={v:CHALLENGE_VERSION,algorithm:CHALLENGE_ALGORITHM,events:ordered};
+ if(challengeTooBig(ns))throw challengeFail("limit");
+ return ns;
+}
+function challengeCheckV1(value){
+ if(!plain(value)||value.v!==CHALLENGE_VERSION)throw challengeFail("corrupt");
+ if(value.algorithm!==CHALLENGE_ALGORITHM){
+  if(Number.isInteger(value.algorithm)&&value.algorithm>CHALLENGE_ALGORITHM)throw challengeFail("future");
+  throw challengeFail("corrupt");
+ }
+ if(!challengeExactKeys(value,["v","algorithm","events"]))throw challengeFail("corrupt");
+ return challengeTake(value.events);
+}
+function challengeStoredGate(value){
+ if(value==null)return {ok:true,ns:{v:CHALLENGE_VERSION,algorithm:CHALLENGE_ALGORITHM,events:[]},empty:true};
+ if(!plain(value)||!Number.isInteger(value.v))return {ok:false,code:"corrupt"};
+ if(value.v>CHALLENGE_VERSION)return {ok:false,code:"future"};
+ if(value.v!==CHALLENGE_VERSION)return {ok:false,code:"corrupt"};
+ try{return {ok:true,ns:challengeCheckV1(value),empty:false}}catch(e){return {ok:false,code:(e&&e.code)||"corrupt"}}
+}
+function challengeLoadNs(base){
+ if(!plain(base)||!Object.prototype.hasOwnProperty.call(base,CHALLENGE_KEY)||base[CHALLENGE_KEY]==null){
+  return {ok:true,ns:{v:CHALLENGE_VERSION,algorithm:CHALLENGE_ALGORITHM,events:[]},empty:true};
+ }
+ return challengeStoredGate(base[CHALLENGE_KEY]);
+}
+function challengeCommitAppend(base,event){
+ const loaded=challengeLoadNs(base);
+ if(!loaded.ok)return {ok:false,code:loaded.code};
+ const seq=challengeNextSeq(loaded.ns.events);
+ const next=challengeCanonicalEvent(event);
+ if(!next)return {ok:false,code:"corrupt"};
+ next.seq=seq;
+ const cursor=challengeBlankCursor();
+ const prior=challengeOrder(loaded.ns.events);
+ for(let i=0;i<prior.length;i++){
+  const code=challengeStep(cursor,prior[i]);
+  if(code)return {ok:false,code:code};
+ }
+ const live=challengeStep(cursor,next);
+ if(live)return {ok:false,code:live};
+ const ns={v:CHALLENGE_VERSION,algorithm:CHALLENGE_ALGORITHM,events:prior.concat([next])};
+ if(challengeTooBig(ns))return {ok:false,code:"limit"};
+ base[CHALLENGE_KEY]=ns;
+ return {ok:true,state:challengeReduce(ns.events)};
+}
+function challengeDateDaily(daily){
+ const out={};
+ if(!plain(daily))return out;
+ const keys=Object.keys(daily).sort();
+ for(let i=0;i<keys.length;i++){if(!isDcKey(keys[i]))out[keys[i]]=daily[keys[i]]}
+ return out;
+}
+function challengeStable(value){
+ if(Array.isArray(value)){
+  const out=[];
+  for(let i=0;i<value.length;i++)out.push(challengeStable(value[i]));
+  return out;
+ }
+ if(!plain(value))return value;
+ const out={};
+ const keys=Object.keys(value).sort();
+ for(let i=0;i<keys.length;i++)out[keys[i]]=challengeStable(value[keys[i]]);
+ return out;
+}
+function challengeProgressFromBase(base){
+ const loaded=challengeLoadNs(base);
+ if(!loaded.ok)throw challengeFail(loaded.code);
+ return {
+  daily:challengeDateDaily(base.daily),
+  chapter:{
+   res:plain(base.res)?base.res:{},
+   mastery:plain(base.mastery)?base.mastery:{},
+   prog:plain(base.prog)?base.prog:{}
+  },
+  sim:{sess:Array.isArray(base.sess)?base.sess:[]},
+  challenge:loaded.ns
+ };
+}
+function challengeEnvelopeFromProgress(progress){
+ const stable=challengeStable(progress);
+ const body=JSON.stringify(stable);
+ const length=challengeUtf8(body).length;
+ if(body.length>challengeLimits.chars||length>challengeLimits.chars)throw challengeFail("limit");
+ const text=JSON.stringify({format:CHALLENGE_FORMAT,algorithm:"sha256",checksum:challengeChecksum(body),length:length,progress:stable});
+ if(text.length>challengeLimits.chars)throw challengeFail("limit");
+ return text;
+}
+function challengeEnvelopeFromBase(base){
+ return challengeEnvelopeFromProgress(challengeProgressFromBase(base));
+}
+function challengeParseEnvelope(text){
+ if(typeof text!=="string"||text.length===0)throw challengeFail("corrupt");
+ if(text.length>challengeLimits.chars)throw challengeFail("limit");
+ let parsed;
+ try{parsed=JSON.parse(text)}catch(e){throw challengeFail("corrupt")}
+ if(!plain(parsed)||!Number.isInteger(parsed.format))throw challengeFail("corrupt");
+ if(parsed.format>CHALLENGE_FORMAT)throw challengeFail("future");
+ if(parsed.format!==CHALLENGE_FORMAT)throw challengeFail("corrupt");
+ if(parsed.algorithm!=="sha256")throw challengeFail("corrupt");
+ if(typeof parsed.checksum!=="string"||!/^[0-9a-f]{64}$/.test(parsed.checksum))throw challengeFail("corrupt");
+ if(!Number.isSafeInteger(parsed.length)||parsed.length<0)throw challengeFail("corrupt");
+ if(!challengeExactKeys(parsed,["format","algorithm","checksum","length","progress"]))throw challengeFail("corrupt");
+ const progress=parsed.progress;
+ if(!plain(progress)||!challengeExactKeys(progress,["daily","chapter","sim","challenge"]))throw challengeFail("corrupt");
+ if(!plain(progress.chapter)||!challengeExactKeys(progress.chapter,["res","mastery","prog"]))throw challengeFail("corrupt");
+ if(!plain(progress.sim)||!challengeExactKeys(progress.sim,["sess"])||!Array.isArray(progress.sim.sess))throw challengeFail("corrupt");
+ if(!plain(progress.daily))throw challengeFail("corrupt");
+ for(const k of Object.keys(progress.daily)){if(isDcKey(k))throw challengeFail("corrupt")}
+ let challenge=null;
+ if(progress.challenge!=null){
+  if(!plain(progress.challenge)||!Number.isInteger(progress.challenge.v))throw challengeFail("corrupt");
+  if(progress.challenge.v>CHALLENGE_VERSION)throw challengeFail("future");
+  challenge=challengeCheckV1(progress.challenge);
+ }
+ const stable=challengeStable({
+  daily:progress.daily,
+  chapter:progress.chapter,
+  sim:progress.sim,
+  challenge:challenge
+ });
+ const body=JSON.stringify(stable);
+ const length=challengeUtf8(body).length;
+ if(length!==parsed.length)throw challengeFail("mismatch");
+ if(parsed.checksum!==challengeChecksum(body))throw challengeFail("mismatch");
+ return {format:parsed.format,algorithm:"sha256",checksum:parsed.checksum,length:length,progress:stable};
+}
+function challengeSummarize(text){
+ const parsed=challengeParseEnvelope(text);
+ const base=readRaw();
+ if(base==null)throw challengeFail("refused");
+ const loaded=challengeLoadNs(base);
+ const challenge=parsed.progress.challenge;
+ return {
+  dryRun:true,
+  needsConfirm:true,
+  format:parsed.format,
+  algorithm:parsed.algorithm,
+  length:parsed.length,
+  checksum:parsed.checksum,
+  rev:Number(base.rev)||0,
+  dailyDays:Object.keys(parsed.progress.daily).length,
+  chapterAnswers:Object.keys(parsed.progress.chapter.res).length,
+  chapterTopics:Object.keys(parsed.progress.chapter.mastery).length,
+  chapterSessions:Object.keys(parsed.progress.chapter.prog).length,
+  simSessions:parsed.progress.sim.sess.length,
+  challengeEvents:challenge?challenge.events.length:0,
+  stage:challenge?challengeReduce(challenge.events).stage:CHALLENGE_STAGES[0],
+  stored:loaded.ok?(loaded.empty?"empty":"ok"):loaded.code
+ };
+}
+function challengeCommitReplace(base,spec){
+ if(!spec||!Number.isSafeInteger(spec.rev)||spec.rev<0)return {ok:false,code:"stale"};
+ if((Number(base.rev)||0)!==spec.rev)return {ok:false,code:"stale"};
+ const loaded=challengeLoadNs(base);
+ if(!loaded.ok)return loaded;
+ let parsed;
+ try{parsed=challengeParseEnvelope(spec.text)}catch(e){return {ok:false,code:(e&&e.code)||"corrupt"}}
+ let undo;
+ try{undo=challengeEnvelopeFromBase(base)}catch(e){return {ok:false,code:(e&&e.code)||"corrupt"}}
+ const progress=parsed.progress;
+ const nextDaily={};
+ if(plain(base.daily)){
+  for(const k of Object.keys(base.daily)){if(isDcKey(k))nextDaily[k]=base.daily[k]}
+ }
+ const days=progress.daily;
+ for(const k of Object.keys(days)){if(!isDcKey(k))nextDaily[k]=days[k]}
+ base.daily=nextDaily;
+ base.res=progress.chapter.res;
+ base.mastery=progress.chapter.mastery;
+ base.prog=progress.chapter.prog;
+ base.sess=progress.sim.sess;
+ if(progress.challenge)base[CHALLENGE_KEY]=progress.challenge;
+ else delete base[CHALLENGE_KEY];
+ return {ok:true,undo:undo,state:challengeReduce(progress.challenge?progress.challenge.events:[])};
+}
+function challengeExport(){
+ const base=readRaw();
+ if(base==null||!storageOn)throw challengeFail("refused");
+ return challengeEnvelopeFromBase(base);
+}
+function challengePreview(text){return challengeSummarize(text)}
+function challengeImport(text,opt){
+ opt=opt||{};
+ if(opt.confirm!==true)return challengeSummarize(text);
+ if(!canPersist())throw challengeFail("refused");
+ const box={result:null};
+ const patch={challengeReplace:{text:text,rev:opt.rev},_challengeBox:box};
+ const finish=function(){
+  if(!box.result||!box.result.ok)throw challengeFail((box.result&&box.result.code)||"refused");
+  return box.result;
+ };
+ if(locksOn()){
+  const req=savePatch(patch);
+  if(req&&typeof req.then==="function")return req.then(finish,function(){throw challengeFail("refused")});
+ }
+ savePatch(patch,{sync:true});
+ return finish();
+}
+function challengeAppend(event){
+ if(!canPersist())throw challengeFail("refused");
+ const canon=challengeCanonicalEvent(event);
+ if(!canon)throw challengeFail("corrupt");
+ const box={result:null};
+ const patch={challengeAppend:canon,_challengeBox:box};
+ const finish=function(){
+  if(!box.result||!box.result.ok)throw challengeFail((box.result&&box.result.code)||"refused");
+  return box.result.state;
+ };
+ if(locksOn()){
+  const req=savePatch(patch);
+  if(req&&typeof req.then==="function")return req.then(finish,function(){throw challengeFail("refused")});
+ }
+ savePatch(patch,{sync:true});
+ return finish();
+}
+function challengeState(){
+ const base=readRaw();
+ if(base==null)throw challengeFail("refused");
+ const loaded=challengeLoadNs(base);
+ if(!loaded.ok)throw challengeFail(loaded.code);
+ return challengeReduce(loaded.ns.events);
+}
+const SHIR_CHALLENGE={
+ version:CHALLENGE_VERSION,
+ eventSchema:CHALLENGE_EVENT_SCHEMA,
+ algorithm:CHALLENGE_ALGORITHM,
+ format:CHALLENGE_FORMAT,
+ key:CHALLENGE_KEY,
+ stages:CHALLENGE_STAGES,
+ limits:challengeLimits,
+ eventTypes:Object.freeze(["session_start","session_end","session_paused","answer_submitted","stage_changed","weekly_goal_chosen","rest_token_used","sound_pref_changed"]),
+ maxEvents:CHALLENGE_MAX_EVENTS,
+ maxChars:CHALLENGE_MAX_CHARS,
+ checksum:challengeChecksum,
+ reduce:challengeReduce,
+ state:challengeState,
+ append:challengeAppend,
+ exportJson:challengeExport,
+ importJson:challengeImport,
+ previewImport:challengePreview
+};
+let challengePending=null;
+let challengeUndoText="";
+function challengeBackupCard(){
+ const note=challengeUndoText?"<p id=\"backupDone\">ההתקדמות הוחלפה. אפשר להוריד את הגיבוי שלפני ההחלפה.</p><p><button type=\"button\" class=\"tap\" onclick=\"challengeDownloadUndo()\">הורדת הגיבוי שלפני ההחלפה</button></p>":"";
+ return `<details class="card" id="backupCard" open><summary>גיבוי</summary>
+${note}
+<p class="small">הקובץ כולל את מסע היום, את תרגול הפרקים ואת הסימולציות שנשמרו, ואת יומן האתגר. הוא לא כולל טיוטה של גרסה עתידית, ולא משנה אותה.</p>
+<div class="backupActions"><button type="button" class="tap" onclick="challengeDownload()">הורדת גיבוי</button>
+<button type="button" class="tap" onclick="challengePreviewCurrent()">תצוגה של הגיבוי הנוכחי</button></div>
+<label class="small" for="backupText">קובץ להחלפה</label>
+<textarea id="backupText" aria-label="קובץ להחלפה"></textarea>
+<div class="backupActions"><button type="button" class="primary tap" onclick="challengeShowPreview()">תצוגה לפני החלפה</button></div>
+<div id="backupPreview"></div></details>`;
+}
+function challengePreviewError(err){
+ const slot=$("backupPreview");
+ if(!slot)return;
+ const code=err&&err.code||"";
+ const text=code==="stale"?"הגיבוי לא הוחלף. המכשיר השתנה מאז התצוגה.":code==="future"?"הגיבוי לא הוחלף. יש כאן נתונים מגרסה חדשה יותר.":code==="limit"?"הגיבוי לא הוחלף. הקובץ גדול מהמותר.":code==="mismatch"?"הגיבוי לא הוחלף. הבדיקה של הקובץ לא תאמה.":code==="refused"?"הגיבוי לא נשמר בלשונית הזו.":"הגיבוי לא הוחלף. הקובץ לא תקין.";
+ slot.innerHTML="<p>"+text+"</p>";
+}
+function challengeRenderPreview(text){
+ const preview=SHIR_CHALLENGE.previewImport(text);
+ challengePending={text:text,rev:preview.rev};
+ const slot=$("backupPreview");
+ if(!slot)return;
+ const blocked=preview.stored!=="ok"&&preview.stored!=="empty";
+ let body="<p>ימים במסע: "+preview.dailyDays+". תשובות פרקים: "+preview.chapterAnswers+". נושאים: "+preview.chapterTopics+". סשנים שמורים: "+preview.chapterSessions+". סימולציות: "+preview.simSessions+". אירועי אתגר: "+preview.challengeEvents+". שלב: "+esc(preview.stage)+".</p>";
+ body+="<p class=\"small\">פורמט "+preview.format+", "+esc(preview.algorithm)+", אורך "+preview.length+".</p>";
+ if(blocked){
+  body+="<p>ההחלפה נעצרה. הנתונים השמורים כאן לא מגרסה שהקובץ הזה יכול להחליף.</p>";
+  slot.innerHTML=body;
+  return;
+ }
+ body+="<p><button type=\"button\" class=\"danger tap\" id=\"backupConfirm\" onclick=\"challengeConfirmReplace()\">החלפת ההתקדמות בגיבוי זה</button></p>";
+ slot.innerHTML=body;
+}
+function challengeShowPreview(){
+ const box=$("backupText");
+ try{challengeRenderPreview(box?String(box.value||""):"")}catch(e){challengePending=null;challengePreviewError(e)}
+}
+function challengePreviewCurrent(){
+ try{
+  const text=SHIR_CHALLENGE.exportJson();
+  const box=$("backupText");
+  if(box)box.value=text;
+  challengeRenderPreview(text);
+ }catch(e){challengePending=null;challengePreviewError(e)}
+}
+function challengeConfirmReplace(){
+ if(!challengePending)return;
+ const pending=challengePending;
+ const done=function(result){
+  challengeUndoText=result&&result.undo||"";
+  challengePending=null;
+  if(typeof home==="function")home();
+  const card=$("backupCard");
+  if(card&&card.scrollIntoView)card.scrollIntoView();
+ };
+ try{
+  const result=SHIR_CHALLENGE.importJson(pending.text,{confirm:true,rev:pending.rev});
+  if(result&&typeof result.then==="function"){
+   result.then(done,function(e){challengePreviewError(e)});
+   return;
+  }
+  done(result);
+ }catch(e){challengePreviewError(e)}
+}
+function challengeDownloadText(text,name){
+ if(typeof URL==="undefined"||!URL||typeof URL.createObjectURL!=="function")return;
+ if(!document||typeof document.createElement!=="function"||!document.body)return;
+ const blob=new Blob([text],{type:"application/json"});
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement("a");
+ a.href=url;
+ a.download=name;
+ document.body.appendChild(a);
+ a.click();
+ a.remove();
+ setTimeout(function(){URL.revokeObjectURL(url)},0);
+}
+function challengeDownload(){
+ try{challengeDownloadText(SHIR_CHALLENGE.exportJson(),"shir-backup.json")}catch(e){challengePreviewError(e)}
+}
+function challengeDownloadUndo(){
+ if(challengeUndoText)challengeDownloadText(challengeUndoText,"shir-backup-undo.json");
+}
 function normalizeStore(raw){
  const next=blankStore();
  if(!plain(raw))return next;
@@ -336,6 +1018,10 @@ function normalizeStore(raw){
    next.live=null;
   }else next.live=session?snapshotLive(session):null;
  }catch(e){next.live=null}
+ if(Object.prototype.hasOwnProperty.call(raw,CHALLENGE_KEY)){
+  const challengeKept=challengeOpaque(raw[CHALLENGE_KEY]);
+  if(challengeKept!==undefined)next.challenge=challengeKept;
+ }
  return next;
 }
 function loadStore(){
@@ -441,6 +1127,15 @@ function commitPatch(patch){
   if(seenSchema>BRIDGE_SCHEMA)return false;
   if(!mergeUiIntoMeta(base,patch.ui))return false;
  }
+ if(patch.challengeAppend||patch.challengeReplace){
+  if(seenSchema>BRIDGE_SCHEMA){
+   if(patch._challengeBox)patch._challengeBox.result={ok:false,code:"refused"};
+   return false;
+  }
+  const applied=patch.challengeAppend?challengeCommitAppend(base,patch.challengeAppend):challengeCommitReplace(base,patch.challengeReplace);
+  if(patch._challengeBox)patch._challengeBox.result=applied;
+  if(!applied.ok)return false;
+ }
  let nextRev=(Number(base.rev)||0)+1;
  if(patch.revAtLeast&&nextRev<=patch.revAtLeast)nextRev=patch.revAtLeast+1;
  base.rev=nextRev;
@@ -465,9 +1160,23 @@ function savePatch(patch,opt){
  if(!storageOn)return;
  opt=opt||{};
  patch=patch||{};
- if(schemaBlocked&&(patch.dailyKey||patch.mastery)){showUpdateRequired();return}
- if(!opt.force&&(writeRole==="readonly"||writeRole==="conflict"))return;
- if(!opt.force&&writeRole==="probing"){pendingPatches.push(patch);return}
+ if(schemaBlocked&&(patch.dailyKey||patch.mastery||patch.challengeAppend||patch.challengeReplace)){
+  showUpdateRequired();
+  if(patch._challengeBox)patch._challengeBox.result={ok:false,code:"refused"};
+  return;
+ }
+ if(!opt.force&&(writeRole==="readonly"||writeRole==="conflict")){
+  if(patch._challengeBox)patch._challengeBox.result={ok:false,code:"refused"};
+  return;
+ }
+ if(!opt.force&&writeRole==="probing"){
+  if(patch.challengeAppend||patch.challengeReplace){
+   if(patch._challengeBox)patch._challengeBox.result={ok:false,code:"refused"};
+   return;
+  }
+  pendingPatches.push(patch);
+  return;
+ }
  const run=()=>{try{commitPatch(patch)}catch(e){storageOn=false}};
  if(locksOn()&&!opt.sync){
   let req;
@@ -827,6 +1536,7 @@ function home(){
  <p>ארבעה סימנים ביום מסמנים שהשאלה הושלמה, לא כמה תשובות נכונות.</p>
  <div id="resetBox"><button type="button" class="danger tap" onclick="askReset()">איפוס כל ההתקדמות</button></div>
  </details>`;
+ if(!schemaBlocked)h+=challengeBackupCard();
  const stat=(ids)=>{let t=0,c=0;ids.forEach(q=>{const r=store.res[q.id];if(r){t++;if(r.ok)c++}});return t?`${c}/${t} נכון`:"טרם תורגל"};
  let legacy=`<div class="card"><h2>בחירת תרגול</h2>
  <p>אפשרות א: <b>סימולציית תרגול קצרה</b> - טופס מפריטים עם הגדרת רמה כתובה (השלמת משפטים, מילות תפל, המשפט הבא, וצורות). לא כל הבנק. ההסבר מופיע אחרי הטופס. אין אחוזון, אין ציון עובר ואין קבלה.</p>
