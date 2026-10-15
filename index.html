@@ -140,6 +140,18 @@ details.link>summary{cursor:pointer;min-height:44px;display:flex;align-items:cen
 .topicrow button{text-align:right;width:100%}
 .topicrow button:disabled{opacity:.55}
 #challengeAsk,#challengeTopics,#challengePause,#challengeEntry{max-width:100%}
+
+.hero{margin:6px 2px 18px;text-align:center}
+.hero .lead{font-size:24px;font-weight:bold;margin:8px 0 14px;line-height:1.35}
+.hero .status{font-size:15px;color:#4c6068;margin:-6px 0 12px}
+.hero-btn{font-size:21px;font-weight:bold;padding:16px 52px;border-radius:999px;box-shadow:0 3px 10px rgba(29,127,140,.35)}
+.challenge-card{background:linear-gradient(180deg,#ffffff 0%,#e9f6f7 100%)}
+.challenge-card h2{margin-top:0}
+.steps{display:flex;gap:8px;margin:10px 0 4px;padding:0;list-style:none}
+.steps li{width:44px;height:44px;border-radius:50%;border:2px solid #b8c7cc;background:#fff;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:17px;color:#35505a}
+.steps li.on{background:#1d7f8c;border-color:#1d7f8c;color:#fff;box-shadow:0 0 0 4px rgba(29,127,140,.18)}
+.mini{box-shadow:none;border:1px solid #dbe4e7;background:#f8fafb;padding:10px 14px}
+.mini summary{font-size:15px;color:#5b6d74}
 </style>
 </head>
 <body>
@@ -898,7 +910,7 @@ let challengePending=null;
 let challengeUndoText="";
 function challengeBackupCard(){
  const note=challengeUndoText?"<p id=\"backupDone\">ההתקדמות הוחלפה. אפשר להוריד את הגיבוי שלפני ההחלפה.</p><p><button type=\"button\" class=\"tap\" onclick=\"challengeDownloadUndo()\">הורדת הגיבוי שלפני ההחלפה</button></p>":"";
- return `<details class="card" id="backupCard" open><summary>גיבוי</summary>
+ return `<details class="card mini" id="backupCard"><summary>גיבוי</summary>
 ${note}
 <p class="small">הקובץ כולל את מסע היום, את תרגול הפרקים ואת הסימולציות שנשמרו, ואת יומן האתגר. הוא לא כולל טיוטה של גרסה עתידית, ולא משנה אותה.</p>
 <div class="backupActions"><button type="button" class="tap" onclick="challengeDownload()">הורדת גיבוי</button>
@@ -1994,8 +2006,10 @@ function challengeHomeCard(){
   stage=challengeDeriveStage(events);
   open=!!challengeSessionInfo(events);
  }catch(e){}
- const actions=open?`<p>יש סשן פתוח.</p><p><button type="button" class="primary tap" onclick="challengeOpen()">המשך הסשן</button> <button type="button" class="tap" onclick="challengeFinish()">סיום הסשן</button></p>`:`<p><button type="button" class="primary tap" onclick="challengeOpen()">כניסה לאתגר</button></p>`;
- return `<div class="card" id="challengeEntry"><h2>אתגר</h2><p>השלב נקבע לפי התשובות שנשמרו. אי אפשר לבחור אותו.</p><p>השלב עכשיו: ${esc(stage)}.</p>${actions}${persistNote()}</div>`;
+ const idx=Math.max(0,CHALLENGE_STAGES.indexOf(stage));
+ const steps=CHALLENGE_STAGES.map((n,i)=>`<li class="${n===stage?"on":""}" aria-current="${n===stage?"step":"false"}">${i+1}</li>`).join("");
+ const actions=open?`<p>יש סשן פתוח.</p><p><button type="button" class="primary tap" onclick="challengeOpen()">ממשיכים לטפס</button> <button type="button" class="tap" onclick="challengeFinish()">סיום הסשן</button></p>`:`<p><button type="button" class="primary tap" onclick="challengeOpen()">מתחילים לטפס</button></p>`;
+ return `<div class="card challenge-card" id="challengeEntry"><h2>אתגר הטיפוס</h2><p>כל תשובה נכונה מעלה צעד. ככל שמטפסים, השאלות הופכות מעניינות יותר.</p><ol class="steps" aria-label="צעדי הטיפוס">${steps}</ol><p class="small">צעד ${idx+1} מתוך 5: ${esc(stage)}</p>${actions}${persistNote()}</div>`;
 }
 function challengeErrText(e){
  const code=e&&e.code||"";
@@ -2356,24 +2370,25 @@ function home(){
  if(saved&&saved.complete){
   const answers=Array.isArray(saved.answers)?saved.answers:[];
   const count=answers.filter(a=>a&&a.ok).length;
-  status=`<p>המסע של היום כבר נשמר בדפדפן הזה (${count} מתוך 4 נכון). אפשר לפתוח את הסיכום. אין שאלה חדשה עד מחר, ואין קנס אם מדלגים.</p>`;
+  status=`המסע של היום כבר נשמר בדפדפן הזה (${count} מתוך 4 נכון). אפשר לפתוח את הסיכום. אין שאלה חדשה עד מחר.`;
  }else if(saved&&Array.isArray(saved.answers)&&saved.answers.length){
-  status=`<p>היום נענו ${saved.answers.length} מתוך 4. ההמשך שמור בדפדפן הזה, בלי שעון.</p>`;
+  status=`היום נענו ${saved.answers.length} מתוך 4. ההמשך שמור בדפדפן הזה.`;
  }
- let h=schemaBlocked?updateRequiredHtml():`<div class="card"><h2>ארבע שאלות קצרות, בלי שעון.</h2>
- ${status}
- <button class="primary tap" onclick="dailyStart()">לאתגר של היום</button>
+ let h=schemaBlocked?updateRequiredHtml():`<section class="hero">
+ <p class="lead">4 שאלות קצרות של היום, בלי שעון.</p>
+ ${status?`<p class="status">${status}</p>`:""}
+ <button class="primary tap hero-btn" onclick="dailyStart()">מתחילים</button>
  ${persistNote()}
- </div>
+ </section>
  ${challengeHomeCard()}
- <details class="card"><summary>להורים</summary>
+ <details class="card mini"><summary>להורים: הסבר, גיבוי ואיפוס</summary>
  <p>תרגול, לא מבחן רשמי. התאמה למבחן לא אומתה.</p>
  <p>ההתקדמות נשמרת רק בדפדפן הזה. אין שם, אין חשבון ואין שליחת נתונים. אין קנס אם מדלגים על יום, ואין התאמה לתאריך עד שמועד הבחינה ידוע.</p>
  <p>לפני כל שאלה מופיעה דוגמה. ארבע שאלות מארבע קבוצות נושא, בלי שעון, בלי רצף חובה ובלי קנס על טעות.</p>
  <p>ארבעה סימנים ביום מסמנים שהשאלה הושלמה, לא כמה תשובות נכונות.</p>
  <div id="resetBox"><button type="button" class="danger tap" onclick="askReset()">איפוס כל ההתקדמות</button></div>
+ ${challengeBackupCard()}
  </details>`;
- if(!schemaBlocked)h+=challengeBackupCard();
  const stat=(ids)=>{let t=0,c=0;ids.forEach(q=>{const r=store.res[q.id];if(r){t++;if(r.ok)c++}});return t?`${c}/${t} נכון`:"טרם תורגל"};
  let legacy=`<div class="card"><h2>בחירת תרגול</h2>
  <p>אפשרות א: <b>סימולציית תרגול קצרה</b> - טופס מפריטים עם הגדרת רמה כתובה (השלמת משפטים, מילות תפל, המשפט הבא, וצורות). לא כל הבנק. ההסבר מופיע אחרי הטופס. אין אחוזון, אין ציון עובר ואין קבלה.</p>
@@ -2393,7 +2408,7 @@ function home(){
  legacy+=`</div></div>`;
  const last=store.sess.slice(-5).reverse();
  if(last.length){legacy+=`<div class="card"><h3>תרגולים אחרונים</h3><table><tr><th>תאריך</th><th>סוג</th><th>ציון</th></tr>`+last.map(s=>`<tr><td>${s.d}</td><td>${s.m}</td><td>${s.c}/${s.t}</td></tr>`).join("")+`</table></div>`}
- h+=`<details class="card" open><summary>תרגול לפי פרקים</summary><p class="small">בסימולציה הקצרה יש שעון לכל חלק. בתרגול לפי פרק אפשר לבדוק אחרי כל תשובה, בלי שעון.</p>${legacy}</details>`;
+ h+=`<details class="card mini"><summary>עוד תרגול: פרקים וסימולציה קצרה</summary><p class="small">בסימולציה הקצרה יש שעון לכל חלק. בתרגול לפי פרק אפשר לבדוק אחרי כל תשובה, בלי שעון.</p>${legacy}</details>`;
  $("app").innerHTML=h;
 }
 function askReset(){
