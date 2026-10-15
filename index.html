@@ -1886,10 +1886,12 @@ function challengeChooseItem(){
  const level=challengeServeLevel(row,challengeDeriveStage(events));
  if(level==null)return null;
  const answers=challengeAcceptedAnswers(events).filter(a=>a.session===info.id);
- const count=Object.create(null);
+ const mastered=Object.create(null);
+ const wrong=Object.create(null);
  const last=Object.create(null);
  for(let i=0;i<answers.length;i++){
-  count[answers[i].qid]=(count[answers[i].qid]||0)+1;
+  if(answers[i].ok){mastered[answers[i].qid]=true;delete wrong[answers[i].qid]}
+  else if(!mastered[answers[i].qid])wrong[answers[i].qid]=true;
   last[answers[i].qid]=i;
  }
  const pool=[];
@@ -1897,15 +1899,27 @@ function challengeChooseItem(){
   const q=BANK[i];
   if(challengeItemEligible(q)&&q.sub===info.topic&&q.level===level)pool.push(q);
  }
+ const rank=q=>mastered[q.id]?2:(wrong[q.id]?1:0);
  pool.sort(function(a,b){
-  const ca=count[a.id]||0,cb=count[b.id]||0;
-  if(ca!==cb)return ca-cb;
+  const ra=rank(a),rb=rank(b);
+  if(ra!==rb)return ra-rb;
   const la=Object.prototype.hasOwnProperty.call(last,a.id)?last[a.id]:-1;
   const lb=Object.prototype.hasOwnProperty.call(last,b.id)?last[b.id]:-1;
   if(la!==lb)return la-lb;
   return a.id<b.id?-1:a.id>b.id?1:0;
  });
  return pool[0]||null;
+}
+function challengeMasteredThisSession(qid){
+ let events;
+ try{events=challengeDiskEvents()}catch(e){return false}
+ const info=challengeSessionInfo(events);
+ if(!info)return false;
+ const answers=challengeAcceptedAnswers(events);
+ for(let i=0;i<answers.length;i++){
+  if(answers[i].session===info.id&&answers[i].qid===qid&&answers[i].ok)return true;
+ }
+ return false;
 }
 function challengeStart(spec){
  challengeSpecClean(spec,["topic","at","id","attemptId","session","localDay"]);
@@ -2052,6 +2066,7 @@ function challengeSavedQuestion(info){
 }
 function challengeArm(q,saved){
  const keep=!!(saved&&saved.qid===q.id);
+ challengeUi.review=challengeMasteredThisSession(q.id);
  const n=Array.isArray(q.opts)?q.opts.length:0;
  challengeUi.q=q;
  if(keep&&(q.t==="mc"||q.t==="shape")&&challengePermOk(saved.perm,n))challengeUi.perm=saved.perm.slice();
@@ -2134,7 +2149,7 @@ function challengeRenderAsk(){
  const row=challengeCatalog().topics.find(t=>t.sub===q.sub);
  const stage=challengeViewStage();
  const revealed=!!challengeUi.revealed;
- let body=`<div class="card" id="challengeAsk">${persistNote()}${challengeStageHtml(stage)}<p class="small">${esc(row?row.name:q.sub)}</p>${challengeLevelLine(row)}`;
+ let body=`<div class="card" id="challengeAsk">${persistNote()}${challengeStageHtml(stage)}<p class="small">${esc(row?row.name:q.sub)}${challengeUi.review?'<span class="chip">חזרה לחיזוק</span>':""}</p>${challengeLevelLine(row)}`;
  if(challengeUi.msg)body+=`<p id="challengeMsg">${esc(challengeUi.msg)}</p>`;
  if(q.chart)body+=chartHtml(q.chart);
  body+=`<div class="q">${show(q.q)}</div>`;
