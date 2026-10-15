@@ -1885,7 +1885,7 @@ function challengeChooseItem(){
  if(!row||row.mode==="unavailable")return null;
  const level=challengeServeLevel(row,challengeDeriveStage(events));
  if(level==null)return null;
- const answers=challengeAcceptedAnswers(events).filter(a=>a.session===info.id);
+ const answers=challengeAcceptedAnswers(events);
  const mastered=Object.create(null);
  const wrong=Object.create(null);
  const last=Object.create(null);
@@ -1897,9 +1897,9 @@ function challengeChooseItem(){
  const pool=[];
  for(let i=0;i<BANK.length;i++){
   const q=BANK[i];
-  if(challengeItemEligible(q)&&q.sub===info.topic&&q.level===level)pool.push(q);
+  if(challengeItemEligible(q)&&q.sub===info.topic&&q.level===level&&!mastered[q.id])pool.push(q);
  }
- const rank=q=>mastered[q.id]?2:(wrong[q.id]?1:0);
+ const rank=q=>wrong[q.id]?1:0;
  pool.sort(function(a,b){
   const ra=rank(a),rb=rank(b);
   if(ra!==rb)return ra-rb;
@@ -1910,17 +1910,7 @@ function challengeChooseItem(){
  });
  return pool[0]||null;
 }
-function challengeMasteredThisSession(qid){
- let events;
- try{events=challengeDiskEvents()}catch(e){return false}
- const info=challengeSessionInfo(events);
- if(!info)return false;
- const answers=challengeAcceptedAnswers(events);
- for(let i=0;i<answers.length;i++){
-  if(answers[i].session===info.id&&answers[i].qid===qid&&answers[i].ok)return true;
- }
- return false;
-}
+
 function challengeStart(spec){
  challengeSpecClean(spec,["topic","at","id","attemptId","session","localDay"]);
  if(!challengeTopicOk(spec.topic))throw challengeFail("pool");
@@ -2066,7 +2056,6 @@ function challengeSavedQuestion(info){
 }
 function challengeArm(q,saved){
  const keep=!!(saved&&saved.qid===q.id);
- challengeUi.review=challengeMasteredThisSession(q.id);
  const n=Array.isArray(q.opts)?q.opts.length:0;
  challengeUi.q=q;
  if(keep&&(q.t==="mc"||q.t==="shape")&&challengePermOk(saved.perm,n))challengeUi.perm=saved.perm.slice();
@@ -2096,7 +2085,16 @@ function challengeShowQuestion(){
  const kept=info?challengeSavedQuestion(info):null;
  const q=kept?kept.q:challengeChooseItem();
  if(!challengeUi)challengeUi={};
- if(!q){challengeUi.screen="topics";challengeUi.msg="אין שאלה זמינה בנושא הזה";challengeRender();return}
+ if(!q){
+  const dry=()=>{challengeUi.screen="topics";challengeUi.msg="כל הכבוד! סיימת את כל השאלות החדשות בנושא הזה. בחרו נושא אחר, או חזרו אחרי שיתווספו שאלות.";challengeUi.msgGood=true;challengeRender()};
+  if(info){
+   let ended=null;
+   try{ended=challengeEngine.end({})}catch(e){ended=null}
+   challengeSettle(ended,dry,dry);
+   return
+  }
+  challengeUi.screen="topics";challengeUi.msg="אין שאלה זמינה בנושא הזה";challengeUi.msgGood=false;challengeRender();return
+ }
  challengeArm(q,kept?kept.saved:null);
  challengeRender();
 }
@@ -2109,7 +2107,7 @@ function challengeRenderTopics(){
   const label=off?row.name+", לא זמין":row.mode==="follow"?row.name+", רמה לפי השלב":row.name+", רמה קבועה "+row.fixedLevel;
   rows+=`<div class="topicrow"><button type="button" class="tap" data-topic="${escAttr(row.sub)}" onclick="challengeBegin('${row.sub}')"${off?" disabled":""}>${esc(label)}</button><p class="small">${esc(challengeTopicNote(row))}</p></div>`;
  }
- const msg=challengeUi&&challengeUi.msg?`<p class="no">${esc(challengeUi.msg)}</p>`:"";
+ const msg=challengeUi&&challengeUi.msg?`<p class="${challengeUi.msgGood?"ok":"no"}">${esc(challengeUi.msg)}</p>`:"";
  return `<div class="card" id="challengeTopics"><h2>בחירת נושא</h2><p>רק פריטים שנבדקו במאגר הפרקים. בלי שאלות המסע ובלי הסימולציה. בלי שעון.</p>${msg}${rows}<p><button type="button" class="tap" onclick="home()">חזרה</button></p></div>`;
 }
 function challengeOrderHtml(){
@@ -2149,7 +2147,7 @@ function challengeRenderAsk(){
  const row=challengeCatalog().topics.find(t=>t.sub===q.sub);
  const stage=challengeViewStage();
  const revealed=!!challengeUi.revealed;
- let body=`<div class="card" id="challengeAsk">${persistNote()}${challengeStageHtml(stage)}<p class="small">${esc(row?row.name:q.sub)}${challengeUi.review?'<span class="chip">חזרה לחיזוק</span>':""}</p>${challengeLevelLine(row)}`;
+ let body=`<div class="card" id="challengeAsk">${persistNote()}${challengeStageHtml(stage)}<p class="small">${esc(row?row.name:q.sub)}</p>${challengeLevelLine(row)}`;
  if(challengeUi.msg)body+=`<p id="challengeMsg">${esc(challengeUi.msg)}</p>`;
  if(q.chart)body+=chartHtml(q.chart);
  body+=`<div class="q">${show(q.q)}</div>`;
@@ -2186,7 +2184,7 @@ function challengeSessionCounts(){
 function challengeRenderPause(){
  const stage=challengeViewStage();
  const counts=challengeSessionCounts();
- const msg=challengeUi&&challengeUi.msg?`<p class="no">${esc(challengeUi.msg)}</p>`:"";
+ const msg=challengeUi&&challengeUi.msg?`<p class="${challengeUi.msgGood?"ok":"no"}">${esc(challengeUi.msg)}</p>`:"";
  return `<div class="card" id="challengePause"><h2>השהיה</h2>${challengeStageHtml(stage)}${msg}<p>הסשן מושהה.</p><p>תשובות בסשן: ${counts.n}. נכונות: ${counts.ok}.</p><p>זה תרגול, לא תוצאת מבחן.</p><p><button type="button" class="primary tap" onclick="challengeContinue()">המשך</button> <button type="button" class="tap" onclick="challengeFinish()">סיום הסשן</button> <button type="button" class="tap" onclick="home()">לתפריט</button></p></div>`;
 }
 function challengeRender(){
