@@ -141,6 +141,37 @@ details.link>summary{cursor:pointer;min-height:44px;display:flex;align-items:cen
 .topicrow button:disabled{opacity:.55}
 #challengeAsk,#challengeTopics,#challengePause,#challengeEntry{max-width:100%}
 
+header{position:relative}
+.hamb{position:absolute;top:50%;inset-inline-end:auto;left:14px;transform:translateY(-50%);background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:12px;font-size:22px;line-height:1;padding:8px 12px;cursor:pointer}
+.ppanel{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:60;overflow:auto;padding:24px 14px}
+.ppanel-inner{max-width:520px;margin:0 auto;background:#fff}
+.ppanel-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+#morePractice>summary{display:none}
+/* parents overlay: uniform action sizes - variants differ only by color */
+#parentsPanel #resetBox button{width:100%}
+#backupCard{width:100%;box-sizing:border-box;border-radius:12px;padding:0;border:2px solid #1d7f8c;background:#fff}
+#backupCard>summary{min-height:44px;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:700;padding:10px 20px;box-sizing:border-box;color:#1d7f8c;font-size:16px}
+#backupCard[open]{padding:0 14px 10px}
+#backupCard[open]>summary{padding:10px 6px}
+.backupActions{display:flex;gap:8px;flex-wrap:wrap}
+.backupActions button{flex:1 1 0;white-space:normal}
+#morePractice:not([open]){display:none}
+.hero .hero-btn{border-radius:12px}
+.cta{display:block;width:min(280px,100%);margin:10px auto 0;min-height:52px;font-size:17px;font-weight:700;border-radius:12px;text-align:center}
+.hero-btn.cta{font-size:17px;padding:10px 20px}
+.card{border-radius:12px}
+.kicker{margin:0 0 4px;font-weight:700;color:#1d7f8c;font-size:15px}
+.hero-title{margin:0 0 6px;font-size:30px}
+/* unified action-button system: one geometry (radius 12px, min-height 44px, padding 10px 20px, weight 700), three variants */
+button{border:2px solid #1d7f8c;border-radius:12px;padding:10px 20px;min-height:44px;font-weight:700;background:#fff;color:#1d7f8c}
+button.primary{background:#1d7f8c;color:#fff}
+button.danger{border-color:#b33;color:#b33;background:#fff}
+.hero-btn{font-size:20px;padding:14px 40px;border-radius:12px}
+button.link{border:none;background:none;text-decoration:underline;text-underline-offset:3px}
+.quietrow{text-align:center;margin:2px 2px 14px}
+.extras{text-align:center;margin:2px 2px 16px}
+.extras h3{margin:0 0 2px;color:#4c6068;font-size:17px}
+.extras .small{margin:0 0 4px;color:#4c6068}
 .hero{margin:6px 2px 18px;text-align:center}
 .hero .lead{font-size:24px;font-weight:bold;margin:8px 0 14px;line-height:1.35}
 .hero .status{font-size:15px;color:#4c6068;margin:-6px 0 12px}
@@ -155,7 +186,7 @@ details.link>summary{cursor:pointer;min-height:44px;display:flex;align-items:cen
 </style>
 </head>
 <body>
-<header><h1>טיוטת תרגול</h1></header>
+<header><button type="button" class="hamb" aria-label="תפריט להורים" onclick="toggleParents()">☰</button><h1>טיוטת תרגול</h1></header>
 <main id="app"></main>
 <script>
 /* ===== נתונים ===== */
@@ -917,7 +948,7 @@ ${note}
 <button type="button" class="tap" onclick="challengePreviewCurrent()">תצוגה של הגיבוי הנוכחי</button></div>
 <label class="small" for="backupText">קובץ להחלפה</label>
 <textarea id="backupText" aria-label="קובץ להחלפה"></textarea>
-<div class="backupActions"><button type="button" class="primary tap" onclick="challengeShowPreview()">תצוגה לפני החלפה</button></div>
+<div class="backupActions"><button type="button" class="tap" onclick="challengeShowPreview()">תצוגה לפני החלפה</button></div>
 <div id="backupPreview"></div></details>`;
 }
 function challengePreviewError(err){
@@ -2012,7 +2043,7 @@ function challengeHomeCard(){
  }catch(e){}
  const idx=Math.max(0,CHALLENGE_STAGES.indexOf(stage));
  const steps=CHALLENGE_STAGES.map((n,i)=>`<li class="${n===stage?"on":""}" aria-current="${n===stage?"step":"false"}">${i+1}</li>`).join("");
- const actions=open?`<p>יש סשן פתוח.</p><p><button type="button" class="primary tap" onclick="challengeOpen()">ממשיכים לטפס</button> <button type="button" class="tap" onclick="challengeFinish()">סיום הסשן</button></p>`:`<p><button type="button" class="primary tap" onclick="challengeOpen()">מתחילים לטפס</button></p>`;
+ const actions=open?`<p>יש סשן פתוח.</p><p><button type="button" class="tap cta" onclick="challengeOpen()">ממשיכים לטפס</button> <button type="button" class="tap" onclick="challengeFinish()">סיום הסשן</button></p>`:`<p><button type="button" class="tap cta" onclick="challengeOpen()">מתחילים לטפס</button></p>`;
  return `<div class="card challenge-card" id="challengeEntry"><h2>אתגר הטיפוס</h2><p>כל תשובה נכונה מעלה צעד. ככל שמטפסים, השאלות הופכות מעניינות יותר.</p><ol class="steps" aria-label="צעדי הטיפוס">${steps}</ol><p class="small">צעד ${idx+1} מתוך 5: ${esc(stage)}</p>${actions}${persistNote()}</div>`;
 }
 function challengeErrText(e){
@@ -2388,20 +2419,23 @@ function home(){
   status=`היום נענו ${saved.answers.length} מתוך 4. ההמשך שמור בדפדפן הזה.`;
  }
  let h=schemaBlocked?updateRequiredHtml():`<section class="hero">
+ <p class="kicker">מה מתרגלים היום?</p>
+ <h2 class="hero-title">אתגר היום</h2>
  <p class="lead">4 שאלות קצרות של היום, בלי שעון.</p>
  ${status?`<p class="status">${status}</p>`:""}
- <button class="primary tap hero-btn" onclick="dailyStart()">מתחילים</button>
+ <button class="primary tap hero-btn cta" onclick="dailyStart()">מתחילים</button>
  ${persistNote()}
  </section>
  ${challengeHomeCard()}
- <details class="card mini"><summary>להורים: הסבר, גיבוי ואיפוס</summary>
+ <div class="extras"><h3>עוד תרגול</h3><p class="small">לפי נושא, או סימולציה קצרה עם שעון.</p><p><button type="button" class="tap cta" onclick="openTopics()">לבחור תרגול</button></p></div>
+ <div id="parentsPanel" class="ppanel" hidden><div class="card mini ppanel-inner"><div class="ppanel-head"><b>להורים: הסבר, גיבוי ואיפוס</b><button type="button" class="tap" onclick="toggleParents()">סגירה</button></div>
  <p>תרגול, לא מבחן רשמי. התאמה למבחן לא אומתה.</p>
  <p>ההתקדמות נשמרת רק בדפדפן הזה. אין שם, אין חשבון ואין שליחת נתונים. אין קנס אם מדלגים על יום, ואין התאמה לתאריך עד שמועד הבחינה ידוע.</p>
  <p>לפני כל שאלה מופיעה דוגמה. ארבע שאלות מארבע קבוצות נושא, בלי שעון, בלי רצף חובה ובלי קנס על טעות.</p>
  <p>ארבעה סימנים ביום מסמנים שהשאלה הושלמה, לא כמה תשובות נכונות.</p>
- <div id="resetBox"><button type="button" class="danger tap" onclick="askReset()">איפוס כל ההתקדמות</button></div>
  ${challengeBackupCard()}
- </details>`;
+ <div id="resetBox"><button type="button" class="danger tap" onclick="askReset()">איפוס כל ההתקדמות</button></div>
+ </div></div>`;
  const stat=(ids)=>{let t=0,c=0;ids.forEach(q=>{const r=store.res[q.id];if(r){t++;if(r.ok)c++}});return t?`${c}/${t} נכון`:"טרם תורגל"};
  let legacy=`<div class="card"><h2>בחירת תרגול</h2>
  <p>אפשרות א: <b>סימולציית תרגול קצרה</b> - טופס מפריטים עם הגדרת רמה כתובה (השלמת משפטים, מילות תפל, המשפט הבא, וצורות). לא כל הבנק. ההסבר מופיע אחרי הטופס. אין אחוזון, אין ציון עובר ואין קבלה.</p>
@@ -2421,9 +2455,11 @@ function home(){
  legacy+=`</div></div>`;
  const last=store.sess.slice(-5).reverse();
  if(last.length){legacy+=`<div class="card"><h3>תרגולים אחרונים</h3><table><tr><th>תאריך</th><th>סוג</th><th>ציון</th></tr>`+last.map(s=>`<tr><td>${s.d}</td><td>${s.m}</td><td>${s.c}/${s.t}</td></tr>`).join("")+`</table></div>`}
- h+=`<details class="card mini"><summary>עוד תרגול: פרקים וסימולציה קצרה</summary><p class="small">בסימולציה הקצרה יש שעון לכל חלק. בתרגול לפי פרק אפשר לבדוק אחרי כל תשובה, בלי שעון.</p>${legacy}</details>`;
+ h+=`<details class="card mini" id="morePractice"><summary>עוד תרגול: פרקים וסימולציה קצרה</summary><p class="small">בסימולציה הקצרה יש שעון לכל חלק. בתרגול לפי פרק אפשר לבדוק אחרי כל תשובה, בלי שעון.</p>${legacy}</details>`;
  $("app").innerHTML=h;
 }
+function toggleParents(){const d=$("parentsPanel");if(d)d.hidden=!d.hidden}
+function openTopics(){const d=$("morePractice");if(d){d.open=true;d.scrollIntoView({behavior:"smooth",block:"start"})}}
 function askReset(){
  const box=$("resetBox");
  if(!box)return;
