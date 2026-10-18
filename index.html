@@ -95,6 +95,15 @@ details.card>summary+p{margin-top:12px}
 .marks{display:inline-flex;gap:6px;align-items:center;margin-inline-start:8px;vertical-align:middle}
 .markdot{width:10px;height:10px;border-radius:50%;border:2px solid #1d7f8c;background:transparent;display:inline-block}
 .markdot.on{background:#1d7f8c}
+.trophies{display:inline-flex;gap:6px;align-items:center;vertical-align:middle}
+.trophies svg{width:22px;height:22px;display:block}
+.trophies.big{gap:10px;margin:2px 0 12px}
+.trophies.big svg{width:44px;height:44px}
+.trophies .cup{fill:none;stroke:#9aaeb4;stroke-width:1.6}
+.trophies .cup.on{fill:#f2b705;stroke:#b98300}
+.trophies .base{fill:#9aaeb4}
+.trophies .cup.on+.base,.trophies .on-base{fill:#b98300}
+.trophyline{font-size:15px;color:#4c6068;margin:-4px 0 10px}
 .clocknote{font-weight:bold;font-size:22px;color:#1d7f8c;line-height:1.4}
 .scoreline{font-size:22px;font-weight:bold;margin:8px 0}
 details.link{margin-top:8px}
@@ -173,6 +182,7 @@ button.link{border:none;background:none;text-decoration:underline;text-underline
 .extras h3{margin:0 0 2px;color:#4c6068;font-size:17px}
 .extras .small{margin:0 0 4px;color:#4c6068}
 .hero{margin:6px 2px 18px;text-align:center}
+.trophyrow{text-align:center;margin:0 0 6px}
 .hero .lead{font-size:24px;font-weight:bold;margin:8px 0 14px;line-height:1.35}
 .hero .status{font-size:15px;color:#4c6068;margin:-6px 0 12px}
 .hero-btn{font-size:21px;font-weight:bold;padding:16px 52px;border-radius:999px;box-shadow:0 3px 10px rgba(29,127,140,.35)}
@@ -2423,7 +2433,8 @@ function home(){
  <h2 class="hero-title">אתגר היום</h2>
  <p class="lead">4 שאלות קצרות של היום, בלי שעון.</p>
  ${status?`<p class="status">${status}</p>`:""}
- <button class="primary tap hero-btn cta" onclick="dailyStart()">מתחילים</button>
+ <div class="trophyrow">${trophiesHtml(saved&&saved.complete?4:(saved&&Array.isArray(saved.answers)?saved.answers.length:0),true)}</div>
+ <button class="primary tap hero-btn cta" onclick="dailyStart()">${saved&&saved.complete?"לסיכום היום":(saved&&Array.isArray(saved.answers)&&saved.answers.length?"ממשיכים":"מתחילים")}</button>
  ${persistNote()}
  </section>
  ${challengeHomeCard()}
@@ -2432,7 +2443,7 @@ function home(){
  <p>תרגול, לא מבחן רשמי. התאמה למבחן לא אומתה.</p>
  <p>ההתקדמות נשמרת רק בדפדפן הזה. אין שם, אין חשבון ואין שליחת נתונים. אין קנס אם מדלגים על יום, ואין התאמה לתאריך עד שמועד הבחינה ידוע.</p>
  <p>לפני כל שאלה מופיעה דוגמה. ארבע שאלות מארבע קבוצות נושא, בלי שעון, בלי רצף חובה ובלי קנס על טעות.</p>
- <p>ארבעה סימנים ביום מסמנים שהשאלה הושלמה, לא כמה תשובות נכונות.</p>
+ <p>ארבעה גביעים ביום מסמנים שהשאלה הושלמה, לא כמה תשובות נכונות.</p>
  ${challengeBackupCard()}
  <div id="resetBox"><button type="button" class="danger tap" onclick="askReset()">איפוס כל ההתקדמות</button></div>
  </div></div>`;
@@ -3500,7 +3511,7 @@ function dailySummary(entry){
  const answers=Array.isArray(entry&&entry.answers)?entry.answers:[];
  const count=answers.filter(a=>a&&a.ok).length;
  placeDock(false);
- $("app").innerHTML=`<div class="card dailyskin" ${skinAttrs()}>${skinBlock()}<h2>השלמתם את מסע היום</h2>${summaryQNavHtml(answers)}<p class="scoreline">${count} מתוך 4 נכון.</p><p class="scoreline">זה תרגול, לא תוצאת מבחן.</p><p>גם ניסיונות וקריאת הסבר הם חלק מהלמידה.</p><p>${savedDayLine()} אין קנס אם לא מתרגלים מחר.</p><p><button type="button" class="primary tap" onclick="continueUntimed()">המשך בלי שעון</button> <button type="button" class="tap" onclick="home()">חזרה</button></p></div>`;
+ $("app").innerHTML=`<div class="card dailyskin" ${skinAttrs()}>${skinBlock()}<h2>השלמתם את מסע היום</h2>${trophiesHtml(4,true)}<p class="trophyline">4 גביעים להיום</p>${summaryQNavHtml(answers)}<p class="scoreline">${count} מתוך 4 נכון.</p><p class="scoreline">זה תרגול, לא תוצאת מבחן.</p><p>גם ניסיונות וקריאת הסבר הם חלק מהלמידה.</p><p>${savedDayLine()} אין קנס אם לא מתרגלים מחר.</p><p><button type="button" class="primary tap" onclick="continueUntimed()">המשך בלי שעון</button> <button type="button" class="tap" onclick="home()">חזרה</button></p></div>`;
 }
 function linkSentence(exp){
  const s=String(exp==null?"":exp).trim();
@@ -3513,11 +3524,15 @@ function linkHtml(exp){
  if(!line)return "";
  return `<details class="link"><summary>הקשר בקצרה</summary><p>${show(line)}</p></details>`;
 }
-function marksHtml(doneCount){
- const n=Math.max(0,Math.min(4,doneCount|0));
- const dots=[0,1,2,3].map(i=>`<span class="markdot${i<n?" on":""}"></span>`).join("");
- return `<span class="marks" role="img" aria-label="הושלמו ${n} מתוך 4">${dots}</span>`;
+function trophySvg(on){
+ return `<svg viewBox="0 0 24 24" aria-hidden="true"><path class="cup${on?" on":""}" d="M7 3h10v5a5 5 0 0 1-10 0V3z"/><path class="cup${on?" on":""}" d="M7 4.5H4.5v1.5A3 3 0 0 0 7.5 9M17 4.5h2.5v1.5A3 3 0 0 1 16.5 9"/><path class="cup${on?" on":""}" d="M12 13v4M8.5 20.5h7M9.5 17h5v3.5h-5z"/></svg>`;
 }
+function trophiesHtml(doneCount,big){
+ const n=Math.max(0,Math.min(4,doneCount|0));
+ const cups=[0,1,2,3].map(i=>trophySvg(i<n)).join("");
+ return `<span class="trophies${big?" big":""}" role="img" aria-label="${n} מתוך 4 גביעים להיום">${cups}</span>`;
+}
+function marksHtml(doneCount){return trophiesHtml(doneCount,false)}
 function continueUntimed(){
  stopTimer();
  S=null;
