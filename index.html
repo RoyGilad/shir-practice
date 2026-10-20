@@ -82,6 +82,12 @@ input[type=text]{font:inherit;padding:10px;border:2px solid #b8c7cc;border-radiu
 table{border-collapse:collapse;width:100%}
 td,th{border-bottom:1px solid #ddd;padding:6px 8px;text-align:right}
 .ok{color:#2a9d4b;font-weight:bold}.no{color:#c33;font-weight:bold}
+.lvlrow{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 2px;justify-content:center}
+.lvlchip{font-size:13px;padding:3px 10px;border-radius:999px;border:1.5px solid currentColor;opacity:.6;white-space:nowrap}
+.lvlchip.cur{opacity:1;font-weight:700}
+.lvlchip.lvl1{color:#1f7a4d}.lvlchip.lvl2{color:#8a6100}.lvlchip.lvl3{color:#a33a6a}
+body[data-theme="night"] .lvlchip.lvl1{color:#2ee6c5}body[data-theme="night"] .lvlchip.lvl2{color:#ffd166}body[data-theme="night"] .lvlchip.lvl3{color:#ff8fb8}
+body[data-theme="night"] .lvlchip.cur{background:rgba(255,255,255,.12)}
 .small{font-size:14px;color:#556}
 .pbar{background:#dde;border-radius:6px;height:8px;overflow:hidden;margin-top:4px}.pbar i{display:block;height:100%;background:#1d7f8c}
 details.card>summary{cursor:pointer;font-weight:bold;font-size:18px;min-height:44px;display:flex;align-items:center}
@@ -3442,6 +3448,14 @@ function restoreDaily(qs,saved){
  if(feedback===null&&answers.length===index)example=true;
  return {index,answers,example,feedback,draft,choice,perm,arr,touched};
 }
+function lvlName(q){const l=Number(q&&q.level);return l===1?"קלה":l===3?"אתגר":"בינונית"}
+function easyToHard(qs){
+ return qs.map((q,i)=>({q,i,l:[1,2,3].indexOf(Number(q.level))>=0?Number(q.level):2})).sort((a,b)=>a.l-b.l||a.i-b.i).map(x=>x.q);
+}
+function lvlRowHtml(){
+ if(!D||!Array.isArray(D.qs))return "";
+ return `<div class="lvlrow" aria-label="סדר השאלות מהקלה לקשה">`+D.qs.slice(0,4).map((q,i)=>`<span class="lvlchip lvl${[1,2,3].indexOf(Number(q.level))>=0?Number(q.level):2}${i===D.index?" cur":""}">${i+1} · ${lvlName(q)}</span>`).join("")+`</div>`;
+}
 function dailyStart(){
  stopTimer();
  if(schemaBlocked){showUpdateRequired();return}
@@ -3456,7 +3470,7 @@ function dailyStart(){
    return;
   }
  }
- D={day,qs:questionsForDay(day),index:0,answers:[],example:true,feedback:null,draft:"",choice:null,perm:null,arr:null,touched:false};
+ D={day,qs:easyToHard(questionsForDay(day)),index:0,answers:[],example:true,feedback:null,draft:"",choice:null,perm:null,arr:null,touched:false};
  persistDaily();
  dailyRender();
 }
@@ -3478,7 +3492,7 @@ function dailyRender(){
  screen="daily";
  const q=D.qs[D.index];
  const revealed=D.feedback!==null;
- let h=`<div class="card dailyskin" ${skinAttrs()}>${skinBlock()}${persistNote()}<div class="top"><div><b>מסע היום · ${D.index+1}/4 · ${q.ch===6?"צורות · רמה "+q.level:"היכרות"} · בלי שעון</b>${marksHtml(D.answers.length)}</div><button type="button" class="tap" onclick="dailyBack()">חזרה</button></div>${dailyQNavHtml()}`;
+ let h=`<div class="card dailyskin" ${skinAttrs()}>${skinBlock()}${persistNote()}<div class="top"><div><b>מסע היום · ${D.index+1}/4 · ${q.ch===6?"צורות · רמה "+q.level:"היכרות"} · בלי שעון</b>${marksHtml(D.answers.length)}</div><button type="button" class="tap" onclick="dailyBack()">חזרה</button></div>${dailyQNavHtml()}${lvlRowHtml()}`;
  h+=`<p class="small">${q.ch===6?"רמת הצורות לפי סוג הכלל. זו הגדרת תרגול, לא כיול.":"הנושא הזה בתרגול היכרות, בלי עליית רמה."}</p>`;
  if(D.example){
   placeDock(false);
