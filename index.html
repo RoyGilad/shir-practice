@@ -155,6 +155,12 @@ details.link>summary{cursor:pointer;min-height:44px;display:flex;align-items:cen
 .topicrow button{text-align:right;width:100%}
 .topicrow button:disabled{opacity:.55}
 #challengeAsk,#challengeTopics,#challengePause,#challengeEntry{max-width:100%}
+#challengeAsk{padding-bottom:160px}
+.stepmodal{position:fixed;inset:0;z-index:70;background:rgba(8,16,40,.55);display:flex;align-items:flex-end;justify-content:center;padding:16px}
+body:has(.stepmodal) .dock{visibility:hidden}
+.stepcard{width:min(420px,100%);margin:0 0 12px}
+.stepcard h2{font-size:22px;margin:0 0 8px}
+.stepcard p{font-size:16px}
 
 header{position:relative}
 .hamb{position:absolute;top:50%;inset-inline-end:auto;left:14px;transform:translateY(-50%);background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:12px;font-size:22px;line-height:1;padding:8px 12px;cursor:pointer}
@@ -215,6 +221,7 @@ body[data-theme="night"]{font-family:RubikEmb,Arial,"Segoe UI",sans-serif;color:
 body[data-theme="night"] header{background:transparent;color:#eef3ff}
 body[data-theme="night"] .hamb{background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.3);color:#eef3ff;border-radius:999px}
 body[data-theme="night"] .card,body[data-theme="night"] .dailyskin,body[data-theme="night"] .dailyskin[data-skin="expedition"],body[data-theme="night"] .mini,body[data-theme="night"] .challenge-card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);border-radius:20px;color:#eef3ff;box-shadow:none}
+body[data-theme="night"] .stepcard{background:#1b2a55}
 body[data-theme="night"] .ppanel-inner{background:#14224f}
 body[data-theme="night"] .ppanel{background:rgba(5,9,25,.7)}
 body[data-theme="night"] button,body[data-theme="night"] .dailyskin button{border:2px solid #2ee6c5;border-radius:999px;background:transparent;color:#2ee6c5}
@@ -263,6 +270,8 @@ body[data-theme="night"] .dailyskin .opt.good,body[data-theme="night"] .dailyski
 body[data-theme="night"] .dailyskin .opt.bad,body[data-theme="night"] .dailyskin .opt.sel.bad{border-color:#ff8585;background:rgba(255,90,90,.22)}
 body[data-theme="night"] .stylefold{display:none}
 body[data-theme="night"] .trophyrow{display:none}
+.dailyskin .trophyrow{display:flex;justify-content:flex-start;margin:6px 0 8px}
+body[data-theme="night"] .dailyskin .trophyrow{display:flex}
 body[data-theme="night"] .trail{display:block;margin:2px auto 0;max-width:280px}
 .trail svg{width:100%;height:auto;display:block;overflow:visible}
 .trail .tpath{fill:none;stroke:rgba(255,255,255,.28);stroke-width:3;stroke-dasharray:2 9;stroke-linecap:round}
@@ -281,6 +290,45 @@ body[data-theme="night"] .trail{display:block;margin:2px auto 0;max-width:280px}
 @keyframes trailDraw{from{stroke-dashoffset:var(--len,0)}to{stroke-dashoffset:0}}
 @keyframes trailPulse{0%,100%{transform:scale(1);opacity:.5}50%{transform:scale(1.18);opacity:.15}}
 @keyframes cupPop{0%{transform:translateY(-6px)}60%{transform:translateY(1px)}100%{transform:none}}
+@keyframes cupGlow{0%{filter:drop-shadow(0 0 0 rgba(255,200,61,0))}40%{filter:drop-shadow(0 0 8px rgba(255,200,61,.9))}100%{filter:drop-shadow(0 0 0 rgba(255,200,61,0))}}
+@media (prefers-reduced-motion:no-preference){
+ body[data-theme="night"]:not([data-motion="off"]) .trophies svg.pop .cup.on{animation:cupPop .5s ease-out both}
+ body[data-theme="night"]:not([data-motion="off"]) .trophies svg.pop{animation:cupGlow .5s ease-out both}
+}
+details.whyothers:not([open]) > :not(summary){display:none}
+.whyothers{margin-top:8px}
+.whyothers>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-size:15px;font-weight:700}
+.tiprow{margin:8px 0 12px}
+.tipchip{font-size:15px;border-radius:999px;max-width:100%}
+.tiprow .exp{margin-top:8px}
+.tiprow p{font-size:15px}
+.weekbar{margin:16px auto 0;max-width:420px;text-align:center}
+.weekbar b,.weekbar p{font-size:15px;margin:4px 0}
+.weekdots{display:flex;justify-content:center;gap:6px;margin-top:8px}
+.wdot{width:36px;height:36px;border-radius:50%;border:2px solid #b8c7cc;display:flex;align-items:center;justify-content:center;font-size:15px;background:#fff;color:#1b2a33}
+.wdot.done{background:#1e7a38;border-color:#1e7a38;color:#fff}
+.wdot.rest{border-style:dashed;border-color:#8a6100;background:#fff7e0}
+.wdot.today{box-shadow:0 0 0 3px rgba(29,127,140,.35)}
+body[data-theme="night"] .wdot{background:transparent;border-color:rgba(255,255,255,.4);color:#eef3ff}
+body[data-theme="night"] .wdot.done{background:#ffc83d;border-color:#ffc83d;color:#08203a}
+body[data-theme="night"] .wdot.rest{border-style:dashed;border-color:#ffd166;background:transparent;color:#ffd166}
+body[data-theme="night"] .wdot.today{box-shadow:0 0 0 3px rgba(46,230,197,.55)}
+body[data-theme="night"] .weekbar b,body[data-theme="night"] .weekbar p{color:#eef3ff}
+.cabinet h2,.cabinet .trophyline{text-align:center}
+.shelf{margin:14px 0;padding-top:8px;border-top:1px solid rgba(127,140,160,.35)}
+.shelf h3{font-size:15px;margin:0 0 8px;text-align:center}
+.shelfrow{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+.award{width:104px;text-align:center;font-size:15px}
+.award svg{width:44px;height:44px;display:block;margin:0 auto}
+.award .lock{width:16px;height:16px;display:inline-block;vertical-align:middle}
+.awardflag{display:block;height:18px;font-size:15px;line-height:18px;color:#1b2a33}
+.award:not(.on){opacity:.85}
+.award:not(.on) .cup{fill:none;stroke:#5c6e78;stroke-width:1.6}
+.award.on .cup{fill:#f2b705;stroke:#b98300}
+.award span.name{display:block;margin-top:4px;font-size:15px;color:#1b2a33}
+body[data-theme="night"] .awardflag,body[data-theme="night"] .award span.name{color:#f7f9ff}
+body[data-theme="night"] .award:not(.on) .cup{stroke:#d5def8}
+body[data-theme="night"] .award.on .cup{fill:#ffc83d;stroke:#b9871a}
 </style>
 </head>
 <body>
@@ -2320,6 +2368,15 @@ function challengeRenderPause(){
  const msg=challengeUi&&challengeUi.msg?`<p class="${challengeUi.msgGood?"ok":"no"}">${esc(challengeUi.msg)}</p>`:"";
  return `<div class="card" id="challengePause"><h2>השהיה</h2>${challengeStageHtml(stage)}${msg}<p>הסשן מושהה.</p><p>תשובות בסשן: ${counts.n}. נכונות: ${counts.ok}.</p><p>זה תרגול, לא תוצאת מבחן.</p><p><button type="button" class="primary tap" onclick="challengeContinue()">המשך</button> <button type="button" class="tap" onclick="challengeFinish()">סיום הסשן</button> <button type="button" class="tap" onclick="home()">לתפריט</button></p></div>`;
 }
+function challengeStepUpHtml(){
+ if(!challengeUi||!challengeUi.stepUp)return "";
+ const step=challengeUi.stepUp;
+ return `<div class="stepmodal" role="dialog" aria-modal="true" aria-labelledby="stepUpTitle"><div class="card stepcard"><h2 id="stepUpTitle">עלית לשלב ${step.n}: ${esc(step.name)}</h2>${challengeStageHtml(step.name)}<p>מכאן השאלות נעשות מעניינות יותר.</p><p><button type="button" class="primary tap cta" onclick="challengeDismissStep()">ממשיכים לטפס</button></p></div></div>`;
+}
+function challengeDismissStep(){
+ if(challengeUi)challengeUi.stepUp=null;
+ challengeRender();
+}
 function challengeRender(){
  if(!challengeUi){home();return}
  challengeScreen=true;
@@ -2327,7 +2384,8 @@ function challengeRender(){
  stopTimer();
  const mode=challengeUi.screen||"topics";
  const html=mode==="ask"&&challengeUi.q?challengeRenderAsk():mode==="pause"?challengeRenderPause():challengeRenderTopics();
- $("app").innerHTML=html;
+ const modal=mode==="ask"?challengeStepUpHtml():"";
+ $("app").innerHTML=html+modal;
  placeDock(mode==="ask");
  if(mode==="ask"&&challengeUi.q&&challengeUi.q.t==="order"&&!challengeUi.revealed)challengeBindDrag();
 }
@@ -2447,7 +2505,10 @@ function challengeCheck(){
   challengeUi.revealed=true;
   challengeUi.ok=ok;
   const after=challengeViewStage();
-  challengeUi.msg=before!==after?"השלב עבר אל "+after:"";
+  const beforeIdx=CHALLENGE_STAGES.indexOf(before);
+  const afterIdx=CHALLENGE_STAGES.indexOf(after);
+  challengeUi.msg="";
+  challengeUi.stepUp=afterIdx>beforeIdx?{n:afterIdx+1,name:after}:null;
   challengeRender();
  },e=>{challengeUi.msg=challengeErrText(e);challengeRender()});
 }
@@ -2502,6 +2563,198 @@ function challengeFinish(){
 }
 
 /* ===== מסך בית ===== */
+const WEEK_LETTERS=["א","ב","ג","ד","ה","ו","ש"];
+const WEEK_NAMES=["ראשון","שני","שלישי","רביעי","חמישי","שישי","שבת"];
+function localDayDate(s){
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(String(s)))return null;
+ const p=String(s).split("-").map(Number);
+ const d=new Date(p[0],p[1]-1,p[2]);
+ if(d.getFullYear()!==p[0]||d.getMonth()!==p[1]-1||d.getDate()!==p[2])return null;
+ return d;
+}
+function formatLocalDay(d){
+ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
+function weekDates(todayStr){
+ const today=localDayDate(todayStr);
+ if(!today)return [];
+ const start=new Date(today.getFullYear(),today.getMonth(),today.getDate()-today.getDay());
+ const out=[];
+ for(let i=0;i<7;i++)out.push(formatLocalDay(new Date(start.getFullYear(),start.getMonth(),start.getDate()+i)));
+ return out;
+}
+function dayCompleted(entry){return !!(entry&&entry.complete===true)}
+function weeklyBarModel(daily, todayStr){
+ const days=weekDates(todayStr);
+ let restAt=-1;
+ days.forEach((day,i)=>{
+  if(!(day<todayStr))return;
+  if(!dayCompleted(daily&&daily[day])&&restAt<0)restAt=i;
+ });
+ const cells=days.map((day,i)=>{
+  const done=dayCompleted(daily&&daily[day]);
+  let state="later";
+  if(done)state="done";
+  else if(i===restAt)state="rest";
+  else if(day===todayStr)state="today";
+  else if(day<todayStr)state="open";
+  return {day:day,letter:WEEK_LETTERS[i],name:WEEK_NAMES[i],state:state};
+ });
+ const practiced=cells.filter(c=>c.state==="done").length;
+ const elapsed=days.filter(day=>day<=todayStr).length;
+ return {cells:cells,practiced:practiced,elapsed:elapsed,restUsed:restAt>=0};
+}
+function weeklyBarHtml(today){
+ const model=weeklyBarModel(store&&store.daily, today||dayKey());
+ const dots=model.cells.map(c=>{
+  const mark=c.state==="done"?"✓":c.state==="rest"?"☾":c.letter;
+  const label="יום "+c.name+(c.state==="done"?", תרגול":c.state==="rest"?", יום מנוחה":c.state==="today"?", היום":"");
+  return `<span class="wdot ${c.state}" role="img" aria-label="${escAttr(label)}">${mark}</span>`;
+ }).join("");
+ const note=model.restUsed?"יום מנוחה לא מוריד כלום.":"יום מנוחה אחד שמור.";
+ const count=model.practiced?`<p>השבוע: ${model.practiced===1?"יום תרגול אחד":model.practiced+" ימי תרגול"}</p>`:"";
+ return `<section class="weekbar" aria-label="השבוע">${count}<p>${note}</p><div class="weekdots">${dots}</div></section>`;
+}
+function rewardDayList(daily){
+ const out=[];
+ if(!plain(daily))return out;
+ Object.keys(daily).forEach(k=>{
+  if(k.indexOf("dc:")===0||!localDayDate(k)||!dayCompleted(daily[k]))return;
+  out.push({day:k,entry:daily[k]});
+ });
+ out.sort((a,b)=>a.day<b.day?-1:a.day>b.day?1:0);
+ return out;
+}
+function rewardDayGap(a,b){
+ const pa=String(a).split("-").map(Number),pb=String(b).split("-").map(Number);
+ if(pa.length!==3||pb.length!==3)return 0;
+ return Math.round((Date.UTC(pb[0],pb[1]-1,pb[2])-Date.UTC(pa[0],pa[1]-1,pa[2]))/86400000);
+}
+function rewardPerfect(entry){
+ const answers=entry&&Array.isArray(entry.answers)?entry.answers:[];
+ return answers.length===4&&answers.every(a=>a&&a.ok);
+}
+function rewardTopicBest(days){
+ const tally={};
+ days.forEach(row=>{
+  const answers=row.entry&&Array.isArray(row.entry.answers)?row.entry.answers:[];
+  answers.forEach(a=>{
+   if(!a||!a.ok)return;
+   const key=String(a.ch==null?"":a.ch)+"/"+String(a.sub||"");
+   if(key==="/")return;
+   tally[key]=(tally[key]||0)+1;
+  });
+ });
+ let best=0;
+ Object.keys(tally).forEach(k=>{if(tally[k]>best)best=tally[k]});
+ return best;
+}
+function rewardComeback(days){
+ for(let i=1;i<days.length;i++)if(rewardDayGap(days[i-1].day,days[i].day)>=3)return true;
+ return false;
+}
+function rewardFullWeeks(days, todayStr){
+ const set={};
+ days.forEach(row=>{set[row.day]=true});
+ const today=todayStr&&localDayDate(todayStr)?todayStr:(days.length?days[days.length-1].day:"");
+ const end=localDayDate(today);
+ const first=days.length?localDayDate(days[0].day):end;
+ if(!end||!first)return 0;
+ let cursor=new Date(first.getFullYear(),first.getMonth(),first.getDate()-first.getDay());
+ let count=0;
+ for(let guard=0;guard<80;guard++){
+  const sat=new Date(cursor.getFullYear(),cursor.getMonth(),cursor.getDate()+6);
+  if(sat>end)break;
+  let completes=0;
+  for(let i=0;i<7;i++){
+   const key=formatLocalDay(new Date(cursor.getFullYear(),cursor.getMonth(),cursor.getDate()+i));
+   if(set[key])completes++;
+  }
+  if(completes>=6)count++;
+  cursor=new Date(cursor.getFullYear(),cursor.getMonth(),cursor.getDate()+7);
+ }
+ return count;
+}
+function rewardClimb(events){
+ let reduced=challengeReduce(Array.isArray(events)?events:[]);
+ let derived=CHALLENGE_STAGES[0];
+ try{derived=challengeDeriveStage(Array.isArray(events)?events:[])}catch(e){}
+ let maxIdx=Math.max(0,CHALLENGE_STAGES.indexOf(reduced.stage),CHALLENGE_STAGES.indexOf(derived));
+ (reduced.stageChanges||[]).forEach(ev=>{
+  const idx=CHALLENGE_STAGES.indexOf(ev&&ev.to);
+  if(idx>maxIdx)maxIdx=idx;
+ });
+ const levels={1:false,2:false,3:false};
+ let run=0,topic="",level=0;
+ (reduced.answers||[]).forEach(a=>{
+  if(a&&a.ok&&a.topic===topic&&a.authoredLevel===level)run++;
+  else if(a&&a.ok){run=1;topic=a.topic;level=a.authoredLevel}
+  else{run=0;topic="";level=0}
+  if(run>=4&&(level===1||level===2||level===3))levels[level]=true;
+ });
+ return {maxIdx:maxIdx,levels:levels};
+}
+function rewardEventsFromStore(){
+ try{
+  const base=readRaw();
+  const loaded=challengeLoadNs(base);
+  return loaded&&loaded.ok&&loaded.ns&&Array.isArray(loaded.ns.events)?loaded.ns.events:[];
+ }catch(e){return []}
+}
+function rewardCatalog(opt){
+ opt=opt||{};
+ const daily=opt.daily!=null?opt.daily:(store&&store.daily)||{};
+ const mastery=opt.mastery!=null?opt.mastery:(store&&store.mastery)||{};
+ const events=opt.events!=null?opt.events:rewardEventsFromStore();
+ const today=opt.today||dayKey();
+ const days=rewardDayList(daily);
+ const shapeLevel=mastery&&mastery.shapes&&(mastery.shapes.level===2||mastery.shapes.level===3)?mastery.shapes.level:1;
+ const climb=rewardClimb(events);
+ const weeks=rewardFullWeeks(days, today);
+ const rows=[
+  {id:"first-day",shelf:"המסע",name:"מסע ראשון",earned:days.length>=1},
+  {id:"perfect-day",shelf:"המסע",name:"יום מושלם",earned:days.some(d=>rewardPerfect(d.entry))},
+  {id:"topic-four",shelf:"המסע",name:"נושא שנכבש",earned:rewardTopicBest(days)>=4},
+  {id:"shapes-up",shelf:"צורות",name:"צורות בעלייה",earned:shapeLevel>=2},
+  {id:"shapes-top",shelf:"צורות",name:"צורות בשליטה",earned:shapeLevel>=3},
+  {id:"block-1",shelf:"שליטה",name:"שליטה קלה",earned:!!climb.levels[1]},
+  {id:"block-2",shelf:"שליטה",name:"שליטה בינונית",earned:!!climb.levels[2]},
+  {id:"block-3",shelf:"שליטה",name:"שליטה מאתגרת",earned:!!climb.levels[3]},
+  {id:"step-2",shelf:"מדרגות",name:"צעד ההתקדמות",earned:climb.maxIdx>=1},
+  {id:"step-3",shelf:"מדרגות",name:"צעד ההתבססות",earned:climb.maxIdx>=2},
+  {id:"step-4",shelf:"מדרגות",name:"צעד ההעמקה",earned:climb.maxIdx>=3},
+  {id:"step-5",shelf:"מדרגות",name:"צעד ההרחבה",earned:climb.maxIdx>=4},
+  {id:"comeback",shelf:"השבוע",name:"חזרה אחרי הפסקה",earned:rewardComeback(days)},
+  {id:"full-week",shelf:"השבוע",name:"שבוע מלא",earned:weeks>=1},
+  {id:"two-weeks",shelf:"השבוע",name:"שבועיים מלאים",earned:weeks>=2}
+ ];
+ return rows;
+}
+function cabinetHtml(){
+ const awards=rewardCatalog();
+ const earned=awards.filter(a=>a.earned).length;
+ const order=[],groups={};
+ awards.forEach(a=>{
+  if(!groups[a.shelf]){groups[a.shelf]=[];order.push(a.shelf)}
+  groups[a.shelf].push(a);
+ });
+ const shelves=order.map(name=>{
+  const items=groups[name].map(a=>{
+  const flag=a.earned?`<span class="awardflag" aria-label="הושג">✓</span>`:`<span class="awardflag" aria-label="נעול"><svg class="lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="11" width="12" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2"/></svg></span>`;
+  return `<div class="award${a.earned?" on":""}">${trophySvg(a.earned)}${flag}<span class="name">${esc(a.name)}</span></div>`;
+ }).join("");
+  return `<section class="shelf"><h3>${esc(name)}</h3><div class="shelfrow">${items}</div></section>`;
+ }).join("");
+ return `<div class="card cabinet"><h2>ארון הגביעים</h2><p class="trophyline">${earned} מתוך ${awards.length}</p>${shelves}<p><button type="button" class="primary tap cta" onclick="home()">חזרה</button></p></div>`;
+}
+function openCabinet(){
+ if(S&&S.mode==="sim")return;
+ stopTimer();
+ placeDock(false);
+ S=null;
+ screen="cabinet";
+ $("app").innerHTML=cabinetHtml();
+}
 function home(){
  stopTimer();
  placeDock(false);
@@ -2529,13 +2782,15 @@ function home(){
  ${trailHtml(saved&&saved.complete?4:(saved&&Array.isArray(saved.answers)?saved.answers.length:0))}
  <button class="primary tap hero-btn cta" onclick="dailyStart()">${saved&&saved.complete?"לסיכום היום":(saved&&Array.isArray(saved.answers)&&saved.answers.length?"ממשיכים":"מתחילים")}</button>
  ${persistNote()}
+ ${weeklyBarHtml()}
+ <p class="quietrow"><button type="button" class="link" onclick="openCabinet()">ארון הגביעים</button></p>
  </section>
  ${challengeHomeCard()}
  <div class="extras"><h3>עוד תרגול</h3><p class="small">לפי נושא, או סימולציה קצרה עם שעון.</p><p><button type="button" class="tap cta" onclick="openTopics()">לבחור תרגול</button></p></div>
  <div id="parentsPanel" class="ppanel" hidden><div class="card mini ppanel-inner"><div class="ppanel-head"><b>להורים: הסבר, גיבוי ואיפוס</b><button type="button" class="tap" onclick="toggleParents()">סגירה</button></div>
  <p>תרגול, לא מבחן רשמי. התאמה למבחן לא אומתה.</p>
  <p>ההתקדמות נשמרת רק בדפדפן הזה. אין שם, אין חשבון ואין שליחת נתונים. אין קנס אם מדלגים על יום, ואין התאמה לתאריך עד שמועד הבחינה ידוע.</p>
- <p>לפני כל שאלה מופיעה דוגמה. ארבע שאלות מארבע קבוצות נושא, בלי שעון, בלי רצף חובה ובלי קנס על טעות.</p>
+ <p>השאלה מופיעה מיד, ולידה דרך קצרה. הדרך נפתחת לבד רק בפעם הראשונה של סוג השאלה. ארבע שאלות מארבע קבוצות נושא, בלי שעון, בלי רצף חובה ובלי קנס על טעות.</p>
  <p>ארבעה גביעים ביום מסמנים שהשאלה הושלמה, לא כמה תשובות נכונות.</p>
  ${lookPickHtml()}
  ${challengeBackupCard()}
@@ -2575,7 +2830,7 @@ function cancelReset(){
  if(!box)return;
  box.innerHTML=`<button type="button" class="danger tap" onclick="askReset()">איפוס כל ההתקדמות</button>`;
 }
-function resetAll(){stopTimer();S=null;D=null;store=blankStore();savePatch({reset:true});home()}
+function resetAll(){stopTimer();S=null;D=null;store=blankStore();seenTypeBag=null;try{localStorage.removeItem(SEEN_TYPE_KEY)}catch(e){}savePatch({reset:true});home()}
 
 /* ===== התחלת סשן ===== */
 /* The short form is pinned to the 15 items its id rule picked on 2026-10-10
@@ -3728,7 +3983,7 @@ function dailyStart(){
  if(schemaBlocked){showUpdateRequired();return}
  const day=dayKey();
  const saved=store.daily[day];
- if(saved&&saved.complete){dailySummary(saved);return}
+ if(saved&&saved.complete){rewardFresh=[];dailySummary(saved);return}
  if(saved&&saved.complete===false&&Array.isArray(saved.ids)&&saved.ids.length===4){
   const qs=saved.ids.map(id=>BANK.find(q=>q.id===id&&served(q)&&q.example));
   if(qs.every(Boolean)){
@@ -3754,44 +4009,114 @@ function ensureDailyChoice(){
   D.touched=false;
  }
 }
+/* Seen question types use their own storage key. The main store is not written here. */
+const SEEN_TYPE_KEY="shirprep_seen_types";
+let seenTypeBag=null;
+function seenTypeRead(){
+ if(seenTypeBag)return seenTypeBag;
+ seenTypeBag={};
+ try{
+  const raw=localStorage.getItem(SEEN_TYPE_KEY);
+  if(!raw)return seenTypeBag;
+  const obj=JSON.parse(raw);
+  if(!obj||typeof obj!=="object"||Array.isArray(obj))return seenTypeBag;
+  const bag={};
+  Object.keys(obj).forEach(k=>{if(obj[k]===1&&k.indexOf("/")>0)bag[k]=1});
+  seenTypeBag=bag;
+ }catch(e){}
+ return seenTypeBag;
+}
+function seenTypeHas(key){return !!(key&&seenTypeRead()[key])}
+function seenTypeAdd(key){
+ if(!key||key.indexOf("/")<0)return;
+ const bag=seenTypeRead();
+ if(bag[key])return;
+ bag[key]=1;
+ const payload=JSON.stringify(bag);
+ try{localStorage.setItem(SEEN_TYPE_KEY,payload)}catch(e){}
+}
+function questionTypeKey(q){
+ if(!q)return "";
+ return String(q.ch==null?"":q.ch)+"/"+String(q.sub||q.t||"");
+}
+function dailyTipOpen(q){
+ if(!D||!q||!q.example)return false;
+ if(D.tipUser==="open")return true;
+ if(D.tipUser==="closed")return false;
+ if(seenTypeHas(questionTypeKey(q)))return false;
+ return !!D.example;
+}
+function dailyTipLabel(q){
+ let s=String(q&&q.example||"").replace(/^דוגמה:\s*/,"").replace(/\s+/g," ").trim();
+ const dot=s.search(/[.!?]/);
+ if(dot>=0)s=s.slice(0,dot).trim();
+ if(s.length>36)s=s.slice(0,34).trim()+"…";
+ return s||"עוד דרך";
+}
+function dailyTipHtml(q){
+ if(!q||!q.example)return "";
+ const open=dailyTipOpen(q);
+ const chip=`<button type="button" class="tipchip" aria-expanded="${open?"true":"false"}" onclick="dailyTipToggle()">הדרך: ${esc(dailyTipLabel(q))}</button>`;
+ if(!open)return `<div class="tiprow">${chip}</div>`;
+ return `<div class="tiprow">${chip}<div class="exp" id="dailyTip">${show(q.example)}</div><p>קראו את הדרך ואז נסו. מותר לטעות.</p><button type="button" class="tap" onclick="dailyCloseTip()">עכשיו אני מנסה</button></div>`;
+}
+function dailyCloseTip(){
+ if(!D||!D.qs||!D.qs[D.index])return;
+ seenTypeAdd(questionTypeKey(D.qs[D.index]));
+ D.example=false;
+ D.tipUser="closed";
+ ensureDailyChoice();
+ persistDaily();
+ dailyRender();
+}
+function dailyOpenTip(){
+ if(!D)return;
+ D.tipUser="open";
+ dailyRender();
+}
+function dailyTipToggle(){
+ if(!D||!D.qs||!D.qs[D.index])return;
+ if(dailyTipOpen(D.qs[D.index]))dailyCloseTip();
+ else dailyOpenTip();
+}
 function dailyRender(){
  if(!D||!D.qs||!D.qs[D.index]){placeDock(false);$("app").innerHTML='<div class="card"><p>לא נמצאה שאלה לתרגול.</p><button type="button" class="primary tap" onclick="home()">חזרה</button></div>';return}
  screen="daily";
  const q=D.qs[D.index];
  const revealed=D.feedback!==null;
- let h=`<div class="card dailyskin" ${skinAttrs()}>${skinBlock()}${persistNote()}<div class="top"><div><b>מסע היום · ${D.index+1}/4 · ${q.ch===6?"צורות · רמה "+q.level:"היכרות"} · בלי שעון</b>${marksHtml(D.answers.length)}</div><button type="button" class="tap" onclick="dailyBack()">חזרה</button></div>${dailyQNavHtml()}${lvlRowHtml()}`;
- h+=`<p class="small">${q.ch===6?"רמת הצורות לפי סוג הכלל. זו הגדרת תרגול, לא כיול.":"הנושא הזה בתרגול היכרות, בלי עליית רמה."}</p>`;
- if(D.example){
-  placeDock(false);
-  h+=`<h2>קודם מבינים את הדרך</h2><div class="exp">${show(q.example)}</div><p>קראו את הדרך ואז נסו שאלה דומה. מותר לטעות.</p><button type="button" class="primary tap" onclick="D.example=false;ensureDailyChoice();persistDaily();dailyRender()">עכשיו אני מנסה</button>`;
- }else{
-  ensureDailyChoice();
-  if(q.chart)h+=chartHtml(q.chart);
-  h+=`<div class="q">${show(q.q)}</div>`;
-  if(q.t==="typed"){
-   const tone=revealed?(D.feedback?"good":"bad"):"";
-   h+=`<div class="ansline ${tone}">${markHtml(revealed,!!D.feedback,revealed&&!D.feedback)}<input id="dailyAnswer" class="${tone}" type="text" inputmode="decimal" autocomplete="off" aria-label="תשובה" value="${escAttr(D.draft==null?"":String(D.draft))}" oninput="dailyDraft(this.value)" ${revealed?"disabled":""}></div>`;
-  }else if(q.t==="mc")h+=D.perm.map(i=>`<button type="button" class="opt ${choiceClass(revealed,i===q.ans,D.choice===i)}" data-choice="${i}" onclick="dailyPick(${i})" ${revealed?"disabled":""}>${markHtml(revealed,i===q.ans,D.choice===i)}${show(q.opts[i])}</button>`).join("");
-  else if(q.t==="shape"){
-   if(q.matrix)h+=matrixHtml(q.seq,86);
-   else h+=seqStrip(q.seq,64,QMARK);
-   h+=`<p class="small">בחרו:</p><div class="optsvg" style="justify-content:center">`+D.perm.map(i=>`<button type="button" class="opt ${choiceClass(revealed,i===q.ans,D.choice===i)}" data-choice="${i}" aria-label="${escAttr(shapeName(q.opts[i])+markName(revealed,i===q.ans,D.choice===i))}" aria-pressed="${D.choice===i?"true":"false"}" onclick="dailyPick(${i})" ${revealed?"disabled":""}>${markHtml(revealed,i===q.ans,D.choice===i)}<div class="box" style="border:0">${svg(q.opts[i],80)}</div></button>`).join("")+`</div>`;
-  }else if(q.t==="order"){
-   h+=`<p class="small">הפריט הראשון למעלה. השתמשו בחצים.</p>`+orderListHtml(D.arr,q.items,revealed,{lock:revealed,move:"dailyMove"});
-  }
-  if(revealed){
-   const corr=q.t==="typed"?` התשובה: <span dir="ltr" class="formula">${esc(q.ans)}</span>`:q.t==="order"?` הסדר: ${esc(q.items.join(" ← "))}`:"";
-   h+=linkHtml(q.exp)+`<div class="exp"><b>${D.feedback?"נכון!":"לומדים מהניסיון."}</b>${corr}<br>${show(q.exp)}</div><p>המטרה היא להבין את הדרך, לא לצבור רצף.</p>`;
-   h+=`<div class="dock"><button type="button" class="primary tap" onclick="dailyNext()">${D.index===3?"סיכום היום":"לדוגמה הבאה"}</button></div>`;
-  }else h+=`<div class="dock"><button type="button" class="primary tap" onclick="dailyCheck()">בדיקה</button></div>`;
+ const popAt=revealed&&D.feedback===true?Math.max(0,D.answers.length-1):-1;
+ let h=`<div class="card dailyskin" ${skinAttrs()}>${skinBlock()}${persistNote()}<div class="top"><div><b>מסע היום · ${D.index+1}/4</b><div class="trophyrow">${marksHtml(D.answers.length,popAt)}</div></div><button type="button" class="tap" onclick="dailyBack()">חזרה</button></div>`;
+ h+=dailyTipHtml(q);
+ ensureDailyChoice();
+ if(q.chart)h+=chartHtml(q.chart);
+ h+=`<div class="q">${show(q.q)}</div>`;
+ if(q.t==="typed"){
+  const tone=revealed?(D.feedback?"good":"bad"):"";
+  h+=`<div class="ansline ${tone}">${markHtml(revealed,!!D.feedback,revealed&&!D.feedback)}<input id="dailyAnswer" class="${tone}" type="text" inputmode="decimal" autocomplete="off" aria-label="תשובה" value="${escAttr(D.draft==null?"":String(D.draft))}" oninput="dailyDraft(this.value)" ${revealed?"disabled":""}></div>`;
+ }else if(q.t==="mc")h+=D.perm.map(i=>`<button type="button" class="opt ${choiceClass(revealed,i===q.ans,D.choice===i)}" data-choice="${i}" onclick="dailyPick(${i})" ${revealed?"disabled":""}>${markHtml(revealed,i===q.ans,D.choice===i)}${show(q.opts[i])}</button>`).join("");
+ else if(q.t==="shape"){
+  if(q.matrix)h+=matrixHtml(q.seq,86);
+  else h+=seqStrip(q.seq,64,QMARK);
+  h+=`<p class="small">בחרו:</p><div class="optsvg" style="justify-content:center">`+D.perm.map(i=>`<button type="button" class="opt ${choiceClass(revealed,i===q.ans,D.choice===i)}" data-choice="${i}" aria-label="${escAttr(shapeName(q.opts[i])+markName(revealed,i===q.ans,D.choice===i))}" aria-pressed="${D.choice===i?"true":"false"}" onclick="dailyPick(${i})" ${revealed?"disabled":""}>${markHtml(revealed,i===q.ans,D.choice===i)}<div class="box" style="border:0">${svg(q.opts[i],80)}</div></button>`).join("")+`</div>`;
+ }else if(q.t==="order"){
+  h+=`<p class="small">הפריט הראשון למעלה. השתמשו בחצים.</p>`+orderListHtml(D.arr,q.items,revealed,{lock:revealed,move:"dailyMove"});
  }
+ if(revealed){
+  const corr=q.t==="typed"?` התשובה: <span dir="ltr" class="formula">${esc(q.ans)}</span>`:q.t==="order"?` הסדר: ${esc(q.items.join(" ← "))}`:"";
+  const line=linkSentence(q.exp);
+  h+=linkHtml(q.exp);
+  if(D.feedback)h+=`<div class="exp"><b>נכון!</b>${corr}<br>${show(line)}</div>`+dailyExtraHtml(line,q.exp);
+  else h+=`<div class="exp"><b>לומדים מהניסיון.</b>${corr}<br>${show(q.exp)}</div>`+dailyExtraHtml(q.exp,q.exp);
+  h+=`<p>המטרה היא להבין את הדרך, לא לצבור רצף.</p>`;
+  h+=`<div class="dock"><button type="button" class="primary tap" onclick="dailyNext()">${D.index===3?"סיכום היום":"לשאלה הבאה"}</button></div>`;
+ }else h+=`<div class="dock"><button type="button" class="primary tap" onclick="dailyCheck()">בדיקה</button></div>`;
  $("app").innerHTML=h+"</div>";
- placeDock(!D.example);
+ placeDock(true);
  revealCurrentNav();
  dailyBind();
 }
 function captureDraft(){
- if(!D||D.example||!D.qs[D.index]||D.qs[D.index].t!=="typed"||D.feedback!==null)return;
+ if(!D||!D.qs[D.index]||D.qs[D.index].t!=="typed"||D.feedback!==null)return;
  const input=$("dailyAnswer");
  if(input&&typeof input.value==="string")D.draft=input.value;
 }
@@ -3802,7 +4127,7 @@ function dailyDraft(v){
 }
 function dailyBack(){captureDraft();persistDaily();home()}
 function dailyBind(){
- if(!D||D.example||D.qs[D.index].t!=="typed")return;
+ if(!D||!D.qs[D.index]||D.qs[D.index].t!=="typed")return;
  const input=$("dailyAnswer");
  if(!input)return;
  if(input.addEventListener){
@@ -3830,6 +4155,7 @@ function dailyCheck(){
   if(!D.touched||!isItemOrder(D.arr,q.items)){alert("סדרו את הרשימה לפני הבדיקה");return}
   ok=D.arr.join("|")===q.items.join("|");
  }
+ seenTypeAdd(questionTypeKey(q));
  D.answers.push({id:q.id,ch:q.ch,sub:q.sub||"",ok});
  D.feedback=ok;persistDaily();dailyRender();
 }
@@ -3858,16 +4184,22 @@ function applyMastery(answers){
   store.mastery[key]=m;
  });
 }
+let rewardFresh=[];
+function rewardEarnedIds(opt){return rewardCatalog(opt).filter(a=>a.earned).map(a=>a.id)}
 function dailyNext(){
  if(!D||D.feedback===null||D.finalized)return;
- if(D.index<3){D.index++;D.example=true;D.feedback=null;D.draft="";D.choice=null;D.perm=null;D.arr=null;D.touched=false;persistDaily();dailyRender();return}
+ seenTypeAdd(questionTypeKey(D.qs[D.index]));
+ if(D.index<3){D.index++;D.example=true;D.tipUser=null;D.feedback=null;D.draft="";D.choice=null;D.perm=null;D.arr=null;D.touched=false;persistDaily();dailyRender();return}
  const prev=store.daily[D.day];
- if(prev&&prev.complete){dailySummary(prev);return}
+ if(prev&&prev.complete){rewardFresh=[];dailySummary(prev);return}
  D.finalized=true;
+ const beforeIds=rewardEarnedIds();
  const entry={complete:true,answers:D.answers.map(a=>({id:a.id,ch:a.ch,sub:a.sub||"",ok:!!a.ok})),day:D.day,ids:D.qs.map(q=>q.id)};
  store.daily[D.day]=entry;
  applyMastery(entry.answers);
  savePatch({dailyKey:D.day,dailyEntry:entry,mastery:store.mastery});
+ const afterIds=rewardEarnedIds();
+ rewardFresh=afterIds.filter(id=>beforeIds.indexOf(id)<0);
  dailySummary(entry);
 }
 function dailySummary(entry){
@@ -3876,8 +4208,10 @@ function dailySummary(entry){
  screen="summary";
  const answers=Array.isArray(entry&&entry.answers)?entry.answers:[];
  const count=answers.filter(a=>a&&a.ok).length;
+ const freshNames=(rewardFresh||[]).map(id=>{const row=rewardCatalog().find(a=>a.id===id);return row?row.name:""}).filter(Boolean);
+ const freshLine=freshNames.length?`<p class="trophyline">גביע חדש בארון: ${esc(freshNames.join(" · "))}</p>`:"";
  placeDock(false);
- $("app").innerHTML=`<div class="card dailyskin" ${skinAttrs()}>${skinBlock()}<h2>השלמתם את מסע היום</h2>${trophiesHtml(4,true)}<p class="trophyline">4 גביעים להיום</p>${summaryQNavHtml(answers)}<p class="scoreline">${count} מתוך 4 נכון.</p><p class="scoreline">זה תרגול, לא תוצאת מבחן.</p><p>גם ניסיונות וקריאת הסבר הם חלק מהלמידה.</p><p>${savedDayLine()} אין קנס אם לא מתרגלים מחר.</p><p><button type="button" class="primary tap" onclick="continueUntimed()">המשך בלי שעון</button> <button type="button" class="tap" onclick="home()">חזרה</button></p></div>`;
+ $("app").innerHTML=`<div class="card dailyskin" ${skinAttrs()}>${skinBlock()}<h2>השלמתם את מסע היום</h2>${trophiesHtml(4,true)}<p class="trophyline">4 גביעים להיום</p>${freshLine}${weeklyBarHtml(entry&&entry.day)}${summaryQNavHtml(answers)}<p class="scoreline">${count} מתוך 4 נכון.</p><p class="scoreline">זה תרגול, לא תוצאת מבחן.</p><p>גם ניסיונות וקריאת הסבר הם חלק מהלמידה.</p><p>${savedDayLine()} אין קנס אם לא מתרגלים מחר.</p><p><button type="button" class="primary tap" onclick="continueUntimed()">המשך בלי שעון</button> <button type="button" class="tap" onclick="home()">חזרה</button></p></div>`;
 }
 function linkSentence(exp){
  const s=String(exp==null?"":exp).trim();
@@ -3890,15 +4224,25 @@ function linkHtml(exp){
  if(!line)return "";
  return `<details class="link"><summary>הקשר בקצרה</summary><p>${show(line)}</p></details>`;
 }
-function trophySvg(on){
- return `<svg viewBox="0 0 24 24" aria-hidden="true"><path class="cup${on?" on":""}" d="M7 3h10v5a5 5 0 0 1-10 0V3z"/><path class="cup${on?" on":""}" d="M7 4.5H4.5v1.5A3 3 0 0 0 7.5 9M17 4.5h2.5v1.5A3 3 0 0 1 16.5 9"/><path class="cup${on?" on":""}" d="M12 13v4M8.5 20.5h7M9.5 17h5v3.5h-5z"/></svg>`;
+function trophySvg(on, pop){
+ const svgCls=pop?' class="pop"':'';
+ return `<svg${svgCls} viewBox="0 0 24 24" aria-hidden="true"><path class="cup${on?" on":""}" d="M7 3h10v5a5 5 0 0 1-10 0V3z"/><path class="cup${on?" on":""}" d="M7 4.5H4.5v1.5A3 3 0 0 0 7.5 9M17 4.5h2.5v1.5A3 3 0 0 1 16.5 9"/><path class="cup${on?" on":""}" d="M12 13v4M8.5 20.5h7M9.5 17h5v3.5h-5z"/></svg>`;
 }
-function trophiesHtml(doneCount,big){
+function trophiesHtml(doneCount,big,popIndex){
  const n=Math.max(0,Math.min(4,doneCount|0));
- const cups=[0,1,2,3].map(i=>trophySvg(i<n)).join("");
+ const cups=[0,1,2,3].map(i=>trophySvg(i<n,i===popIndex)).join("");
  return `<span class="trophies${big?" big":""}" role="img" aria-label="${n} מתוך 4 גביעים להיום">${cups}</span>`;
 }
-function marksHtml(doneCount){return trophiesHtml(doneCount,false)}
+function marksHtml(doneCount,popIndex){return trophiesHtml(doneCount,false,popIndex)}
+function dailyExtraHtml(visible, full){
+ const text=String(full==null?"":full).trim();
+ const shown=String(visible==null?"":visible).trim();
+ if(!text||!shown||text===shown)return "";
+ if(text.indexOf(shown)!==0)return "";
+ const rest=text.slice(shown.length).trim();
+ if(!rest)return "";
+ return `<details class="whyothers"><summary>עוד על הדרך</summary><div class="exp">${show(rest)}</div></details>`;
+}
 function continueUntimed(){
  stopTimer();
  S=null;
