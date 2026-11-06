@@ -333,6 +333,51 @@ body[data-theme="night"] .weekbar b,body[data-theme="night"] .weekbar p{color:#e
 body[data-theme="night"] .awardflag,body[data-theme="night"] .award span.name{color:#f7f9ff}
 body[data-theme="night"] .award:not(.on) .cup{stroke:#d5def8}
 body[data-theme="night"] .award.on .cup{fill:#ffc83d;stroke:#b9871a}
+
+body[data-theme="bluewhite"] .hamb{background:#eaf0fa;color:#17203c;border:1px solid #bdc8dd}
+body[data-theme="bluewhite"] .dailyskin button.primary:not([onclick="check()"]):not([onclick="dailyCheck()"]):not([onclick="dailyNext()"]){background:transparent;color:#fff;border-color:#b3bed4}
+/* Blue-on-white: additive look, explicit older choices remain intact. */
+body[data-theme="bluewhite"] .dailyskin .no{color:#ffabab}
+body[data-theme="bluewhite"] .dailyskin .ok{color:#8dffb0}
+body[data-theme="bluewhite"]{background:#fff;color:#17203c}
+body[data-theme="bluewhite"] header{background:#fff;color:#17203c;border-bottom:1px solid #e0e5ee;padding:16px 20px}
+body[data-theme="bluewhite"] main{max-width:860px;padding:24px 16px}
+body[data-theme="bluewhite"] .dailyskin{background:linear-gradient(145deg,#27396e,#101832);color:#fff;border:0;border-radius:20px;padding:24px 20px;margin:12px auto 32px;box-shadow:none}
+body[data-theme="bluewhite"] .dailyskin .q{color:#fff;line-height:1.65;margin:28px 0 20px}
+body[data-theme="bluewhite"] .dailyskin h2,body[data-theme="bluewhite"] .dailyskin h3{color:#fff}
+body[data-theme="bluewhite"] .dailyskin .small,body[data-theme="bluewhite"] .dailyskin .trophyline{color:#c5cfe6}
+body[data-theme="bluewhite"] .dailyskin .opt{background:#fff;color:#17203c;border:2px solid #aeb9ce;border-radius:10px;margin:12px 0;padding:14px;min-height:52px}
+body[data-theme="bluewhite"] .dailyskin .optsvg{gap:12px;margin:16px 0}
+body[data-theme="bluewhite"] .dailyskin .optsvg .opt{padding:6px;margin:0}
+body[data-theme="bluewhite"] .dailyskin .opt.sel{outline:3px solid #00d9bb;outline-offset:1px;border-color:#17203c}
+body[data-theme="bluewhite"] .dailyskin .opt.good{border-color:#24824a;background:#d2f3dc;color:#17203c}
+body[data-theme="bluewhite"] .dailyskin .opt.bad{border-color:#bd3e50;background:#ffe0e4;color:#17203c}
+body[data-theme="bluewhite"] .dailyskin .good .mark{color:#176634}
+body[data-theme="bluewhite"] .dailyskin .bad .mark{color:#9a2437}
+body[data-theme="bluewhite"] .dailyskin button:not(.opt){background:transparent;color:#fff;border-color:#b3bed4;border-radius:22px}
+body[data-theme="bluewhite"] .dailyskin button.primary,body[data-theme="bluewhite"] .dailyskin button[onclick="check()"],body[data-theme="bluewhite"] .dailyskin button[onclick="dailyCheck()"]{background:#00d9bb;color:#072c30;border-color:#00d9bb;font-weight:bold;box-shadow:none}
+body[data-theme="bluewhite"] .dailyskin select{background:#fff;color:#17203c;border:1px solid #aeb9ce}
+body[data-theme="bluewhite"] .dailyskin .exp{background:rgba(255,255,255,.1);color:#fff;border-radius:12px;line-height:1.65;padding:16px}
+body[data-theme="bluewhite"] .dailyskin .dock{position:static;background:transparent;border-top:1px solid #7b8aac;margin-top:24px;padding:16px 0 0;box-shadow:none}
+body[data-theme="bluewhite"] .dailyskin .bar .qnav{color:#fff;border-color:#aeb9ce;background:transparent}
+body[data-theme="bluewhite"] .dailyskin .bar .qnav.cur{box-shadow:inset 0 0 0 3px #00d9bb}
+body[data-theme="bluewhite"] .dailyskin .chip{background:rgba(255,255,255,.1);color:#fff}
+body[data-theme="bluewhite"] .dailyskin .stylefold{display:none}
+body[data-theme="bluewhite"] .dailyskin .seq .sn,body[data-theme="bluewhite"] .dailyskin .clocknote,body[data-theme="bluewhite"] .dailyskin .timer{color:#00d9bb}
+body[data-theme="bluewhite"] .dailyskin .chart{background:white;color:#17203c}
+body[data-theme="bluewhite"] .dailyskin .ord li{color:#17203c;background:white}
+body[data-theme="bluewhite"] .dailyskin input{background:white;color:#17203c}
+body[data-theme="bluewhite"] .dailyskin .wdot{color:#17203c}
+body[data-theme="bluewhite"] .dailyskin .wdot.done{color:#fff}
+body[data-theme="bluewhite"] .dailyskin .weekbar b,body[data-theme="bluewhite"] .dailyskin .weekbar p{color:#fff}
+body[data-theme="bluewhite"] .dailyskin .trophyrow{display:flex}
+.sw.bw{background:linear-gradient(135deg,#27396e 50%,white 50%)}
+@media(min-width:768px){body[data-theme="bluewhite"] .dailyskin{max-width:680px;padding:32px}}
+
+body[data-theme="bluewhite"] .dailyskin .ansline.good .mark{color:#8dffb0}
+body[data-theme="bluewhite"] .dailyskin .ansline.bad .mark{color:#ffabab}
+body[data-theme="bluewhite"] .dailyskin .ord button{color:#17203c;border-color:#6b7894}
+body[data-theme="bluewhite"] .dailyskin .chart .small{color:#17203c}
 </style>
 </head>
 <body>
@@ -1284,7 +1329,7 @@ function mergeUiIntoMeta(base, ui){
  next.skin=ui.skin==="expedition"?"expedition":"kinetic";
  if(ui.motion==="on"||ui.motion==="reduced"||ui.motion==="off")next.motion=ui.motion;
  else if(next.motion!=="on"&&next.motion!=="reduced"&&next.motion!=="off")next.motion="reduced";
- if(ui.theme==="classic"||ui.theme==="night")next.theme=ui.theme;
+ if(ui.theme==="classic"||ui.theme==="night"||ui.theme==="bluewhite")next.theme=ui.theme;
  if(typeof ui.setAt==="string"&&ui.setAt)next.setAt=ui.setAt;
  obj.ui=next;
  entry.draft=JSON.stringify(obj);
@@ -4271,9 +4316,9 @@ function continueUntimed(){
 /* THEME (display only). Stored in the same ui blob as skin and motion (one storage key, no second key). The mock exam is always classic. */
 let sessionTheme=null;
 function themeNow(){
- if(sessionTheme==="classic"||sessionTheme==="night")return sessionTheme;
+ if(sessionTheme==="classic"||sessionTheme==="night"||sessionTheme==="bluewhite")return sessionTheme;
  let ui=null;try{ui=readMetaUi()}catch(e){}
- return ui&&ui.theme==="classic"?"classic":"night";
+ return ui&&(ui.theme==="classic"||ui.theme==="night"||ui.theme==="bluewhite")?ui.theme:"bluewhite";
 }
 function effectiveTheme(){return(typeof S!=="undefined"&&S&&S.mode==="sim")?"classic":themeNow()}
 function applyTheme(){
@@ -4289,7 +4334,7 @@ function syncLookButtons(){
  try{const t=themeNow();document.querySelectorAll("[data-look]").forEach(el=>el.setAttribute("aria-pressed",el.getAttribute("data-look")===t?"true":"false"))}catch(e){}
 }
 function chooseTheme(v){
- v=v==="classic"?"classic":"night";
+ v=v==="classic"?"classic":v==="bluewhite"?"bluewhite":"night";
  sessionTheme=v;
  applyTheme();syncLookButtons();
  if(!canPersist())return;
@@ -4304,7 +4349,7 @@ function chooseTheme(v){
 }
 function lookPickHtml(){
  const on=v=>themeNow()===v?"true":"false";
- return `<div class="lookpick"><b>מראה</b><p class="small">איך האפליקציה נראית. סימולציית המבחן תמיד נראית קלאסית, בלי הסחות.</p><div class="lookrow"><button type="button" class="tap" data-look="night" aria-pressed="${on("night")}" onclick="chooseTheme('night')"><span class="sw n"></span>מסלול לילה</button><button type="button" class="tap" data-look="classic" aria-pressed="${on("classic")}" onclick="chooseTheme('classic')"><span class="sw c"></span>קלאסי</button></div></div>`;
+ return `<div class="lookpick"><b>מראה</b><p class="small">איך האפליקציה נראית. סימולציית המבחן תמיד נראית קלאסית, בלי הסחות.</p><div class="lookrow"><button type="button" class="tap" data-look="bluewhite" aria-pressed="${on("bluewhite")}" onclick="chooseTheme('bluewhite')"><span class="sw bw"></span>כחול על לבן</button><button type="button" class="tap" data-look="night" aria-pressed="${on("night")}" onclick="chooseTheme('night')"><span class="sw n"></span>מסלול לילה</button><button type="button" class="tap" data-look="classic" aria-pressed="${on("classic")}" onclick="chooseTheme('classic')"><span class="sw c"></span>קלאסי</button></div></div>`;
 }
 function trailHtml(n){
  n=Math.max(0,Math.min(4,n|0));
