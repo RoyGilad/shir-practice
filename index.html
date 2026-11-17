@@ -378,6 +378,17 @@ body[data-theme="bluewhite"] .dailyskin .ansline.good .mark{color:#8dffb0}
 body[data-theme="bluewhite"] .dailyskin .ansline.bad .mark{color:#ffabab}
 body[data-theme="bluewhite"] .dailyskin .ord button{color:#17203c;border-color:#6b7894}
 body[data-theme="bluewhite"] .dailyskin .chart .small{color:#17203c}
+/* Mission screens share the existing look picker. Simulation is untouched. */
+.mission-shell,#challengeAsk{--mission-accent:#2458bd;--mission-ink:#152b53;--mission-muted:#526b93;--mission-line:#8bade7;--mission-hill:#dce8fc;--mission-snow:#fff;--mission-paper:#fff;--mission-panel:#173f82;color:var(--mission-ink)}
+.mission-shell{max-width:640px;margin:18px auto;padding:24px;background:var(--mission-paper);border:1px solid var(--mission-hill);border-radius:22px;text-align:right}
+.mission-shell h2{font-size:30px;line-height:1.18;margin:8px 0 12px}.mission-shell h3{font-size:22px;line-height:1.3;margin:8px 0}.mission-shell p,.mission-target p,.mission-progress p{font-size:16px;line-height:1.5}.mission-kicker,.mission-muted{color:var(--mission-muted)}.mission-kicker{font-size:15px!important}.mission-route{height:235px;position:relative;margin:18px 0 4px}.mission-route>svg{position:absolute;inset:0;width:100%;height:100%}.mission-station{position:absolute;display:flex;align-items:center;gap:10px}.mission-station>div{background:var(--mission-paper);padding:3px 0;max-width:205px}.mission-station small{display:block;font-size:15px;line-height:1.35;color:var(--mission-muted)}.mission-station.past{right:0;top:0}.mission-station.current{right:22%;top:90px}.mission-station.future{right:4%;top:175px}.mission-node{width:44px;height:44px;border-radius:50%;border:2px solid var(--mission-line);background:var(--mission-paper);display:grid;place-items:center;flex-shrink:0;font-size:21px;font-weight:700}.mission-station.current .mission-node{width:52px;height:52px;border:5px solid var(--mission-hill);background:var(--mission-accent);color:#fff}.mission-callout,.mission-progress{background:var(--mission-panel);color:#fff;border-radius:20px;padding:18px;margin:12px 0}.mission-callout p,.mission-progress p{color:#d9e6ff}.mission-callout .primary{background:#fff!important;color:#173f82!important;border-color:#fff!important;width:100%;margin-top:12px;min-height:50px}.mission-target{margin-top:16px;padding:17px;border:1px solid var(--mission-hill);border-radius:19px}.mission-target p{color:var(--mission-muted);margin:8px 0}.mission-secondary{text-align:center}.mission-secondary button{background:transparent!important;color:var(--mission-accent)!important;border:1px solid var(--mission-line)!important}.mission-land{width:100%;height:190px;margin:0 auto;display:block}.mission-progress-head{display:flex;justify-content:space-between;gap:12px;font-size:16px}.mission-meter{height:8px;background:#45659c;border-radius:8px;margin:12px 0;overflow:hidden}.mission-meter span{display:block;background:#b6d0ff;height:100%;border-radius:8px}.mission-badge{display:inline-block;padding:8px 12px;background:var(--mission-hill);border-radius:18px;font-weight:700}.mission-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:15px 0}.mission-stats>div{padding:14px 8px;background:var(--mission-hill);border-radius:15px;text-align:center}.mission-stats b{display:block;font-size:29px}.mission-stats span{font-size:16px}.mission-review{padding:15px 0;border-top:1px solid var(--mission-hill);font-size:16px;line-height:1.6}.mission-ask-top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:12px 0}.mission-ask-top p{margin:0;font-size:15px}.mission-ask-title{font-size:23px;line-height:1.3}.mission-save{min-height:44px}.mission-shell .cta{min-height:50px;width:100%;max-width:100%;font-size:18px}.mission-shell details summary{font-size:16px;min-height:44px;cursor:pointer}.mission-shell button,#challengeAsk button{white-space:normal}#challengeAsk .small{font-size:15px}#challengeAsk>.mission-progress{margin-bottom:20px}#challengeAsk .dock{flex-wrap:wrap}#challengeAsk .dock .tap{min-height:46px}
+body[data-theme="night"] .mission-shell,body[data-theme="night"] #challengeAsk{--mission-accent:#8db9ff;--mission-ink:#edf3ff;--mission-muted:#bdcdec;--mission-line:#7d9ccc;--mission-hill:#253d65;--mission-snow:#dce9ff;--mission-paper:#132444;--mission-panel:#24477e}
+body[data-theme="classic"] .mission-shell,body[data-theme="classic"] #challengeAsk{--mission-accent:#166d79;--mission-ink:#17343b;--mission-muted:#496770;--mission-line:#81b7bc;--mission-hill:#e0f0ee;--mission-panel:#205c67}
+@media(max-width:360px){.mission-shell{padding:16px}.mission-shell h2{font-size:27px}.mission-station>div{max-width:160px}.mission-station.current{right:13%}.mission-station small{font-size:15px}.mission-callout{padding:16px}.mission-stats{gap:8px}}
+@media(prefers-reduced-motion:reduce){.mission-shell *{animation:none!important;transition:none!important}}
+#challengeAsk{padding-bottom:22px}#challengeAsk .dock{position:static;background:transparent;border-top:1px solid var(--mission-hill);padding:16px 0 0;margin-top:16px;box-shadow:none;display:flex;gap:10px}#challengeAsk .dock>.primary{order:-1;width:100%;margin:0}#challengeAsk .dock>.tap:not(.primary){flex:1;margin:0}#challengeAsk .mission-ask-top>b,#challengeAsk .mission-progress-head>span{white-space:nowrap;flex-shrink:0;font-size:16px}
+body[data-theme="bluewhite"] .mission-shell .primary,body[data-theme="bluewhite"] #challengeAsk .primary{background:#2458bd;color:#fff;border-color:#2458bd}body[data-theme="bluewhite"] #challengeAsk .opt{background:#fff;border-color:#a8bce0;color:#152b53}body[data-theme="bluewhite"] #challengeAsk .opt.good{background:#edf8f2;border:2px solid #2a7c62;color:#23664d}body[data-theme="bluewhite"] #challengeAsk .opt.bad{background:#fff0f0;border-color:#ad3030;color:#7c2020}
+
 </style>
 </head>
 <body>
@@ -1089,12 +1100,12 @@ function challengeImport(text,opt){
  savePatch(patch,{sync:true});
  return finish();
 }
-function challengeAppend(event){
+function challengeAppend(event,requireDeal){
  if(!canPersist())throw challengeFail("refused");
  const canon=challengeCanonicalEvent(event);
  if(!canon)throw challengeFail("corrupt");
  const box={result:null};
- const patch={challengeAppend:canon,_challengeBox:box};
+ const patch={challengeAppend:canon,_challengeBox:box,challengeRequireDeal:!!requireDeal,challengeAnswerSession:requireDeal&&requireDeal.session||null,challengeAnswerCount:requireDeal&&Number.isInteger(requireDeal.count)?requireDeal.count:null};
  const finish=function(){
   if(!box.result||!box.result.ok)throw challengeFail((box.result&&box.result.code)||"refused");
   return box.result.state;
@@ -1399,12 +1410,37 @@ function commitPatch(patch){
    if(patch._challengeBox)patch._challengeBox.result={ok:false,code:"refused"};
    return false;
   }
+  // Check the outstanding UI deal on the fresh base while holding the write
+  // lock. A second tab must not grade a question another tab already saved.
+  if(patch.challengeRequireDeal&&patch.challengeAppend&&patch.challengeAppend.t==="answer_submitted"){
+   const deal=challengeDealCanon(base.challengeDeal);
+   const loaded=challengeLoadNs(base),events=loaded.ok?loaded.ns.events:[];
+   const count=challengeAcceptedAnswers(events).filter(a=>a.session===patch.challengeAppend.session).length;
+   if(!deal||deal.session!==patch.challengeAppend.session||deal.qid!==patch.challengeAppend.qid||(patch.challengeAnswerSession&&patch.challengeAnswerSession!==patch.challengeAppend.session)||(Number.isInteger(patch.challengeAnswerCount)&&count!==patch.challengeAnswerCount)){
+    if(patch._challengeBox)patch._challengeBox.result={ok:false,code:"refused"};
+    return false;
+   }
+  }
   const applied=patch.challengeAppend?challengeCommitAppend(base,patch.challengeAppend):challengeCommitReplace(base,patch.challengeReplace);
   if(patch._challengeBox)patch._challengeBox.result=applied;
   if(!applied.ok)return false;
  }
+ // Invalidate the graded deal in the same persisted write as its answer.
+ // A second cleanup write must not make an accepted answer look unsaved.
+ if(patch.challengeAppend&&patch.challengeAppend.t==="answer_submitted"&&base.challengeDeal&&base.challengeDeal.session===patch.challengeAppend.session&&base.challengeDeal.qid===patch.challengeAppend.qid)delete base.challengeDeal;
+ // Ending a session invalidates only that session's deal, in the same write.
+ if(patch.challengeAppend&&patch.challengeAppend.t==="session_end"&&base.challengeDeal&&base.challengeDeal.session===patch.challengeAppend.session)delete base.challengeDeal;
  if(patch.challengeDealSet){
   if(seenSchema>BRIDGE_SCHEMA)return false;
+  if(patch.challengeDealGuard){
+   const loaded=challengeLoadNs(base),deal=challengeDealCanon(patch.challengeDeal),prev=challengeDealCanon(base.challengeDeal);
+   const events=loaded.ok?loaded.ns.events:[],info=challengeSessionInfo(events);
+   const count=challengeAcceptedAnswers(events).filter(a=>info&&a.session===info.id).length;
+   if(!loaded.ok||!info||!deal||deal.session!==info.id||count!==patch.challengeDealGuard.count||JSON.stringify(prev)!==patch.challengeDealGuard.prev){
+    if(patch._challengeBox)patch._challengeBox.result={ok:false,code:"refused"};
+    return false;
+   }
+  }
   if(patch.challengeDeal==null)delete base.challengeDeal;
   else{
    const deal=challengeDealCanon(patch.challengeDeal);
@@ -1415,7 +1451,9 @@ function commitPatch(patch){
  if(patch.revAtLeast&&nextRev<=patch.revAtLeast)nextRev=patch.revAtLeast+1;
  base.rev=nextRev;
  ensureDcMeta(base);
- return writeRaw(base);
+ const written=writeRaw(base);
+ if(!written&&patch._challengeBox)patch._challengeBox.result={ok:false,code:"refused"};
+ return written;
 }
 function writeRaw(base){
  let text;
@@ -2070,20 +2108,20 @@ function challengeDealRead(){
  if(!base||!plain(base.challengeDeal))return null;
  return challengeDealCanon(base.challengeDeal);
 }
-function challengeDealWrite(deal){
+function challengeDealWrite(deal,guard){
+ if(!deal||!guard||!Number.isInteger(guard.count))throw challengeFail("refused");
  if(!canPersist())throw challengeFail("refused");
- const patch={challengeDealSet:true,challengeDeal:deal==null?null:deal};
+ const box={result:null};
+ const patch={challengeDealSet:true,challengeDeal:deal==null?null:deal,_challengeBox:box};
+ if(guard)patch.challengeDealGuard={count:guard.count,prev:guard.prev};
+ const finish=()=>{if(box.result&&box.result.ok===false)throw challengeFail(box.result.code||"refused");if(guard)guard.prev=JSON.stringify(challengeDealCanon(deal));return null};
  if(locksOn()){
   const req=savePatch(patch);
-  if(req&&typeof req.then==="function")return req;
-  return req;
+  if(req&&typeof req.then==="function")return req.then(finish);
+  return finish();
  }
  savePatch(patch,{sync:true});
- return null;
-}
-function challengeDealClear(){
- if(!challengeDealRead())return null;
- return challengeDealWrite(null);
+ return finish();
 }
 function challengePermOk(perm,n){
  if(!Array.isArray(perm)||perm.length!==n)return false;
@@ -2100,7 +2138,7 @@ function challengeDealFromUi(){
  try{info=challengeSessionInfo(challengeDiskEvents())}catch(e){info=null}
  if(!info||!challengeUi||!challengeUi.q||challengeUi.revealed)return null;
  return {
-  session:info.id,
+  session:challengeUi.dealGuard?challengeUi.dealGuard.session:info.id,
   qid:challengeUi.q.id,
   perm:Array.isArray(challengeUi.perm)?challengeUi.perm.slice():null,
   arr:Array.isArray(challengeUi.arr)?challengeUi.arr.slice():null,
@@ -2112,7 +2150,12 @@ function challengePersistDeal(){
  if(!deal)return null;
  const prev=challengeDealRead();
  if(prev&&JSON.stringify(prev)===JSON.stringify(deal))return null;
- try{return challengeDealWrite(deal)}catch(e){return null}
+ const recover=()=>{if(challengeUi){if(canPersist()){challengeUi.msg="השאלה התעדכנה בלשונית אחרת. ההתקדמות נטענת מחדש.";challengeShowQuestion()}else{challengeUi.msg=challengeErrText({code:"refused"});challengeRender()}}};
+ try{
+  const result=challengeDealWrite(deal,challengeUi.dealGuard);
+  if(result&&typeof result.then==="function")return result.catch(recover);
+  return result;
+ }catch(e){recover();return null}
 }
 function challengeChooseItem(){
  const events=challengeDiskEvents();
@@ -2175,18 +2218,22 @@ function challengeAnswer(spec){
  const cursor=challengeReduce(events).stage;
  const steps=[];
  if(cursor!==derived)steps.push(()=>challengeAppend(challengeStageEvent(info,cursor,derived,spec)));
- steps.push(()=>challengeAppend(challengeAnswerEvent(info,q,spec,derived)));
- steps.push(()=>{
-  const deal=challengeDealRead();
-  if(!deal||deal.qid!==spec.qid)return null;
-  return challengeDealClear();
- });
+ const fromUi=!!(challengeUi&&challengeUi.q&&challengeUi.q.id===q.id&&!challengeUi.revealed);
+ steps.push(()=>challengeAppend(challengeAnswerEvent(info,q,spec,derived),fromUi?(challengeUi.dealGuard||true):false));
+
  steps.push(()=>{
   const now=challengeDiskEvents();
   const next=challengeDeriveStage(now);
   const at=challengeReduce(now).stage;
   if(next===at)return challengeReduce(now);
-  return challengeAppend(challengeStageEvent(info,at,next,{at:spec.at,localDay:spec.localDay}));
+  // The answer is already durable. A derived-stage synchronization failure
+  // must not report that answer as unsaved or leave its check button active.
+  // The stage remains derived from accepted answers and is synced next time.
+  try{
+   const sync=challengeAppend(challengeStageEvent(info,at,next,{at:spec.at,localDay:spec.localDay}));
+   if(sync&&typeof sync.then==="function")return sync.catch(()=>challengeReduce(challengeDiskEvents()));
+   return sync;
+  }catch(e){return challengeReduce(challengeDiskEvents())}
  });
  return challengeChain(steps);
 }
@@ -2208,10 +2255,7 @@ function challengeEndEngine(spec){
  challengeSpecClean(spec||{},["at","id","attemptId","localDay"]);
  const info=challengeSessionInfo(challengeDiskEvents());
  if(!info)throw challengeFail("orphan");
- return challengeChain([
-  ()=>challengeAppend(challengeLifeEvent("session_end",info,spec||{})),
-  ()=>challengeDealClear()
- ]);
+ return challengeAppend(challengeLifeEvent("session_end",info,spec||{}));
 }
 const challengeEngine={
  start:challengeStart,
@@ -2239,18 +2283,132 @@ function challengeTopicNote(row){
  if(row.mode==="follow")parts.push("הרמה זזה עם השלב");
  return parts.join(". ")+".";
 }
+/* Mission presentation. All progress derives from existing accepted events.
+   No new storage, telemetry, stage rules or award rules. */
+function missionEvents(){try{return challengeDiskEvents()}catch(e){return []}}
+// UI lifecycle events target the session represented on this screen, never a
+// replacement session that another tab opened after the screen was drawn.
+function challengeUiScope(info){
+ if(challengeUi)challengeUi.sessionInfo=info?{id:info.id,topic:info.topic,authoredLevel:info.authoredLevel,paused:!!info.paused}:null;
+}
+function challengeUiRecover(){challengeOpen()}
+function challengeUiLifeFail(e,finish){
+ // Only a changed session needs stale-screen recovery. A refused write must
+ // leave an honest notice and a non-writing way out, not trap the summary.
+ if(canPersist()&&!challengeUiSameSession()){challengeUiRecover();return}
+ const message="סיום הסשן לא נשמר. התשובות שכבר נשמרו נשארות בדפדפן. אפשר לחזור לתפריט בלי לסיים את הסשן.";
+ if(finish){
+  challengeUi=null;challengeScreen=false;home();
+  $("app").innerHTML=`<p class="card no" role="status">${esc(message)}</p>`+$("app").innerHTML;
+ }else if(challengeUi){challengeUi.msg=message;challengeRender()}
+}
+function challengeUiSameSession(){
+ const shown=challengeUi&&challengeUi.sessionInfo,live=challengeSessionInfo(missionEvents());
+ return !!(shown&&live&&shown.id===live.id);
+}
+function challengeUiLife(type){
+ const shown=challengeUi&&challengeUi.sessionInfo;
+ if(!shown)throw challengeFail("refused");
+ // challengeAppend validates this event's session against the fresh base under
+ // the write lock. Keep the independent engine API's disk-oriented semantics.
+ return challengeAppend(challengeLifeEvent(type,shown,{}));
+}
+function missionTitle(topic){
+ const titles={complete:"למצוא את המילה המתאימה",nonsense:"לפענח מילה חדשה",wordguess:"למצוא מילה לפי רמז",next:"לגלות מה ממשיך את הסיפור",parallel:"למצוא קשר בין מילים",word:"לבחור דרך ולבדוק אותה",plain:"למצוא כלל ולבדוק אותו",seq:"למצוא כלל ולבדוק אותו",order:"למצוא את הרמז הקובע",family:"לחבר בין הרמזים",deduce:"לבדוק מה חייב להיות נכון",rules:"לגלות את הכלל",props:"לבדוק מה נשאר קבוע",rel:"למצוא קשר בין הכמויות",newop:"לפענח פעולה חדשה",est:"לבחור אומדן מתאים",magic:"למצוא כלל ולבדוק אותו",data:"לקרוא נתונים ולמצוא קשר",matrix:"לשלב רמזים בתמונה",shapes:"לזהות מה משתנה",rings:"למצוא קשר בין המספרים"};
+ const row=challengeCatalog().topics.find(t=>t.sub===topic);
+ return titles[topic]||(row?"לחשוב יחד: "+row.name:"עוד דרך לחשוב");
+}
+function missionModel(events){
+ const list=challengeAcceptedAnswers(events),info=challengeSessionInfo(events);
+ const session=info?list.filter(a=>a.session===info.id):[];
+ const seen=Object.create(null),first=Object.create(null);
+ list.forEach(a=>{if(!seen[a.qid]){first[a.id]=true;seen[a.qid]=true}});
+ const count=session.length;
+ // A completed block remains the current block until the learner closes it.
+ let offset=count?Math.floor((count-1)/4)*4:0;
+ // Older versions could already have dealt the next question at a boundary.
+ // Keep that saved question rather than replacing it with the previous summary.
+ let dealt=null;try{dealt=challengeDealRead()}catch(e){}
+ if(count&&count%4===0&&info&&dealt&&dealt.session===info.id&&dealt.qid!==session[count-1].qid)offset=count;
+ const block=session.slice(offset,offset+4);
+ const currentIds=new Set(block.map(a=>a.qid));
+ const firstCorrect=block.filter(a=>a.ok&&first[a.id]).length;
+ const retryCorrect=block.filter(a=>a.ok&&!first[a.id]).length;
+ const incorrect=block.filter(a=>!a.ok).length;
+ const bySession=Object.create(null);
+ list.forEach(a=>{bySession[a.session]=(bySession[a.session]||0)+1});
+ const completed=Object.keys(bySession).reduce((n,k)=>n+Math.floor(bySession[k]/4),0);
+ return {info,block,count,n:block.length,done:block.length===4,completed,firstCorrect,retryCorrect,incorrect,currentIds,offset};
+}
+function missionAvailable(topic,events,exclude){
+ const row=challengeCatalog().topics.find(t=>t.sub===topic);
+ if(!row||row.mode==="unavailable")return [];
+ const level=challengeServeLevel(row,challengeDeriveStage(events));
+ const answers=challengeAcceptedAnswers(events),mastered=new Set(answers.filter(a=>a.ok).map(a=>a.qid));
+ const tried=new Set(answers.map(a=>a.qid));
+ return BANK.filter(q=>challengeItemEligible(q)&&q.sub===topic&&q.level===level&&!mastered.has(q.id)&&!(exclude&&exclude.has(q.id))).sort((a,b)=>Number(tried.has(a.id))-Number(tried.has(b.id))||(a.id<b.id?-1:a.id>b.id?1:0));
+}
+function missionTarget(events,topic){
+ const awards=rewardCatalog({events:events});
+ const levels=[1,2,3];
+ for(const level of levels){
+  const award=awards.find(a=>a.id==="block-"+level);
+  if(!award||award.earned)continue;
+  let run=0,lastTopic="",lastLevel=0;
+  challengeAcceptedAnswers(events).forEach(a=>{if(a.ok&&a.topic===lastTopic&&a.authoredLevel===lastLevel)run++;else if(a.ok)run=1;else run=0;lastTopic=a.topic;lastLevel=a.authoredLevel});
+  const row=challengeCatalog().topics.find(t=>t.sub===topic);
+  const atLevel=row&&challengeServeLevel(row,challengeDeriveStage(events))===level;
+  const progress=atLevel&&lastTopic===topic&&lastLevel===level?Math.min(run,4):0;
+  if(!atLevel||missionAvailable(topic,events).length<4-progress)continue;
+  return `<div class="mission-target"><b>הגביע הבא: ${esc(award.name)}</b><p>${progress} מתוך 4 תשובות נכונות ברצף, באותו נושא וברמה ${level}. בלי שעון.</p><p>עזרה תמיד זמינה. טעות לא לוקחת גביע שכבר הושג.</p></div>`;
+ }
+ return `<div class="mission-target"><b>ההתקדמות שלך נשמרת</b><p>השלמת משימה היא תחנה במסלול, לא הוכחה לשליטה בנושא.</p></div>`;
+}
+function missionLandscape(){return `<svg class="mission-land" viewBox="0 0 340 180" aria-hidden="true"><ellipse cx="170" cy="150" rx="127" ry="18" fill="var(--mission-hill)"/><path d="M42 133 121 45 177 112 223 62 300 138Z" fill="var(--mission-hill)"/><path d="m121 45-22 25 23-9 19 13m82-12-18 21 17-6 19 12" fill="var(--mission-snow)"/><path d="M50 138Q118 163 157 123T286 133" fill="none" stroke="var(--mission-snow)" stroke-width="12" stroke-linecap="round"/><path d="M50 138Q118 163 157 123T286 133" fill="none" stroke="var(--mission-line)" stroke-width="2" stroke-dasharray="4 7"/><circle cx="79" cy="148" r="12" fill="#2f7b64"/><path d="m73 148 4 4 8-9" fill="none" stroke="white" stroke-width="2.5"/><circle cx="170" cy="118" r="14" fill="var(--mission-accent)" stroke="var(--mission-snow)" stroke-width="5"/><path d="M253 128V90m0 0 28 9-28 11" fill="#f2c86f" stroke="var(--mission-accent)" stroke-width="3"/></svg>`}
+function missionRoute(m,title){return `<div class="mission-route"><svg viewBox="0 0 340 218" preserveAspectRatio="none" aria-hidden="true"><path d="M285 25C150 20 65 85 145 111S302 160 251 195" fill="none" stroke="var(--mission-hill)" stroke-width="10" stroke-linecap="round"/></svg><div class="mission-station past"><span class="mission-node">${m.completed?"✓":"·"}</span><div><b>${m.completed===1?"תחנה אחת הושלמה":m.completed?m.completed+" תחנות הושלמו":"הדרך מתחילה כאן"}</b><small>${m.completed?"התחנות שהושלמו נשמרות":"בקצב שלך, בלי שעון"}</small></div></div><div class="mission-station current"><span class="mission-node">${m.completed+1}</span><div><b>המשימה הנוכחית</b><small>${esc(title)}</small></div></div><div class="mission-station future"><span class="mission-node">⚑</span><div><b>בהמשך</b><small>עוד שאלה, עוד דרך לחשוב</small></div></div></div>`}
+function missionEntryHtml(){
+ const events=missionEvents(),m=missionModel(events),cat=challengeCatalog();
+ const topic=m.info?m.info.topic:(cat.topics.find(t=>missionAvailable(t.sub,events).length>=4)||{}).sub;
+ const title=missionTitle(topic),open=!!m.info;
+ challengeUiScope(m.info);
+ const act=open?"challengeOpen()":topic?"missionBegin('"+topic+"')":"missionTopics()";
+ return `<section class="card mission-shell" id="missionEntry">${persistNote()}<p class="mission-kicker">הטיפוס שלי · ${esc(challengeDeriveStage(events))}</p><h2>בכל משימה,<br>עוד דרך לחשוב.</h2><p class="mission-muted">${canPersist()?"המסלול שלך נשמר. ממשיכים מכאן.":"אפשר לתרגל כאן. ההתקדמות לא נשמרת בדפדפן הזה."}</p>${missionRoute(m,title)}<div class="mission-callout"><p>המשימה הבאה שלך</p><h3>${esc(title)}</h3><p>${open&&m.n?m.n+" שאלות נענו · ההמשך שמור":"4 שאלות · בלי שעון"}</p><button type="button" class="primary tap cta" onclick="${act}">${open?m.done?"לסיכום המשימה":"ממשיכים מהמקום שעצרנו":"מתחילים במשימה"}</button></div><p class="mission-secondary"><button type="button" class="tap" onclick="missionTopics()">לבחור נושא אחר</button></p>${topic?missionTarget(events,topic):`<p>אין כרגע נושא עם ארבע שאלות זמינות. אפשר לבחור תרגול לפי נושא.</p>`}<p><button type="button" class="tap" onclick="home()">חזרה</button></p></section>`;
+}
+function missionTopics(){
+ const info=challengeSessionInfo(missionEvents());
+ if(info){challengeUi={screen:"pause",msg:"אפשר להמשיך את המשימה השמורה, או לסיים אותה ולבחור נושא אחר.",msgGood:true};challengeUiScope(info);challengeRender();return}
+ challengeUi={screen:"topics",msg:""};challengeScreen=true;screen="challenge";challengeRender();
+}
+function missionOpen(){challengeUi={screen:"mission",msg:""};challengeScreen=true;screen="challenge";challengeRender()}
+function missionBegin(topic){
+ const events=missionEvents();
+ if(missionAvailable(topic,events).length<4){challengeUi={screen:"topics",msg:"אין כרגע ארבע שאלות זמינות בנושא הזה. אפשר לבחור נושא אחר, או לתרגל לפי פרק.",msgGood:true};challengeRender();return}
+ challengeBegin(topic);
+}
+function missionProgressHtml(){
+ const m=missionModel(missionEvents());
+ const n=m.n;
+ return `<div class="mission-progress"><div class="mission-progress-head"><b>המסלול מתקדם איתך</b><span>${n} מתוך 4</span></div><div class="mission-meter" role="progressbar" aria-label="שאלות שהושלמו במשימה" aria-valuemin="0" aria-valuemax="4" aria-valuenow="${n}"><span style="width:${n*25}%"></span></div><p>ההתקדמות כאן מציינת השלמת שאלות, לא ציון או שליטה בנושא.</p></div>`;
+}
+function missionSummaryHtml(){
+ const events=missionEvents(),m=missionModel(events);
+ const topic=m.info&&m.info.topic;
+ if(!Object.prototype.hasOwnProperty.call(challengeUi,"sessionInfo"))challengeUiScope(m.info);
+ return `<section class="card mission-shell" id="missionSummary">${persistNote()}${challengeUi&&challengeUi.msg?`<p class="no" role="status">${esc(challengeUi.msg)}</p>`:""}<p class="mission-kicker">${esc(missionTitle(topic))}</p><h2>${m.done?"עוד תחנה במסע שלך.":"גם חלק מהדרך הוא התקדמות."}</h2>${missionLandscape()}<p class="mission-badge">${m.done?"המשימה הושלמה ונשמרה ✓":"התשובות נשמרו · המשימה חלקית"}</p><div class="mission-target"><h3>היום תרגלנו דרך לחשוב.</h3><div class="mission-stats"><div><b>${m.n}</b><span>שאלות נענו</span></div><div><b>${m.firstCorrect}</b><span>נכונות בניסיון הראשון</span></div></div>${m.retryCorrect?`<p>${m.retryCorrect===1?"תשובה אחת נכונה אחרי תרגול קודם של אותה שאלה.":m.retryCorrect+" תשובות נכונות אחרי תרגול קודם של אותה שאלה."} זה אינו ניסיון ראשון.</p>`:""}${m.incorrect?`<p>${m.incorrect===1?"תשובה אחת עדיין צריכה תרגול.":m.incorrect+" תשובות עדיין צריכות תרגול."} ההסברים זמינים בסיכום התשובות.</p>`:""}<p>השלמה אינה מעידה על שליטה בנושא.</p><details><summary>התשובות וההסברים במשימה</summary>${m.block.map(a=>{const q=BANK.find(q=>q.id===a.qid);return q?`<div class="mission-review"><b>${show(q.q)}</b><p class="${a.ok?"ok":"no"}">${a.ok?"תשובה נכונה":"עוד תרגול"}</p><div>${show(q.exp||"")}</div></div>`:""}).join("")}</details></div><div class="mission-target"><p>בפעם הבאה</p><b>עוד הזדמנות לחשוב, בקצב שלך.</b><p>התחנה נשמרה. אפשר להמשיך כשנוח, אם יש שאלות זמינות.</p></div><p><button type="button" class="primary tap cta" onclick="challengeFinish()">סיימנו להיום</button></p><p class="mission-secondary"><button type="button" class="tap" onclick="missionMore()">עוד תרגול</button></p><p class="mission-secondary"><button type="button" class="tap" onclick="home()">לתפריט</button></p></section>`;
+}
+function missionMore(){
+ let result;const ui=challengeUi;try{result=challengeUiLife("session_end")}catch(e){challengeUiLifeFail(e,false);return}
+ challengeSettle(result,()=>{if(challengeUi===ui)missionOpen()},e=>{if(challengeUi===ui)challengeUiLifeFail(e,false)});
+}
+function missionNext(){
+ const m=missionModel(missionEvents());
+ if(m.done){challengeUi.screen="mission-summary";challengeUi.stepUp=null;challengeRender();return}
+ challengeShowQuestion();
+}
+
 function challengeHomeCard(){
- let stage=CHALLENGE_STAGES[0];
- let open=false;
- try{
-  const events=challengeDiskEvents();
-  stage=challengeDeriveStage(events);
-  open=!!challengeSessionInfo(events);
- }catch(e){}
- const idx=Math.max(0,CHALLENGE_STAGES.indexOf(stage));
- const steps=CHALLENGE_STAGES.map((n,i)=>`<li class="${n===stage?"on":""}" aria-current="${n===stage?"step":"false"}">${i+1}</li>`).join("");
- const actions=open?`<p>יש סשן פתוח.</p><p><button type="button" class="tap cta" onclick="challengeOpen()">ממשיכים לטפס</button> <button type="button" class="tap" onclick="challengeFinish()">סיום הסשן</button></p>`:`<p><button type="button" class="tap cta" onclick="challengeOpen()">מתחילים לטפס</button></p>`;
- return `<div class="card challenge-card" id="challengeEntry"><h2>אתגר הטיפוס</h2><p>כל תשובה נכונה מעלה צעד. ככל שמטפסים, השאלות הופכות מעניינות יותר.</p><ol class="steps" aria-label="צעדי הטיפוס">${steps}</ol><p class="small">צעד ${idx+1} מתוך 5: ${esc(stage)}</p>${actions}${persistNote()}</div>`;
+ const events=missionEvents(),m=missionModel(events);
+ return `<div class="card challenge-card" id="challengeEntry"><h2>אתגר הטיפוס</h2><p>בכל משימה, עוד דרך לחשוב. ארבע שאלות בלי שעון, והתקדמות שנשמרת.</p><p class="small">${m.completed} תחנות הושלמו · צעד ${Math.max(0,CHALLENGE_STAGES.indexOf(challengeDeriveStage(events)))+1} מתוך 5: ${esc(challengeDeriveStage(events))}</p><p><button type="button" class="tap cta" onclick="missionOpen()">${m.info?"ממשיכים לטפס":"מתחילים לטפס"}</button></p>${persistNote()}</div>`;
 }
 function challengeErrText(e){
  const code=e&&e.code||"";
@@ -2282,6 +2440,8 @@ function challengeLevelLine(row){
 function challengeSavedQuestion(info){
  const saved=challengeDealRead();
  if(!saved||!info||saved.session!==info.id)return null;
+ const session=challengeAcceptedAnswers(challengeDiskEvents()).filter(a=>a.session===info.id);
+ if(session.length&&session[session.length-1].qid===saved.qid)return null;
  const q=BANK.find(x=>x&&x.id===saved.qid);
  if(!q)return null;
  const row=challengeCatalog().topics.find(t=>t.sub===info.topic);
@@ -2314,19 +2474,28 @@ function challengeArm(q,saved){
  challengeUi.msg="";
  challengeUi.focusI=null;
  challengeUi.screen="ask";
+ const dealInfo=challengeSessionInfo(challengeDiskEvents());
+ challengeUiScope(dealInfo);
+ challengeUi.dealGuard={session:dealInfo&&dealInfo.id,count:challengeAcceptedAnswers(challengeDiskEvents()).filter(a=>dealInfo&&a.session===dealInfo.id).length,prev:JSON.stringify(challengeDealRead())};
  challengePersistDeal();
 }
 function challengeShowQuestion(){
  let info=null;
  try{info=challengeSessionInfo(challengeDiskEvents())}catch(e){info=null}
+ const mm=missionModel(missionEvents());
+ if(mm.done){if(!challengeUi)challengeUi={};challengeUi.screen="mission-summary";challengeRender();return}
  const kept=info?challengeSavedQuestion(info):null;
- const q=kept?kept.q:challengeChooseItem();
+ let q=kept?kept.q:challengeChooseItem();
+ // Within this UI block, use distinct questions. Wrong questions remain eligible
+ // for a later mission; correct-item exclusion and the engine stay unchanged.
+ if(q&&!kept&&mm.currentIds.has(q.id))q=missionAvailable(info.topic,missionEvents(),mm.currentIds)[0]||null;
  if(!challengeUi)challengeUi={};
  if(!q){
   const dry=()=>{challengeUi.screen="topics";challengeUi.msg="כל הכבוד! סיימת את כל השאלות החדשות בנושא הזה. בחרו נושא אחר, או חזרו אחרי שיתווספו שאלות.";challengeUi.msgGood=true;challengeRender()};
+   if(mm.n){challengeUi.screen="mission-summary";challengeUi.stepUp=null;challengeRender();return}
   if(info){
    let ended=null;
-   try{ended=challengeEngine.end({})}catch(e){ended=null}
+   try{challengeUiScope(info);ended=challengeUiLife("session_end")}catch(e){ended=null}
    challengeSettle(ended,dry,dry);
    return
   }
@@ -2342,7 +2511,7 @@ function challengeRenderTopics(){
   const row=cat.topics[i];
   const off=row.mode==="unavailable";
   const label=off?row.name+", לא זמין":row.mode==="follow"?row.name+", רמה לפי השלב":row.name+", רמה קבועה "+row.fixedLevel;
-  rows+=`<div class="topicrow"><button type="button" class="tap" data-topic="${escAttr(row.sub)}" onclick="challengeBegin('${row.sub}')"${off?" disabled":""}>${esc(label)}</button><p class="small">${esc(challengeTopicNote(row))}</p></div>`;
+  rows+=`<div class="topicrow"><button type="button" class="tap" data-topic="${escAttr(row.sub)}" onclick="missionBegin('${row.sub}')"${off?" disabled":""}>${esc(label)}</button><p class="small">${esc(challengeTopicNote(row))}</p></div>`;
  }
  const msg=challengeUi&&challengeUi.msg?`<p class="${challengeUi.msgGood?"ok":"no"}">${esc(challengeUi.msg)}</p>`:"";
  return `<div class="card" id="challengeTopics"><h2>בחירת נושא</h2><p>רק פריטים שנבדקו במאגר הפרקים. בלי שאלות המסע ובלי הסימולציה. בלי שעון.</p>${msg}${rows}<p><button type="button" class="tap" onclick="home()">חזרה</button></p></div>`;
@@ -2384,7 +2553,9 @@ function challengeRenderAsk(){
  const row=challengeCatalog().topics.find(t=>t.sub===q.sub);
  const stage=challengeViewStage();
  const revealed=!!challengeUi.revealed;
- let body=`<div class="card" id="challengeAsk">${persistNote()}${challengeStageHtml(stage)}<p class="small">${esc(row?row.name:q.sub)}</p>${challengeLevelLine(row)}`;
+ const mm=missionModel(missionEvents());
+ const displayN=Math.min(4,mm.n+(revealed?0:1));
+ let body=`<div class="card" id="challengeAsk">${persistNote()}<div class="mission-ask-top"><p>${esc(missionTitle(q.sub))}</p><b>${displayN} מתוך 4</b></div><h2 class="mission-ask-title">עוד שאלה, עוד דרך לחשוב.</h2><details><summary>השלב והנושא שלי</summary>${challengeStageHtml(stage)}<p class="small">${esc(row?row.name:q.sub)}</p>${challengeLevelLine(row)}</details>`;
  if(challengeUi.msg)body+=`<p id="challengeMsg">${esc(challengeUi.msg)}</p>`;
  if(q.chart)body+=chartHtml(q.chart);
  body+=`<div class="q">${show(q.q)}</div>`;
@@ -2397,9 +2568,10 @@ function challengeRenderAsk(){
  if(revealed){
   body+=`<div class="exp"><b class="${challengeUi.ok?"ok":"no"}">${challengeUi.ok?"נכון.":"לא נכון."}</b> ${show(q.exp||"")}</div><p class="small">זה תרגול, לא תוצאת מבחן.</p>`;
  }
- body+=`<div class="dock"><button type="button" class="tap" onclick="challengePause()">השהיה</button>`;
+ body+=missionProgressHtml();
+ body+=`<div class="dock"><button type="button" class="tap mission-save" onclick="challengePause()">לעצור ולשמור (השהיה)</button>`;
  if(!revealed)body+=`<button type="button" class="primary tap" onclick="challengeCheck()">בדיקה</button>`;
- else body+=`<button type="button" class="primary tap" onclick="challengeShowQuestion()">לשאלה הבאה</button>`;
+ else body+=`<button type="button" class="primary tap" onclick="missionNext()">לשאלה הבאה</button>`;
  body+=`<button type="button" class="tap" onclick="home()">לתפריט</button></div></div>`;
  return body;
 }
@@ -2439,10 +2611,10 @@ function challengeRender(){
  screen="challenge";
  stopTimer();
  const mode=challengeUi.screen||"topics";
- const html=mode==="ask"&&challengeUi.q?challengeRenderAsk():mode==="pause"?challengeRenderPause():challengeRenderTopics();
+ const html=mode==="mission"?missionEntryHtml():mode==="mission-summary"?missionSummaryHtml():mode==="ask"&&challengeUi.q?challengeRenderAsk():mode==="pause"?challengeRenderPause():challengeRenderTopics();
  const modal=mode==="ask"?challengeStepUpHtml():"";
  $("app").innerHTML=html+modal;
- placeDock(mode==="ask");
+ placeDock(false);
  if(mode==="ask"&&challengeUi.q&&challengeUi.q.t==="order"&&!challengeUi.revealed)challengeBindDrag();
 }
 function challengeOpen(){
@@ -2452,7 +2624,7 @@ function challengeOpen(){
  challengeScreen=true;
  let info=null;
  try{info=challengeSessionInfo(challengeDiskEvents())}catch(e){info=null}
- if(info&&info.paused){challengeUi={screen:"pause",msg:""};challengeRender();return}
+ if(info&&info.paused){challengeUi={screen:"pause",msg:""};challengeUiScope(info);challengeRender();return}
  if(info){challengeUi={screen:"ask",msg:""};challengeShowQuestion();return}
  challengeUi={screen:"topics",msg:""};
  challengeRender();
@@ -2570,16 +2742,11 @@ function challengeCheck(){
 }
 function challengePause(){
  if(!challengeUi)return;
+ const ui=challengeUi;
  let result;
- try{result=challengeEngine.pause({})}
- catch(e){
-  if(e&&e.code==="duplicate"){challengeUi.screen="pause";challengeUi.msg="";challengeRender();return}
-  challengeUi.msg=challengeErrText(e);challengeRender();return;
- }
- challengeSettle(result,()=>{challengeUi.screen="pause";challengeUi.msg="";challengeRender()},e=>{
-  if(e&&e.code==="duplicate"){challengeUi.screen="pause";challengeUi.msg="";challengeRender();return}
-  challengeUi.msg=challengeErrText(e);challengeRender();
- });
+ try{result=challengeUiLife("session_paused")}
+ catch(e){challengeUiRecover();return}
+ challengeSettle(result,()=>{if(challengeUi!==ui)return;challengeUi.screen="pause";challengeUi.msg="";challengeRender()},()=>{if(challengeUi===ui)challengeUiRecover()});
 }
 function challengeExampleToggle(el){
  if(!challengeUi||!el||challengeUi.revealed)return;
@@ -2594,28 +2761,21 @@ function challengeAfterResume(){
  else{challengeUi.screen="ask";challengeRender()}
 }
 function challengeContinue(){
- if(!challengeUi){challengeOpen();return}
- let info=null;
- try{info=challengeSessionInfo(challengeDiskEvents())}catch(e){info=null}
- if(!info||!info.paused){challengeAfterResume();return}
+ if(!challengeUi||!challengeUiSameSession()){challengeUiRecover();return}
+ const ui=challengeUi;
+ const info=challengeSessionInfo(missionEvents());
+ if(!info.paused){challengeShowQuestion();return}
  let result;
- try{result=challengeEngine.resume({})}
- catch(e){
-  if(e&&e.code==="mismatch"){challengeAfterResume();return}
-  challengeUi.msg=challengeErrText(e);challengeRender();return;
- }
- challengeSettle(result,challengeAfterResume,e=>{challengeUi.msg=challengeErrText(e);challengeRender()});
+ try{result=challengeUiLife("session_resumed")}
+ catch(e){challengeUiRecover();return}
+ challengeSettle(result,()=>{if(challengeUi===ui)challengeShowQuestion()},()=>{if(challengeUi===ui)challengeUiRecover()});
 }
 function challengeFinish(){
+ const ui=challengeUi;
  let result;
- try{result=challengeEngine.end({})}
- catch(e){
-  challengeUi=null;
-  challengeScreen=false;
-  home();
-  return;
- }
- challengeSettle(result,()=>{challengeUi=null;challengeScreen=false;home()},()=>{challengeUi=null;challengeScreen=false;home()});
+ try{result=challengeUiLife("session_end")}
+ catch(e){challengeUiLifeFail(e,true);return}
+ challengeSettle(result,()=>{if(challengeUi!==ui)return;challengeUi=null;challengeScreen=false;home()},e=>{if(challengeUi===ui)challengeUiLifeFail(e,true)});
 }
 
 /* ===== מסך בית ===== */
