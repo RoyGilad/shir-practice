@@ -524,6 +524,8 @@ const Q=BANK;
 const KEY="shirprep_v2";
 let storageOn=true;
 const BRIDGE_SCHEMA=1;
+// Accepted dc:meta schemas are 1 and 2. 2 is the mixed-journey page. Never lower a stored schema except an explicit reset.
+const BRIDGE_SCHEMA_MAX=2;
 const PROBE_MS=150;
 const HEARTBEAT_MS=400;
 const PEER_TTL_MS=1200;
@@ -654,6 +656,8 @@ function normDay(v){
    An ordinary save does not rewrite challenge. A future or corrupt value stays as stored. */
 const CHALLENGE_VERSION=1;
 const CHALLENGE_EVENT_SCHEMA=1;
+// Schema 1 is a topic session. Schema 2 is a mixed expedition. Schema 3 and above stay future.
+const CHALLENGE_EVENT_SCHEMA_MAX=2;
 const CHALLENGE_ALGORITHM=1;
 const CHALLENGE_FORMAT=1;
 // A backup file that carries Firefly Island choices is format 2, so an older page refuses it as newer
@@ -780,24 +784,66 @@ function challengeCore(ev){
   localDay:ev.localDay,contentVersion:ev.contentVersion,authoredLevel:ev.authoredLevel,topic:ev.topic
  };
 }
+function challengeSchemaOk(v){return v===1||v===CHALLENGE_EVENT_SCHEMA_MAX}
 function challengeCoreOk(ev){
- return ev.schema===CHALLENGE_EVENT_SCHEMA&&ev.algorithm===CHALLENGE_ALGORITHM&&challengeSeqOk(ev.seq)&&challengeIdOk(ev.id)&&challengeIdOk(ev.attemptId)&&challengeAtOk(ev.at)&&challengeIdOk(ev.session)&&challengeDayOk(ev.localDay)&&challengeContentOk(ev.contentVersion)&&challengeLevelOk(ev.authoredLevel)&&challengeTopicOk(ev.topic);
+ return challengeSchemaOk(ev.schema)&&ev.algorithm===CHALLENGE_ALGORITHM&&challengeSeqOk(ev.seq)&&challengeIdOk(ev.id)&&challengeIdOk(ev.attemptId)&&challengeAtOk(ev.at)&&challengeIdOk(ev.session)&&challengeDayOk(ev.localDay)&&challengeContentOk(ev.contentVersion)&&challengeLevelOk(ev.authoredLevel)&&challengeTopicOk(ev.topic);
+}
+function challengeEventFields(ev){
+ if(ev.schema===2){
+  if(ev.t==="session_start")return CHALLENGE_COMMON.concat(["kind","plan"]);
+  if(ev.t==="answer_submitted")return CHALLENGE_COMMON.concat(["qid","ok","stage","firstGraded","stop"]);
+  if(ev.t==="session_end"||ev.t==="session_paused"||ev.t==="session_resumed"||ev.t==="stage_changed")return CHALLENGE_EVENT_FIELDS[ev.t];
+  return null;
+ }
+ return CHALLENGE_EVENT_FIELDS[ev.t];
+}
+function challengePlanCanon(plan){
+ if(!Array.isArray(plan)||plan.length!==4)return null;
+ const seen=Object.create(null),out=[];
+ for(let i=0;i<4;i++){
+  const row=plan[i];
+  if(!plain(row)||!challengeExactKeys(row,["qid","topic","level"]))return null;
+  if(!challengeIdOk(row.qid)||!challengeTopicOk(row.topic)||row.topic==="mix"||!challengeLevelOk(row.level))return null;
+  if(seen[row.qid])return null;
+  seen[row.qid]=1;
+  out.push({qid:row.qid,topic:row.topic,level:row.level});
+ }
+ return out;
 }
 function challengeCanonicalEvent(ev){
  if(!plain(ev)||typeof ev.t!=="string")return null;
- if(Number.isInteger(ev.schema)&&ev.schema>CHALLENGE_EVENT_SCHEMA)return null;
+ if(Number.isInteger(ev.schema)&&ev.schema>CHALLENGE_EVENT_SCHEMA_MAX)return null;
  if(Number.isInteger(ev.algorithm)&&ev.algorithm>CHALLENGE_ALGORITHM)return null;
- const fields=CHALLENGE_EVENT_FIELDS[ev.t];
+ const fields=challengeEventFields(ev);
  if(!fields||!challengeExactKeys(ev,fields)||!challengeCoreOk(ev))return null;
  const core=challengeCore(ev);
- if(ev.t==="session_start"||ev.t==="session_end"||ev.t==="session_paused"||ev.t==="session_resumed"||ev.t==="rest_token_used")return core;
+ if(ev.t==="session_start"){
+  if(ev.schema===2){
+   if(ev.kind!=="mix"||ev.topic!=="mix")return null;
+   const plan=challengePlanCanon(ev.plan);
+   if(!plan||ev.authoredLevel!==plan[0].level)return null;
+   core.kind="mix";core.plan=plan;
+  }else if(ev.schema!==1)return null;
+  return core;
+ }
+ if(ev.t==="session_end"||ev.t==="session_paused"||ev.t==="session_resumed"||ev.t==="rest_token_used"){
+  if(ev.schema===2&&ev.topic!=="mix")return null;
+  if(ev.schema===2&&ev.t==="rest_token_used")return null;
+  return core;
+ }
  if(ev.t==="answer_submitted"){
   if(!challengeIdOk(ev.qid)||typeof ev.ok!=="boolean"||!challengeStageOk(ev.stage)||ev.firstGraded!==true)return null;
+  if(ev.schema===2){
+   if(!Number.isInteger(ev.stop)||ev.stop<0||ev.stop>3||ev.topic==="mix")return null;
+   core.stop=ev.stop;
+  }else if(ev.schema!==1)return null;
   core.qid=ev.qid;core.ok=ev.ok;core.stage=ev.stage;core.firstGraded=true;
   return core;
  }
  if(ev.t==="stage_changed"){
   if(!challengeStageOk(ev.from)||!challengeStageOk(ev.to)||ev.from===ev.to)return null;
+  if(ev.schema===2&&ev.topic!=="mix")return null;
+  if(ev.schema!==1&&ev.schema!==2)return null;
   core.from=ev.from;core.to=ev.to;
   return core;
  }
@@ -828,14 +874,22 @@ function challengeStep(cursor,ev){
  if(ev.t==="session_start"){
   if(cursor.sessions[ev.session])return "duplicate";
   if(cursor.open)return "mismatch";
+  if(ev.schema===2){
+   if(ev.kind!=="mix"||ev.topic!=="mix"||!Array.isArray(ev.plan)||ev.plan.length!==4)return "corrupt";
+   cursor.sessions[ev.session]={ended:false,mix:true,plan:ev.plan,authoredLevel:ev.authoredLevel,graded:0};
+  }else cursor.sessions[ev.session]={ended:false,mix:false,plan:null,authoredLevel:ev.authoredLevel,graded:0};
   cursor.ids.add(ev.id);
-  cursor.sessions[ev.session]={ended:false};
   cursor.open=ev.session;
   cursor.paused=false;
   return null;
  }
+ const row=cursor.sessions[ev.session];
+ const mix=!!(row&&row.mix);
+ if(ev.schema===2){
+  if(!mix||cursor.open!==ev.session)return "mismatch";
+  if(ev.t!=="answer_submitted"&&(ev.topic!=="mix"||ev.authoredLevel!==row.authoredLevel))return "mismatch";
+ }else if(mix&&cursor.open===ev.session)return "mismatch";
  if(ev.t==="session_end"){
-  const row=cursor.sessions[ev.session];
   if(row&&row.ended)return "duplicate";
   if(!cursor.open)return "orphan";
   if(ev.session!==cursor.open)return "mismatch";
@@ -868,6 +922,11 @@ function challengeStep(cursor,ev){
   if(ev.stage!==cursor.stage)return "mismatch";
   if(ev.firstGraded!==true)return "mismatch";
   if(cursor.graded.has(ev.attemptId))return "duplicate";
+  if(mix){
+   const slot=row.plan[row.graded];
+   if(ev.stop!==row.graded||!slot||ev.qid!==slot.qid||ev.topic!==slot.topic||ev.authoredLevel!==slot.level)return "mismatch";
+   row.graded+=1;
+  }
   cursor.ids.add(ev.id);
   cursor.graded.add(ev.attemptId);
   return null;
@@ -881,6 +940,7 @@ function challengeStep(cursor,ev){
   return null;
  }
  if(ev.t==="weekly_goal_chosen"||ev.t==="rest_token_used"||ev.t==="sound_pref_changed"){
+  if(ev.schema===2)return "mismatch";
   if(!cursor.open)return "orphan";
   if(ev.session!==cursor.open)return "mismatch";
   cursor.ids.add(ev.id);
@@ -994,7 +1054,7 @@ function challengeLookFuture(events){
  for(let i=0;i<events.length;i++){
   const ev=events[i];
   if(!plain(ev))continue;
-  if(Number.isInteger(ev.schema)&&ev.schema>CHALLENGE_EVENT_SCHEMA)return true;
+  if(Number.isInteger(ev.schema)&&ev.schema>CHALLENGE_EVENT_SCHEMA_MAX)return true;
   if(Number.isInteger(ev.algorithm)&&ev.algorithm>CHALLENGE_ALGORITHM)return true;
  }
  return false;
@@ -1047,6 +1107,8 @@ function challengeCommitAppend(base,event){
  const seq=challengeNextSeq(loaded.ns.events);
  const next=challengeCanonicalEvent(event);
  if(!next)return {ok:false,code:"corrupt"};
+ if(next.schema===2&&next.t==="session_start"&&!journeyPlanItemsOk(next.plan))return {ok:false,code:"pool"};
+ if(next.schema===2&&next.t==="answer_submitted"&&!journeyAnswerItemOk(next))return {ok:false,code:"pool"};
  next.seq=seq;
  const cursor=challengeBlankCursor();
  const prior=challengeOrder(loaded.ns.events);
@@ -1204,6 +1266,11 @@ function challengeCommitReplace(base,spec){
  else delete base[CHALLENGE_KEY];
  if(progress.island)base.island=islandBackupValue(progress.island);
  else delete base.island;
+ if(progress.challenge&&Array.isArray(progress.challenge.events)){
+  for(let i=0;i<progress.challenge.events.length;i++){
+   if(progress.challenge.events[i]&&progress.challenge.events[i].schema===2){stampMetaSchema(base,2);break}
+  }
+ }
  return {ok:true,undo:undo,state:challengeReduce(progress.challenge?progress.challenge.events:[])};
 }
 function challengeExport(){
@@ -1257,6 +1324,7 @@ function challengeState(){
 const SHIR_CHALLENGE={
  version:CHALLENGE_VERSION,
  eventSchema:CHALLENGE_EVENT_SCHEMA,
+ eventSchemaMax:CHALLENGE_EVENT_SCHEMA_MAX,
  algorithm:CHALLENGE_ALGORITHM,
  format:CHALLENGE_FORMAT,
  islandFormat:BACKUP_FORMAT_ISLAND,
@@ -1451,19 +1519,48 @@ function readRaw(){
  if(raw==null||raw==="")return {};
  try{const parsed=JSON.parse(raw);return plain(parsed)?parsed:{}}catch(e){return {}}
 }
+function challengeLogHasSchema2(base){
+ try{
+  const loaded=challengeLoadNs(base);
+  const events=loaded&&loaded.ok&&loaded.ns&&loaded.ns.events;
+  if(!Array.isArray(events))return false;
+  for(let i=0;i<events.length;i++)if(events[i]&&events[i].schema===2)return true;
+ }catch(e){}
+ return false;
+}
+function challengeRawHasSchema2(base){
+ const ns=base&&base.challenge;
+ if(!plain(ns)||ns.v!==1||!Array.isArray(ns.events))return false;
+ for(let i=0;i<ns.events.length;i++)if(ns.events[i]&&ns.events[i].schema===2)return true;
+ return false;
+}
+function stampMetaSchema(base,schema){
+ if(!plain(base)||schema!==BRIDGE_SCHEMA_MAX)return;
+ if(!plain(base.daily))base.daily={};
+ const entry=base.daily["dc:meta"];
+ const obj=plain(entry)?(parseDraftObject(entry.draft)||{}):{};
+ const cur=Number(obj.schema)||0;
+ if(cur>=schema)return;
+ obj.schema=schema;
+ const draft=JSON.stringify(obj);
+ if(!plain(entry))base.daily["dc:meta"]=inertDc(draft);
+ else entry.draft=draft;
+}
 function ensureDcMeta(base){
  if(!plain(base.daily))base.daily={};
  if(plain(base.daily["dc:meta"]))return;
  if(schemaBlocked)return;
- if(rawSchema(base)>BRIDGE_SCHEMA)return;
- base.daily["dc:meta"]=inertDc(JSON.stringify({schema:BRIDGE_SCHEMA,rev:Number(base.rev)||0}));
+ if(rawSchema(base)>BRIDGE_SCHEMA_MAX)return;
+ const schema=challengeLogHasSchema2(base)?BRIDGE_SCHEMA_MAX:BRIDGE_SCHEMA;
+ base.daily["dc:meta"]=inertDc(JSON.stringify({schema:schema,rev:Number(base.rev)||0}));
 }
 function mergeUiIntoMeta(base, ui){
  if(!ui||!plain(ui))return false;
  if(!plain(base.daily))base.daily={};
  let entry=base.daily["dc:meta"];
  if(!plain(entry)){
-  entry=inertDc(JSON.stringify({schema:BRIDGE_SCHEMA,rev:Number(base.rev)||0}));
+  const schema=challengeLogHasSchema2(base)?BRIDGE_SCHEMA_MAX:BRIDGE_SCHEMA;
+  entry=inertDc(JSON.stringify({schema:schema,rev:Number(base.rev)||0}));
   base.daily["dc:meta"]=entry;
  }
  const obj=parseDraftObject(entry.draft);
@@ -1495,7 +1592,7 @@ function commitPatch(patch){
  if(base==null)return false;
  ensureShape(base);
  const seenSchema=rawSchema(base);
- if(seenSchema>BRIDGE_SCHEMA){
+ if(seenSchema>BRIDGE_SCHEMA_MAX){
   schemaBlocked=true;
   if(patch.dailyKey||patch.mastery){
    showUpdateRequired();
@@ -1524,8 +1621,8 @@ function commitPatch(patch){
   if(patch.progVal==null)delete base.prog[patch.progKey];
   else base.prog[patch.progKey]=patch.progVal;
  }
- if(patch.mastery&&!(seenSchema>BRIDGE_SCHEMA))base.mastery=patch.mastery;
- if(patch.dailyKey&&!isDcKey(patch.dailyKey)&&!(seenSchema>BRIDGE_SCHEMA)){
+ if(patch.mastery&&!(seenSchema>BRIDGE_SCHEMA_MAX))base.mastery=patch.mastery;
+ if(patch.dailyKey&&!isDcKey(patch.dailyKey)&&!(seenSchema>BRIDGE_SCHEMA_MAX)){
   if(!plain(base.daily))base.daily={};
   base.daily[patch.dailyKey]=mergeDailyEntry(base.daily[patch.dailyKey],patch.dailyEntry);
  }
@@ -1537,11 +1634,11 @@ function commitPatch(patch){
  }
  if(patch.hb)base.hb=patch.hb;
  if(patch.uiSet){
-  if(seenSchema>BRIDGE_SCHEMA)return false;
+  if(seenSchema>BRIDGE_SCHEMA_MAX)return false;
   if(!mergeUiIntoMeta(base,patch.ui))return false;
  }
  if(patch.challengeAppend||patch.challengeReplace){
-  if(seenSchema>BRIDGE_SCHEMA){
+  if(seenSchema>BRIDGE_SCHEMA_MAX){
    if(patch._challengeBox)patch._challengeBox.result={ok:false,code:"refused"};
    return false;
   }
@@ -1559,6 +1656,7 @@ function commitPatch(patch){
   const applied=patch.challengeAppend?challengeCommitAppend(base,patch.challengeAppend):challengeCommitReplace(base,patch.challengeReplace);
   if(patch._challengeBox)patch._challengeBox.result=applied;
   if(!applied.ok)return false;
+  if(patch.challengeAppend&&patch.challengeAppend.schema===2)stampMetaSchema(base,BRIDGE_SCHEMA_MAX);
  }
  // Invalidate the graded deal in the same persisted write as its answer.
  // A second cleanup write must not make an accepted answer look unsaved.
@@ -1566,7 +1664,7 @@ function commitPatch(patch){
  // Ending a session invalidates only that session's deal, in the same write.
  if(patch.challengeAppend&&patch.challengeAppend.t==="session_end"&&base.challengeDeal&&base.challengeDeal.session===patch.challengeAppend.session)delete base.challengeDeal;
  if(patch.challengeDealSet){
-  if(seenSchema>BRIDGE_SCHEMA)return false;
+  if(seenSchema>BRIDGE_SCHEMA_MAX)return false;
   if(patch.challengeDealGuard){
    const loaded=challengeLoadNs(base),deal=challengeDealCanon(patch.challengeDeal),prev=challengeDealCanon(base.challengeDeal);
    const events=loaded.ok?loaded.ns.events:[],info=challengeSessionInfo(events);
@@ -1584,7 +1682,7 @@ function commitPatch(patch){
  }
  if(patch.islandSet){
   const cur=base.island;
-  if(!plain(patch.island)||seenSchema>BRIDGE_SCHEMA||(plain(cur)&&Number(cur.v)>ISLAND_VERSION)){
+  if(!plain(patch.island)||seenSchema>BRIDGE_SCHEMA_MAX||(plain(cur)&&Number(cur.v)>ISLAND_VERSION)){
    if(patch._islandBox)patch._islandBox.done=false;
    return false;
   }
@@ -1593,6 +1691,7 @@ function commitPatch(patch){
  let nextRev=(Number(base.rev)||0)+1;
  if(patch.revAtLeast&&nextRev<=patch.revAtLeast)nextRev=patch.revAtLeast+1;
  base.rev=nextRev;
+ if(challengeRawHasSchema2(base))stampMetaSchema(base,BRIDGE_SCHEMA_MAX);
  ensureDcMeta(base);
  const written=writeRaw(base);
  if(!written&&patch._challengeBox)patch._challengeBox.result={ok:false,code:"refused"};
@@ -1610,7 +1709,7 @@ function writeRaw(base){
  rememberedRev=Number(store.rev)||0;
  rememberedDc=snapshotDc(store);
  if(plain(base.prog))rememberedProg=cloneProg(base.prog);
- if(metaSchema(store)>BRIDGE_SCHEMA)schemaBlocked=true;
+ if(metaSchema(store)>BRIDGE_SCHEMA_MAX)schemaBlocked=true;
  return true;
 }
 function savePatch(patch,opt){
@@ -1768,7 +1867,7 @@ function onStorageEvent(ev){
  if(plain(parsed.hb))notePeer(parsed.hb);
  const incomingRev=Number(parsed.rev)||0;
  const incomingSchema=rawSchema(parsed);
- if(incomingSchema>BRIDGE_SCHEMA){
+ if(incomingSchema>BRIDGE_SCHEMA_MAX){
   schemaBlocked=true;
   adopting=true;
   try{
@@ -1822,7 +1921,7 @@ function listenStorage(){
  window.addEventListener("storage",onStorageEvent);
 }
 function initConcurrency(){
- schemaBlocked=metaSchema(store)>BRIDGE_SCHEMA;
+ schemaBlocked=metaSchema(store)>BRIDGE_SCHEMA_MAX;
  rememberedRev=Number(store.rev)||0;
  rememberedDc=snapshotDc(store);
  listenStorage();
@@ -2173,7 +2272,9 @@ function challengeSessionInfo(events){
   if(accepted[i].t==="session_start"&&accepted[i].session===state.session.id)start=accepted[i];
  }
  if(!start)return null;
- return {id:state.session.id,paused:!!state.session.paused,topic:start.topic,authoredLevel:start.authoredLevel};
+ const graded=challengeAcceptedAnswers(events).filter(function(a){return a.session===state.session.id}).length;
+ const mix=start.schema===2&&start.kind==="mix";
+ return {id:state.session.id,paused:!!state.session.paused,topic:start.topic,authoredLevel:start.authoredLevel,mix:mix,plan:mix?start.plan:null,stop:graded};
 }
 function challengeViewStage(){
  try{return challengeDeriveStage(challengeDiskEvents())}catch(e){return CHALLENGE_STAGES[0]}
@@ -2198,31 +2299,41 @@ function challengeStageEvent(info,from,to,spec){
  spec=spec||{};
  if(from===to||CHALLENGE_STAGES.indexOf(from)<0||CHALLENGE_STAGES.indexOf(to)<0)throw challengeFail("corrupt");
  const id=challengeMint("g");
+ const mix=!!(info&&info.mix);
  return {
-  schema:CHALLENGE_EVENT_SCHEMA,algorithm:CHALLENGE_ALGORITHM,seq:0,t:"stage_changed",
+  schema:mix?2:CHALLENGE_EVENT_SCHEMA,algorithm:CHALLENGE_ALGORITHM,seq:0,t:"stage_changed",
   id:id,attemptId:id,at:spec.at!=null?spec.at:Date.now(),session:info.id,
   localDay:spec.localDay||dayKey(),contentVersion:challengeContentVersion(),
-  authoredLevel:info.authoredLevel,topic:info.topic,from:from,to:to
+  authoredLevel:info.authoredLevel,topic:mix?"mix":info.topic,from:from,to:to
  };
 }
 function challengeAnswerEvent(info,q,spec,stage){
  const id=spec.id||challengeMint("a");
- return {
-  schema:CHALLENGE_EVENT_SCHEMA,algorithm:CHALLENGE_ALGORITHM,seq:0,t:"answer_submitted",
+ const mix=!!(info&&info.mix);
+ const ev={
+  schema:mix?2:CHALLENGE_EVENT_SCHEMA,algorithm:CHALLENGE_ALGORITHM,seq:0,t:"answer_submitted",
   id:id,attemptId:spec.attemptId||challengeMint("p"),at:spec.at!=null?spec.at:Date.now(),
   session:info.id,localDay:spec.localDay||dayKey(),contentVersion:challengeContentVersion(),
-  authoredLevel:q.level,topic:info.topic,qid:q.id,ok:spec.ok,stage:stage,firstGraded:true
+  authoredLevel:q.level,topic:mix?q.sub:info.topic,qid:q.id,ok:spec.ok,stage:stage,firstGraded:true
  };
+ if(mix)ev.stop=info.stop;
+ return ev;
 }
 function challengeLifeEvent(t,info,spec){
  spec=spec||{};
  const id=spec.id||challengeMint(t==="session_start"?"s":"e");
- return {
-  schema:CHALLENGE_EVENT_SCHEMA,algorithm:CHALLENGE_ALGORITHM,seq:0,t:t,
+ const mix=!!(info&&info.mix);
+ const ev={
+  schema:mix?2:CHALLENGE_EVENT_SCHEMA,algorithm:CHALLENGE_ALGORITHM,seq:0,t:t,
   id:id,attemptId:spec.attemptId||id,at:spec.at!=null?spec.at:Date.now(),session:info.id,
   localDay:spec.localDay||dayKey(),contentVersion:challengeContentVersion(),
-  authoredLevel:info.authoredLevel,topic:info.topic
+  authoredLevel:info.authoredLevel,topic:mix?"mix":info.topic
  };
+ if(mix&&t==="session_start"){
+  ev.kind="mix";
+  ev.plan=(info.plan||[]).map(function(p){return {qid:p.qid,topic:p.topic,level:p.level}});
+ }
+ return ev;
 }
 function challengeDealCanon(v){
  if(!plain(v)||!challengeExactKeys(v,["session","qid","perm","arr","example"]))return null;
@@ -2305,6 +2416,13 @@ function challengeChooseItem(){
  const events=challengeDiskEvents();
  const info=challengeSessionInfo(events);
  if(!info)return null;
+ if(info.mix){
+  const slot=info.plan&&info.plan[info.stop];
+  if(!slot)return null;
+  const frozen=BANK.find(function(x){return x&&x.id===slot.qid});
+  if(!frozen||!challengeItemEligible(frozen)||frozen.sub!==slot.topic||frozen.level!==slot.level)return null;
+  return frozen;
+ }
  const row=challengeCatalog().topics.find(t=>t.sub===info.topic);
  if(!row||row.mode==="unavailable")return null;
  const level=challengeServeLevel(row,challengeDeriveStage(events));
@@ -2334,6 +2452,175 @@ function challengeChooseItem(){
  });
  return pool[0]||null;
 }
+function journeyChapterOfTopic(sub){
+ for(let c=1;c<=6;c++){
+  if(CH[c]&&CH[c].subs&&Object.prototype.hasOwnProperty.call(CH[c].subs,sub))return c;
+ }
+ return 0;
+}
+function journeyItemOk(q){return !!(q&&challengeItemEligible(q))}
+function journeyPlanItemsOk(plan){
+ if(!Array.isArray(plan)||plan.length!==4)return false;
+ for(let i=0;i<plan.length;i++){
+  const slot=plan[i];
+  const q=BANK.find(function(x){return x&&x.id===slot.qid});
+  if(!journeyItemOk(q)||q.sub!==slot.topic||q.level!==slot.level)return false;
+ }
+ return true;
+}
+function journeyAnswerItemOk(ev){
+ const q=BANK.find(function(x){return x&&x.id===ev.qid});
+ return !!(journeyItemOk(q)&&q.sub===ev.topic&&q.level===ev.authoredLevel);
+}
+function journeyRankPool(topic,level,answers,skip){
+ const mastered=Object.create(null),wrong=Object.create(null),last=Object.create(null);
+ for(let i=0;i<answers.length;i++){
+  if(answers[i].ok){mastered[answers[i].qid]=true;delete wrong[answers[i].qid]}
+  else if(!mastered[answers[i].qid])wrong[answers[i].qid]=true;
+  last[answers[i].qid]=i;
+ }
+ const pool=[];
+ for(let i=0;i<BANK.length;i++){
+  const q=BANK[i];
+  if(!journeyItemOk(q)||q.sub!==topic||q.level!==level||mastered[q.id]||skip[q.id])continue;
+  pool.push(q);
+ }
+ pool.sort(function(a,b){
+  const ra=wrong[a.id]?1:0,rb=wrong[b.id]?1:0;
+  if(ra!==rb)return ra-rb;
+  const la=Object.prototype.hasOwnProperty.call(last,a.id)?last[a.id]:-1;
+  const lb=Object.prototype.hasOwnProperty.call(last,b.id)?last[b.id]:-1;
+  if(la!==lb)return la-lb;
+  return a.id<b.id?-1:a.id>b.id?1:0;
+ });
+ return pool;
+}
+// Pure plan. events are the disk log. stage is the current derived stage.
+// A later stage change does not rewrite a plan already stored on session_start.
+function journeyPlan(events,stage){
+ const list=Array.isArray(events)?events:[];
+ const answers=challengeAcceptedAnswers(list);
+ const cat=challengeCatalog();
+ const chapterLast=Object.create(null),topicLast=Object.create(null);
+ for(let i=0;i<answers.length;i++){
+  const ch=journeyChapterOfTopic(answers[i].topic);
+  if(ch)chapterLast[ch]=i;
+  if(answers[i].topic&&answers[i].topic!=="mix")topicLast[answers[i].topic]=i;
+ }
+ const byChapter=Object.create(null);
+ let supply=0;
+ for(let i=0;i<cat.topics.length;i++){
+  const row=cat.topics[i];
+  const ch=journeyChapterOfTopic(row.sub);
+  if(!ch||row.mode==="unavailable")continue;
+  const level=challengeServeLevel(row,stage);
+  if(level==null)continue;
+  const n=journeyRankPool(row.sub,level,answers,Object.create(null)).length;
+  supply+=n;
+  if(!n)continue;
+  if(!byChapter[ch])byChapter[ch]=[];
+  byChapter[ch].push({sub:row.sub,level:level,last:Object.prototype.hasOwnProperty.call(topicLast,row.sub)?topicLast[row.sub]:-1,order:i});
+ }
+ if(supply<4)return {ok:false,supply:supply,message:"אין עכשיו ארבע שאלות פנויות למסע. כשיהיו שאלות חדשות במאגר, אפשר לצאת שוב."};
+ const chapters=[];
+ for(let c=1;c<=6;c++)chapters.push({ch:c,last:Object.prototype.hasOwnProperty.call(chapterLast,c)?chapterLast[c]:-1,topics:byChapter[c]||[]});
+ chapters.sort(function(a,b){return a.last-b.last||a.ch-b.ch});
+ const skip=Object.create(null);
+ const picked=[];
+ function takeTopic(topics){
+  const open=topics.filter(function(t){return !skip["t:"+t.sub]&&journeyRankPool(t.sub,t.level,answers,skip).length});
+  if(!open.length)return null;
+  open.sort(function(a,b){return a.last-b.last||a.order-b.order});
+  const t=open[0];
+  const q=journeyRankPool(t.sub,t.level,answers,skip)[0];
+  if(!q)return null;
+  skip[q.id]=1;skip["t:"+t.sub]=1;
+  return {qid:q.id,topic:q.sub,level:q.level,ch:journeyChapterOfTopic(q.sub)};
+ }
+ for(let i=0;i<chapters.length&&picked.length<4;i++){
+  const one=takeTopic(chapters[i].topics);
+  if(one)picked.push(one);
+ }
+ if(picked.length<4){
+  const used=Object.create(null);
+  picked.forEach(function(p){used[p.ch]=1});
+  const rest=chapters.filter(function(c){return used[c.ch]});
+  let guard=0,added=true;
+  while(picked.length<4&&added&&guard<8){
+   guard++;added=false;
+   for(let i=0;i<rest.length&&picked.length<4;i++){
+    const one=takeTopic(rest[i].topics);
+    if(one){picked.push(one);added=true}
+   }
+  }
+ }
+ if(picked.length<4)return {ok:false,supply:supply,message:"אין עכשיו ארבע שאלות פנויות למסע. כשיהיו שאלות חדשות במאגר, אפשר לצאת שוב."};
+ const plan=picked.map(function(p){return {qid:p.qid,topic:p.topic,level:p.level}});
+ const stops=picked.map(function(p){
+  return {qid:p.qid,topic:p.topic,level:p.level,ch:p.ch,region:(ISLAND_REGIONS[p.ch]&&ISLAND_REGIONS[p.ch].name)||(CH[p.ch]&&CH[p.ch].name)||"",name:(CH[p.ch]&&CH[p.ch].subs[p.topic])||p.topic};
+ });
+ const distinctChapters=new Set(picked.map(function(p){return p.ch})).size;
+ return {ok:true,supply:supply,distinctChapters:distinctChapters,limited:distinctChapters<4,plan:plan,stops:stops,stamp:plan.map(function(p){return p.qid}).join("|")};
+}
+// DRAFT copy pending review. Five arrivals, then a lit lighthouse. Later summaries do not retell that ending.
+// Place names here are not island regions.
+const JOURNEY_DEST="המגדלור שמעבר לאיים";
+const JOURNEY_START="היעד הראשון: חוף הצדפים, בדרך אל המגדלור.";
+const JOURNEY_AFTER="המגדלור דולק. אפשר להמשיך לצאת לתחנות כל עוד יש שאלות שמחכות.";
+const JOURNEY_MORE="עוד מסע הושלם.";
+const JOURNEY_EMPTY="אין כרגע מסע מתאים של ארבע תחנות. אפשר לתרגל לפי נושא, ומסלול הלילה מחכה מחר.";
+const JOURNEY_LOAD="המסע לא נטען כרגע.";
+const JOURNEY_WHY="כל ארבע תחנות שמסיימים מקדמות את הסיפור.";
+const JOURNEY_WHY_ON="תשובות נכונות בתחנות ממשיכות להוסיף ניצוצות, כמו תמיד.";
+const JOURNEY_HOME="ארבע תחנות, בלי שעון. כשיש מספיק שאלות, הן מגיעות מאזורים שונים.";
+const JOURNEY_LIMITED="יש עכשיו פחות אזורים עם שאלות פנויות, ולכן חלק מהתחנות באותו אזור.";
+const JOURNEY_STORY=Object.freeze([
+ {arrive:"הגעתם לחוף הצדפים. מכאן כבר רואים את המגדלור.",next:"היעד הבא: שביל הסלעים."},
+ {arrive:"עברתם את שביל הסלעים. המגדלור קרוב יותר.",next:"היעד הבא: המעיין הנסתר."},
+ {arrive:"מצאתם את המעיין הנסתר. האור של המגדלור כבר מגיע אליכם.",next:"היעד הבא: מרגלות המגדלור."},
+ {arrive:"הגעתם למרגלות המגדלור.",next:"עוד מסע אחד, ומטפסים למעלה."},
+ {arrive:"טיפסתם והדלקתם את המגדלור. כל הדרך הושלמה!"}
+]);
+function journeyCompletedCount(events){
+ const answers=challengeAcceptedAnswers(events||[]);
+ const n=Object.create(null);
+ for(let i=0;i<answers.length;i++){
+  if(answers[i].schema!==2)continue;
+  n[answers[i].session]=(n[answers[i].session]||0)+1;
+ }
+ let done=0;
+ for(const id in n)if(n[id]>=4)done++;
+ return done;
+}
+function journeyArrival(count){
+ const n=count|0;
+ if(n<=0)return "";
+ if(n>JOURNEY_STORY.length)return JOURNEY_MORE;
+ return JOURNEY_STORY[n-1].arrive;
+}
+function journeyNextGoal(count){
+ const n=count|0;
+ if(n<=0)return JOURNEY_START;
+ if(n>=JOURNEY_STORY.length)return JOURNEY_AFTER;
+ return JOURNEY_STORY[n-1].next;
+}
+function journeyWhy(count){
+ return (count|0)<JOURNEY_STORY.length?JOURNEY_WHY:JOURNEY_WHY_ON;
+}
+function journeyPlanNow(){
+ try{return journeyPlan(missionEvents(),challengeDeriveStage(missionEvents()))}catch(e){return {ok:false}}
+}
+function challengeStartMix(spec){
+ challengeSpecClean(spec||{},["stamp","at","id","attemptId","session","localDay"]);
+ const events=challengeDiskEvents();
+ if(challengeSessionInfo(events))throw challengeFail("mismatch");
+ const built=journeyPlan(events,challengeDeriveStage(events));
+ if(!built.ok)throw challengeFail("pool");
+ if(spec&&spec.stamp!=null&&spec.stamp!==built.stamp)throw challengeFail("stale");
+ const plan=built.plan;
+ const info={id:(spec&&spec.session)||challengeMint("s"),topic:"mix",authoredLevel:plan[0].level,mix:true,plan:plan};
+ return challengeAppend(challengeLifeEvent("session_start",info,spec||{}));
+}
 
 function challengeStart(spec){
  challengeSpecClean(spec,["topic","at","id","attemptId","session","localDay"]);
@@ -2358,7 +2645,10 @@ function challengeAnswer(spec){
  const row=challengeCatalog().topics.find(t=>t.sub===info.topic);
  const derived=challengeDeriveStage(events);
  const level=row?challengeServeLevel(row,derived):null;
- if(!q||!challengeItemEligible(q)||q.sub!==info.topic||q.level!==level)throw challengeFail("pool");
+ if(info.mix){
+  const slot=info.plan&&info.plan[info.stop];
+  if(!slot||spec.qid!==slot.qid||!q||!challengeItemEligible(q)||q.sub!==slot.topic||q.level!==slot.level)throw challengeFail("pool");
+ }else if(!q||!challengeItemEligible(q)||q.sub!==info.topic||q.level!==level)throw challengeFail("pool");
  const cursor=challengeReduce(events).stage;
  const steps=[];
  if(cursor!==derived)steps.push(()=>challengeAppend(challengeStageEvent(info,cursor,derived,spec)));
@@ -2403,12 +2693,15 @@ function challengeEndEngine(spec){
 }
 const challengeEngine={
  start:challengeStart,
+ startMix:challengeStartMix,
  answer:challengeAnswer,
  pause:challengePauseEngine,
  resume:challengeResumeEngine,
  end:challengeEndEngine,
- choose:challengeChooseItem
+ choose:challengeChooseItem,
+ plan:journeyPlan
 };
+SHIR_CHALLENGE.bridgeSchemaMax=BRIDGE_SCHEMA_MAX;
 SHIR_CHALLENGE.stageRule=CHALLENGE_STAGE_RULE;
 SHIR_CHALLENGE.stageBlock=CHALLENGE_STAGE_BLOCK;
 SHIR_CHALLENGE.stageRules=challengeStageRules;
@@ -2433,7 +2726,7 @@ function missionEvents(){try{return challengeDiskEvents()}catch(e){return []}}
 // UI lifecycle events target the session represented on this screen, never a
 // replacement session that another tab opened after the screen was drawn.
 function challengeUiScope(info){
- if(challengeUi)challengeUi.sessionInfo=info?{id:info.id,topic:info.topic,authoredLevel:info.authoredLevel,paused:!!info.paused}:null;
+ if(challengeUi)challengeUi.sessionInfo=info?{id:info.id,topic:info.topic,authoredLevel:info.authoredLevel,paused:!!info.paused,mix:!!info.mix,plan:info.plan||null,stop:info.stop}:null;
 }
 function challengeUiRecover(){challengeOpen()}
 function challengeUiLifeFail(e,finish){
@@ -2532,10 +2825,65 @@ function missionBegin(topic){
 function missionProgressHtml(){
  const m=missionModel(missionEvents());
  const n=m.n;
- return `<div class="mission-progress"><div class="mission-progress-head"><b>המסלול מתקדם איתך</b><span>${n} מתוך 4</span></div><div class="mission-meter" role="progressbar" aria-label="שאלות שהושלמו במשימה" aria-valuemin="0" aria-valuemax="4" aria-valuenow="${n}"><span style="width:${n*25}%"></span></div><p>ההתקדמות כאן מציינת השלמת שאלות, לא ציון או שליטה בנושא.</p></div>`;
+ const note=m.info&&m.info.mix?"":`<p>ההתקדמות כאן מציינת השלמת שאלות, לא ציון או שליטה בנושא.</p>`;
+ return `<div class="mission-progress"><div class="mission-progress-head"><b>המסלול מתקדם איתך</b><span>${n} מתוך 4</span></div><div class="mission-meter" role="progressbar" aria-label="שאלות שהושלמו במשימה" aria-valuemin="0" aria-valuemax="4" aria-valuenow="${n}"><span style="width:${n*25}%"></span></div>${note}</div>`;
+}
+function journeySummaryHtml(){
+ const events=missionEvents(),m=missionModel(events);
+ const done=journeyCompletedCount(events);
+ const arrive=journeyArrival(done);
+ const stops=(m.info&&m.info.plan||[]).map(function(slot,i){
+  const ch=journeyChapterOfTopic(slot.topic);
+  const region=(ISLAND_REGIONS[ch]&&ISLAND_REGIONS[ch].name)||"";
+  const name=(CH[ch]&&CH[ch].subs[slot.topic])||slot.topic;
+  const ans=m.block[i];
+  return `<li><span class="isl-n">${ans?"✓":i+1}</span><span>${esc(region)}</span><small>${esc(name)}</small></li>`;
+ }).join("");
+ return `<section class="card mission-shell" id="journeySummary">${persistNote()}${islandOn()?islandMissionHtml():""}<p class="isl-kicker">המסע</p><h2 id="journeyArrive">${esc(arrive)}</h2><ol class="isl-stops">${stops}</ol><p>${esc(journeyWhy(done))}</p><p><button type="button" class="primary tap cta" onclick="challengeFinish()">חזרה לאי</button></p></section>`;
+}
+function journeyGapHtml(){
+ return `<section class="card" id="journeyGap"><h2>התחנה לא זמינה</h2><p>השאלה שנשמרה לתחנה הזו כבר לא במאגר המשלחות. אי אפשר לענות עליה, והתשובות שכבר נשמרו נשארות.</p><p><button type="button" class="primary tap" onclick="challengeFinish()">סיום המסע</button></p><p><button type="button" class="tap" onclick="home()">לתפריט</button></p></section>`;
+}
+function journeyPreviewHtml(){
+ let built=null;
+ let failed=false;
+ try{built=journeyPlan(missionEvents(),challengeDeriveStage(missionEvents()))}catch(e){failed=true}
+ const note=challengeUi&&challengeUi.msg?`<p class="no" role="status">${esc(challengeUi.msg)}</p>`:"";
+ if(failed)return `<section class="card" id="journeyPreview">${note}<h2>אין מסע עכשיו</h2><p id="journeyLoad">${esc(JOURNEY_LOAD)}</p><p><button type="button" class="tap" onclick="home()">חזרה לאי</button></p></section>`;
+ if(!built||!built.ok)return `<section class="card" id="journeyPreview">${note}<h2>אין מסע עכשיו</h2><p id="journeyEmpty">${esc(JOURNEY_EMPTY)}</p><p><button type="button" class="tap" onclick="home()">חזרה לאי</button></p></section>`;
+ if(challengeUi)challengeUi.previewStamp=built.stamp;
+ const told=journeyCompletedCount(missionEvents());
+ const goal=journeyNextGoal(told);
+ const rows=built.stops.map(function(s,i){return `<li><span class="isl-n">${i+1}</span><span>${esc(s.region)}</span><small>${esc(s.name)}</small></li>`}).join("");
+ const limited=built.limited?`<p class="small" id="journeyLimited">${esc(JOURNEY_LIMITED)}</p>`:"";
+ return `<section class="card" id="journeyPreview">${note}<p class="isl-kicker">לפני היציאה</p><h2 id="journeyGoal">${esc(goal)}</h2><ol class="isl-stops">${rows}</ol>${limited}<p>${esc(journeyWhy(told))}</p><p><button type="button" class="primary tap cta" onclick="journeyBegin()">יוצאים לדרך</button></p><p><button type="button" class="tap" onclick="home()">חזרה לאי</button></p></section>`;
+}
+function journeyOpen(){
+ let info=null;try{info=challengeSessionInfo(missionEvents())}catch(e){}
+ if(info){missionOpen();return}
+ let route=null;try{route=islandRoute(dayKey())}catch(e){}
+ if(!route||!route.complete){home();return}
+ challengeUi={screen:"journey-preview",msg:""};challengeScreen=true;screen="challenge";challengeRender();
+}
+function journeyResume(){challengeOpen()}
+function journeyBegin(){
+ if(!challengeUi)challengeUi={screen:"journey-preview",msg:""};
+ if(challengeUi.previewStamp==null){challengeUi.screen="journey-preview";challengeRender();return}
+ const stamp=challengeUi.previewStamp;
+ let result;
+ try{result=challengeEngine.startMix({stamp:stamp})}
+ catch(e){
+  if(e&&e.code==="stale"){challengeUi.msg="המסלול התעדכן. זה המסלול העדכני.";challengeUi.screen="journey-preview";challengeRender();return}
+  challengeUi.msg=challengeErrText(e);challengeUi.screen="journey-preview";challengeRender();return;
+ }
+ challengeSettle(result,function(){challengeShowQuestion()},function(e){
+  if(e&&e.code==="stale"){challengeUi.msg="המסלול התעדכן. זה המסלול העדכני.";challengeUi.screen="journey-preview";challengeRender();return}
+  challengeUi.msg=challengeErrText(e);challengeRender();
+ });
 }
 function missionSummaryHtml(){
  const events=missionEvents(),m=missionModel(events);
+ if(m.info&&m.info.mix)return journeySummaryHtml();
  const topic=m.info&&m.info.topic;
  if(!Object.prototype.hasOwnProperty.call(challengeUi,"sessionInfo"))challengeUiScope(m.info);
  return `<section class="card mission-shell" id="missionSummary">${persistNote()}${islandOn()?islandMissionHtml():""}${challengeUi&&challengeUi.msg?`<p class="no" role="status">${esc(challengeUi.msg)}</p>`:""}<p class="mission-kicker">${esc(missionTitle(topic))}</p><h2>${m.done?"עוד תחנה במסע שלך.":"גם חלק מהדרך הוא התקדמות."}</h2>${missionLandscape()}<p class="mission-badge">${m.done?"המשימה הושלמה ונשמרה ✓":"התשובות נשמרו · המשימה חלקית"}</p><div class="mission-target"><h3>היום תרגלנו דרך לחשוב.</h3><div class="mission-stats"><div><b>${m.n}</b><span>שאלות נענו</span></div><div><b>${m.firstCorrect}</b><span>נכונות בניסיון הראשון</span></div></div>${m.retryCorrect?`<p>${m.retryCorrect===1?"תשובה אחת נכונה אחרי תרגול קודם של אותה שאלה.":m.retryCorrect+" תשובות נכונות אחרי תרגול קודם של אותה שאלה."} זה אינו ניסיון ראשון.</p>`:""}${m.incorrect?`<p>${m.incorrect===1?"תשובה אחת עדיין צריכה תרגול.":m.incorrect+" תשובות עדיין צריכות תרגול."} ההסברים זמינים בסיכום התשובות.</p>`:""}<p>השלמה אינה מעידה על שליטה בנושא.</p><details><summary>התשובות וההסברים במשימה</summary>${m.block.map(a=>{const q=BANK.find(q=>q.id===a.qid);return q?`<div class="mission-review"><b>${show(q.q)}</b><p class="${a.ok?"ok":"no"}">${a.ok?"תשובה נכונה":"עוד תרגול"}</p><div>${show(q.exp||"")}</div></div>`:""}).join("")}</details></div><div class="mission-target"><p>בפעם הבאה</p><b>עוד הזדמנות לחשוב, בקצב שלך.</b><p>התחנה נשמרה. אפשר להמשיך כשנוח, אם יש שאלות זמינות.</p></div><p><button type="button" class="primary tap cta" onclick="challengeFinish()">סיימנו להיום</button></p><p class="mission-secondary"><button type="button" class="tap" onclick="missionMore()">עוד תרגול</button></p><p class="mission-secondary"><button type="button" class="tap" onclick="home()">לתפריט</button></p></section>`;
@@ -2588,9 +2936,14 @@ function challengeSavedQuestion(info){
  if(session.length&&session[session.length-1].qid===saved.qid)return null;
  const q=BANK.find(x=>x&&x.id===saved.qid);
  if(!q)return null;
- const row=challengeCatalog().topics.find(t=>t.sub===info.topic);
- const level=row?challengeServeLevel(row,challengeDeriveStage(challengeDiskEvents())):null;
- if(!challengeItemEligible(q)||q.sub!==info.topic||q.level!==level)return null;
+ if(info.mix){
+  const slot=info.plan&&info.plan[info.stop];
+  if(!slot||saved.qid!==slot.qid||!challengeItemEligible(q)||q.sub!==slot.topic||q.level!==slot.level)return null;
+ }else{
+  const row=challengeCatalog().topics.find(t=>t.sub===info.topic);
+  const level=row?challengeServeLevel(row,challengeDeriveStage(challengeDiskEvents())):null;
+  if(!challengeItemEligible(q)||q.sub!==info.topic||q.level!==level)return null;
+ }
  if((q.t==="mc"||q.t==="shape")&&!challengePermOk(saved.perm,Array.isArray(q.opts)?q.opts.length:0))return null;
  if(q.t==="order"&&!isItemOrder(saved.arr,q.items))return null;
  return {q:q,saved:saved};
@@ -2632,8 +2985,15 @@ function challengeShowQuestion(){
  let q=kept?kept.q:challengeChooseItem();
  // Within this UI block, use distinct questions. Wrong questions remain eligible
  // for a later mission; correct-item exclusion and the engine stay unchanged.
- if(q&&!kept&&mm.currentIds.has(q.id))q=missionAvailable(info.topic,missionEvents(),mm.currentIds)[0]||null;
+ if(q&&!kept&&!(info&&info.mix)&&mm.currentIds.has(q.id))q=missionAvailable(info.topic,missionEvents(),mm.currentIds)[0]||null;
  if(!challengeUi)challengeUi={};
+ if(info&&info.mix&&!q){
+  challengeUi.screen="journey-gap";
+  challengeUi.msg="";
+  challengeUiScope(info);
+  challengeRender();
+  return;
+ }
  if(!q){
   const dry=()=>{challengeUi.screen="topics";challengeUi.msg="כל הכבוד! סיימת את כל השאלות החדשות בנושא הזה. בחרו נושא אחר, או חזרו אחרי שיתווספו שאלות.";challengeUi.msgGood=true;challengeRender()};
    if(mm.n){challengeUi.screen="mission-summary";challengeUi.stepUp=null;challengeRender();return}
@@ -2699,7 +3059,9 @@ function challengeRenderAsk(){
  const revealed=!!challengeUi.revealed;
  const mm=missionModel(missionEvents());
  const displayN=Math.min(4,mm.n+(revealed?0:1));
- let body=`<div class="card" id="challengeAsk">${persistNote()}<div class="mission-ask-top"><p>${esc(missionTitle(q.sub))}</p><b>${displayN} מתוך 4</b></div><h2 class="mission-ask-title">עוד שאלה, עוד דרך לחשוב.</h2><details><summary>השלב והנושא שלי</summary>${challengeStageHtml(stage)}<p class="small">${esc(row?row.name:q.sub)}</p>${challengeLevelLine(row)}</details>`;
+ let info=null;try{info=challengeSessionInfo(missionEvents())}catch(e){}
+ const where=info&&info.mix?`<p class="isl-kicker" id="journeyStop">תחנה ${displayN} מתוך 4 · ${esc((ISLAND_REGIONS[q.ch]&&ISLAND_REGIONS[q.ch].name)||"")} · ${esc(row?row.name:q.sub)}</p>`:"";
+ let body=`<div class="card" id="challengeAsk">${persistNote()}${where}<div class="mission-ask-top"><p>${esc(missionTitle(q.sub))}</p><b>${displayN} מתוך 4</b></div><h2 class="mission-ask-title">עוד שאלה, עוד דרך לחשוב.</h2><details><summary>השלב והנושא שלי</summary>${challengeStageHtml(stage)}<p class="small">${esc(row?row.name:q.sub)}</p>${challengeLevelLine(row)}</details>`;
  if(challengeUi.msg)body+=`<p id="challengeMsg">${esc(challengeUi.msg)}</p>`;
  if(q.chart)body+=chartHtml(q.chart);
  body+=`<div class="q">${show(q.q)}</div>`;
@@ -2756,7 +3118,7 @@ function challengeRender(){
  screen="challenge";
  stopTimer();
  const mode=challengeUi.screen||"topics";
- const html=mode==="mission"?missionEntryHtml():mode==="mission-summary"?missionSummaryHtml():mode==="ask"&&challengeUi.q?challengeRenderAsk():mode==="pause"?challengeRenderPause():challengeRenderTopics();
+ const html=mode==="mission"?missionEntryHtml():mode==="mission-summary"?missionSummaryHtml():mode==="journey-preview"?journeyPreviewHtml():mode==="journey-gap"?journeyGapHtml():mode==="ask"&&challengeUi.q?challengeRenderAsk():mode==="pause"?challengeRenderPause():challengeRenderTopics();
  const modal=mode==="ask"?challengeStepUpHtml():"";
  $("app").innerHTML=html+modal;
  placeDock(false);
@@ -5137,8 +5499,24 @@ function islandHomeHtml(){
  const cta=route.complete?"לסיכום הלילה":route.started?"ממשיכים במסלול":"יוצאים למסלול הלילה";
  const status=route.complete?`<p class="status">מסלול הלילה הושלם. אין שאלה חדשה עד מחר, ואפשר לצאת למשלחת.</p>`:route.started?`<p class="status">${route.done} מתוך 4 תחנות במסלול. ההמשך שמור בדפדפן הזה.</p>`:"";
  let open=null;try{open=challengeSessionInfo(missionEvents())}catch(e){}
- const mission=open?`<div class="card isl-trip"><h3>משלחת פתוחה</h3><p>${esc(missionTitle(open.topic))}</p><p><button type="button" class="tap cta" onclick="missionOpen()">ממשיכים במשלחת</button></p></div>`:`<div class="card isl-trip"><h3>משלחות</h3><p>בחרו אזור במפה ותחנה בתוכו. משלחת היא 4 שאלות באותו נושא, בלי שעון.</p></div>`;
- return `<section class="isl-home"><div class="isl-hud"><button type="button" class="isl-me tap" onclick="islandCardOpen()" aria-label="${escAttr("הכרטיס שלי: דרגת "+model.rank.name)}">${islandBug(islandLook(model),{cls:"isl-mini"})}<span><b>${esc(model.rank.name)}</b><small>הכרטיס שלי</small></span></button><div class="isl-sparks" role="img" aria-label="${model.sparks} ניצוצות">${islandSparkSvg()}<b>${model.sparks}</b></div></div>${road}${persistNote()}${islandMapHtml(model,route)}${islandRegionHtml(model)}<div class="card isl-tonight"><h2>מסלול הלילה</h2><p class="lead">4 תחנות באי, בלי שעון. כל תשובה מאירה פנס.</p><ol class="isl-stops">${stops}</ol>${status}<button class="primary tap hero-btn cta" onclick="dailyStart()">${cta}</button></div>${mission}${weeklyBarHtml()}<p class="isl-links"><button type="button" class="tap" onclick="openCabinet()">ארון הגביעים</button><button type="button" class="tap" onclick="openTopics()">עוד תרגול: פרקים וסימולציה</button></p></section>${islandRevealHtml(model)}`;
+ const mix=!!(open&&open.mix);
+ const legacy=!!(open&&!open.mix);
+ const planOk=!mix&&!legacy&&route.complete&&journeyPlanNow().ok;
+ const journeyLeads=!!(route.complete&&(mix||legacy||planOk));
+ const routeCls=journeyLeads?"tap":"primary tap hero-btn cta";
+ let mission="";
+ if(mix){
+  const cls=route.complete?"primary tap cta":"tap";
+  mission=`<div class="card isl-trip" id="journeyCard"><h3>מסע פתוח</h3><p>אפשר להמשיך מהתחנה השמורה. המסע לא מתחלף במסלול הלילה.</p><p><button type="button" class="${cls}" onclick="journeyResume()">ממשיכים במסע</button></p></div>`;
+ }else if(legacy){
+  const cls=route.complete?"primary tap cta":"tap";
+  mission=`<div class="card isl-trip" id="journeyCard"><h3>משלחת פתוחה</h3><p>${esc(missionTitle(open.topic))}</p><p><button type="button" class="${cls}" onclick="missionOpen()">ממשיכים במשלחת</button></p></div>`;
+ }else if(route.complete){
+  if(planOk)mission=`<div class="card isl-trip" id="journeyCard"><h3>ממשיכים במסע</h3><p>${esc(JOURNEY_HOME)}</p><p><button type="button" class="primary tap cta" id="journeyContinue" onclick="journeyOpen()">ממשיכים במסע</button></p></div>`;
+  else mission=`<div class="card isl-trip" id="journeyCard"><h3>ממשיכים במסע</h3><p id="journeyEmpty">${esc(JOURNEY_EMPTY)}</p></div>`;
+ }
+ mission+=`<details class="card isl-topics" id="topicPractice"><summary>תרגול לפי נושא</summary><p>משלחת היא 4 שאלות באותו נושא, בלי שעון. אפשר גם לבחור תחנה במפה.</p><p><button type="button" class="tap" onclick="missionTopics()">לבחור נושא</button></p></details>`;
+ return `<section class="isl-home"><div class="isl-hud"><button type="button" class="isl-me tap" onclick="islandCardOpen()" aria-label="${escAttr("הכרטיס שלי: דרגת "+model.rank.name)}">${islandBug(islandLook(model),{cls:"isl-mini"})}<span><b>${esc(model.rank.name)}</b><small>הכרטיס שלי</small></span></button><div class="isl-sparks" role="img" aria-label="${model.sparks} ניצוצות">${islandSparkSvg()}<b>${model.sparks}</b></div></div>${road}${persistNote()}${islandMapHtml(model,route)}${islandRegionHtml(model)}<div class="card isl-tonight"><h2>מסלול הלילה</h2><p class="lead">4 תחנות באי, בלי שעון. כל תשובה מאירה פנס.</p><ol class="isl-stops">${stops}</ol>${status}<button class="${routeCls}" onclick="dailyStart()">${cta}</button></div>${mission}${weeklyBarHtml()}<p class="isl-links"><button type="button" class="tap" onclick="openCabinet()">ארון הגביעים</button><button type="button" class="tap" onclick="openTopics()">עוד תרגול: פרקים וסימולציה</button></p></section>${islandRevealHtml(model)}`;
 }
 function islandBedHtml(entry,count,freshLine,answers){
  const model=islandModel();
@@ -5153,7 +5531,19 @@ function islandBedHtml(entry,count,freshLine,answers){
  const left=Math.ceil(sleepers.length/2);
  const bugs=sleepers.map((o,i)=>islandBugAt(o,i<left?140-i*40:220+(i-left)*40,150,i?40:50,{sleep:true})).join("");
  const scene=`<svg class="isl-scene" viewBox="0 0 360 190" role="img" aria-label="${escAttr("הגחליליות ישנות ליד המדורה. "+(sleepers.length-1)+" חברי צוות.")}"><rect width="360" height="190" rx="18" fill="#0b1438"/><circle cx="300" cy="40" r="16" fill="#e8ecff"/><circle cx="292" cy="34" r="16" fill="#0b1438"/><path d="M0 170Q180 140 360 170V190H0Z" fill="#153a5e"/><g transform="translate(180 120)"><path class="isl-fire" d="M0 14q-14-14 0-34 14 20 0 34z" fill="#ffb347"/><path d="M0 14q-7-8 0-18 7 10 0 18z" fill="#ffe680"/><path d="M-16 16h32" stroke="#5a3a1e" stroke-width="4" stroke-linecap="round"/></g>${bugs}<text x="54" y="60" font-size="16" fill="#c9d0f5">z</text><text x="66" y="46" font-size="12" fill="#c9d0f5">z</text></svg>`;
- return `<div class="card isl-bed">${persistNote()}<h2>מסלול הלילה הושלם</h2>${scene}<div class="isl-night"><div>${islandSparkSvg()}<b>+${d.sparks}</b><span>ניצוצות היום</span></div><div><b>${d.first}</b><span>בניסיון הראשון</span></div><div><b>${d.fixed}</b><span>אחרי תיקון</span></div></div>${freshLine}${giftHtml}${summaryQNavHtml(answers)}<p class="scoreline">${count} מתוך 4 נכון.</p><p class="scoreline">זה תרגול, לא תוצאת מבחן.</p>${weeklyBarHtml(day)}<p>${savedDayLine()} אין קנס אם לא מתרגלים מחר.</p><p><button type="button" class="primary tap" onclick="home()">חזרה לאי</button> <button type="button" class="tap" onclick="continueUntimed()">המשך בלי שעון</button></p></div>${islandRevealHtml(model)}`;
+ return `<div class="card isl-bed">${persistNote()}<h2>מסלול הלילה הושלם</h2>${scene}<div class="isl-night"><div>${islandSparkSvg()}<b>+${d.sparks}</b><span>ניצוצות היום</span></div><div><b>${d.first}</b><span>בניסיון הראשון</span></div><div><b>${d.fixed}</b><span>אחרי תיקון</span></div></div>${freshLine}${giftHtml}${summaryQNavHtml(answers)}<p class="scoreline">${count} מתוך 4 נכון.</p><p class="scoreline">זה תרגול, לא תוצאת מבחן.</p>${weeklyBarHtml(day)}<p>${savedDayLine()} אין קנס אם לא מתרגלים מחר.</p><p>${journeyBedButton()} <button type="button" class="${journeyBedHomeClass()}" onclick="home()">חזרה לאי</button> <button type="button" class="tap" onclick="continueUntimed()">המשך בלי שעון</button></p></div>${islandRevealHtml(model)}`;
+}
+function journeyBedHomeClass(){
+ let info=null;try{info=challengeSessionInfo(missionEvents())}catch(e){}
+ if(info||journeyPlanNow().ok)return "tap";
+ return "primary tap cta";
+}
+function journeyBedButton(){
+ let info=null;try{info=challengeSessionInfo(missionEvents())}catch(e){}
+ if(info&&info.mix)return `<button type="button" class="primary tap cta" id="journeyContinue" onclick="journeyResume()">ממשיכים במסע</button>`;
+ if(info)return `<button type="button" class="primary tap cta" onclick="missionOpen()">ממשיכים במשלחת</button>`;
+ if(!journeyPlanNow().ok)return `<p id="journeyEmpty">${esc(JOURNEY_EMPTY)}</p>`;
+ return `<button type="button" class="primary tap cta" id="journeyContinue" onclick="journeyOpen()">ממשיכים במסע</button>`;
 }
 function islandMissionHtml(){
  const model=islandModel();
