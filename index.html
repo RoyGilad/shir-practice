@@ -389,6 +389,117 @@ body[data-theme="classic"] .mission-shell,body[data-theme="classic"] #challengeA
 #challengeAsk{padding-bottom:22px}#challengeAsk .dock{position:static;background:transparent;border-top:1px solid var(--mission-hill);padding:16px 0 0;margin-top:16px;box-shadow:none;display:flex;gap:10px}#challengeAsk .dock>.primary{order:-1;width:100%;margin:0}#challengeAsk .dock>.tap:not(.primary){flex:1;margin:0}#challengeAsk .mission-ask-top>b,#challengeAsk .mission-progress-head>span{white-space:nowrap;flex-shrink:0;font-size:16px}
 body[data-theme="bluewhite"] .mission-shell .primary,body[data-theme="bluewhite"] #challengeAsk .primary{background:#2458bd;color:#fff;border-color:#2458bd}body[data-theme="bluewhite"] #challengeAsk .opt{background:#fff;border-color:#a8bce0;color:#152b53}body[data-theme="bluewhite"] #challengeAsk .opt.good{background:#edf8f2;border:2px solid #2a7c62;color:#23664d}body[data-theme="bluewhite"] #challengeAsk .opt.bad{background:#fff0f0;border-color:#ad3030;color:#7c2020}
 
+/* FIREFLY ISLAND look (A1-A12). The question screens keep the night look; these rules add the island. */
+.sw.isl{background:radial-gradient(circle at 60% 40%,#ffd45e 0 22%,#153a5e 24% 60%,#070c24 62%)}
+body[data-world="island"]{background:radial-gradient(circle at 20% 0%,#1d2f72 0,#0d1636 46%,#070c24 100%)}
+body[data-world="island"] .isl-home{display:flex;flex-direction:column;gap:12px}
+body[data-world="island"] .isl-hud{display:flex;align-items:center;justify-content:space-between;gap:10px}
+body[data-world="island"] .isl-me{display:flex;align-items:center;gap:8px;min-height:56px;padding:4px 16px 4px 8px;border-color:rgba(255,212,94,.55);color:#eef3ff;text-align:right}
+body[data-world="island"] .isl-me b{display:block;font-size:17px;color:#ffd45e}
+body[data-world="island"] .isl-me small{display:block;font-size:13px;color:#c9d0f5}
+.isl-mini{width:44px;height:44px;flex:0 0 auto}
+.isl-big{width:132px;height:132px;display:block;margin:4px auto;filter:drop-shadow(0 0 18px rgba(255,212,94,.35))}
+.isl-sparks{display:flex;align-items:center;gap:6px;margin:0;font-size:24px;font-weight:800;color:#ffd45e}
+.isl-spk{width:24px;height:24px;flex:0 0 auto;fill:#ffd45e;filter:drop-shadow(0 0 6px rgba(255,212,94,.7))}
+.isl-road{display:flex;flex-direction:column;gap:6px;padding:10px 14px;border-radius:16px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,212,94,.25);color:#eef3ff}
+.isl-roadtext{display:flex;align-items:center;gap:8px}
+.isl-roadtext .isl-spk{width:18px;height:18px}
+.isl-roadbar{height:10px;border-radius:99px;background:rgba(255,255,255,.14);overflow:hidden}
+.isl-roadbar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#ffab2e,#ffd45e)}
+.isl-map{position:relative;border-radius:24px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.35),inset 0 0 0 1.5px rgba(255,255,255,.08)}
+.isl-map>svg{display:block;width:100%;height:auto}
+body[data-world="island"] .isl-reg{position:absolute;width:88px;height:74px;transform:translate(-50%,-50%);display:flex;align-items:flex-end;justify-content:center;padding:0;margin:0;border:0;border-radius:18px;background:transparent;box-shadow:none;color:#eef3ff;cursor:pointer}
+body[data-world="island"] .isl-reg span{font-size:12.5px;font-weight:700;line-height:1.2;white-space:nowrap;padding:3px 9px;border-radius:99px;background:rgba(7,12,36,.78);border:1.5px solid rgba(255,255,255,.18);transform:translateY(14px)}
+body[data-world="island"] .isl-reg.on span,body[data-world="island"] .isl-reg:focus-visible span{border-color:#ffd45e;color:#ffd45e}
+body[data-world="island"] .isl-reg:focus-visible{outline:3px solid #ffd45e;outline-offset:2px}
+.isl-sheet{display:flex;flex-direction:column;gap:10px}
+.isl-sheethead{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.isl-sheethead h2{margin:0}
+.isl-stations{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.isl-stations li{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;align-items:center;padding:10px 12px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12)}
+.isl-stations li>div{min-width:0}
+.isl-acts{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px}
+.isl-acts button{min-height:44px;margin:0}
+.isl-onlyh{font-size:17px;margin:16px 0 4px}
+.isl-dot{width:16px;height:16px;border-radius:50%;background:var(--lc);box-shadow:0 0 10px var(--lc)}
+.isl-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.isl-chip{display:inline-block;font-size:13px;font-weight:700;padding:2px 10px;border-radius:99px;background:rgba(255,255,255,.1);color:#c9d0f5}
+.isl-chip.lit{background:rgba(255,212,94,.16);color:#ffe27a}
+.isl-chip.bronze{background:#5a3a1e;color:#ffcf9e}
+.isl-chip.silver{background:#3d4660;color:#f2f5ff}
+.isl-chip.gold{background:#6a5210;color:#ffe680}
+.isl-chip.fix{background:#4d3020;color:#ffbf7a}
+.isl-crewline{display:flex;align-items:center;gap:10px}
+.isl-crewline p{margin:0}
+.isl-crewline.off{opacity:.65}
+.isl-ghost{display:inline-block;border-radius:50%;border:2px dashed rgba(255,255,255,.35)}
+.isl-tonight h2{margin:0 0 4px}
+.isl-stops{list-style:none;margin:10px 0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.isl-stops li{display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center;padding:8px 4px;border-radius:14px;background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.14);min-width:0}
+.isl-stops li span:not(.isl-n),.isl-stops li small{max-width:100%;overflow-wrap:anywhere;font-size:12.5px;line-height:1.25}
+.isl-stops li small{color:#c9d0f5;font-size:11.5px}
+.isl-stops .isl-n{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;background:rgba(255,255,255,.1)}
+.isl-stops li.done{border-color:rgba(255,212,94,.6)}
+.isl-stops li.done .isl-n{background:#ffd45e;color:#2b1e00;box-shadow:0 0 12px rgba(255,212,94,.7)}
+.isl-stops li.cur{border-color:#2ee6c5}
+.isl-stops li.cur .isl-n{background:#2ee6c5;color:#08203a}
+.isl-trip h3{margin:0 0 4px}
+.isl-links{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.isl-gain{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin:10px 0;padding:10px 14px;border-radius:16px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.18)}
+.isl-gain.got{background:rgba(255,212,94,.12);border-color:rgba(255,212,94,.5)}
+.isl-gain b{font-size:20px;color:#ffd45e}
+.isl-gain span{flex:1 1 180px}
+.isl-up{flex-basis:100%!important;font-weight:700;color:#2ee6c5}
+.isl-kicker{margin:0;font-size:13px;font-weight:700;letter-spacing:.04em;color:#ffd45e}
+.isl-reveal{text-align:center}
+.isl-reveal h2{text-wrap:balance}
+.isl-way{margin:8px 0;padding:10px 14px;border-radius:14px;background:rgba(46,230,197,.12);border-inline-start:4px solid #2ee6c5;text-align:right}
+.isl-cup svg{width:72px;height:72px}
+.isl-swrow{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.isl-sw{display:flex;align-items:center;gap:8px;min-height:48px}
+.isl-sw span{width:20px;height:20px;border-radius:50%;background:var(--lc);box-shadow:0 0 12px var(--lc)}
+.isl-scene{display:block;width:100%;height:auto;border-radius:18px}
+.isl-night,.isl-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}
+.isl-night>div,.isl-stats>div{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 6px;border-radius:14px;background:rgba(255,255,255,.06);text-align:center}
+.isl-night b,.isl-stats b{font-size:22px;color:#ffd45e}
+.isl-night span,.isl-stats span{font-size:13px;color:#c9d0f5}
+.isl-gift{margin:12px 0;padding:12px 14px;border-radius:16px;background:rgba(184,140,255,.1);border:1.5px solid rgba(184,140,255,.4)}
+.isl-gift h3{margin:0 0 4px}
+.isl-giftrow{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.isl-giftrow button,.isl-gifted{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:118px;padding:10px}
+.isl-giftrow svg{width:64px;height:64px}
+.isl-hero{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.isl-hero>div{flex:1 1 140px;min-width:0}
+.isl-hero p{margin:2px 0}
+.isl-rank{font-size:30px;font-weight:800;color:#ffd45e}
+.isl-part{margin:10px 0}
+.isl-opts{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+body[data-world="island"] .isl-opt{min-height:44px;margin:0;padding:6px 14px}
+body[data-world="island"] .isl-opt[aria-pressed="true"]{background:#2ee6c5;color:#08203a}
+body[data-world="island"] .isl-opt.locked{opacity:.55;border-style:dashed;display:flex;align-items:center;gap:4px}
+.isl-opt .lock{width:16px;height:16px}
+.isl-roadlist{list-style:none;margin:6px 0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.isl-roadlist li{display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:99px;background:rgba(255,255,255,.06);color:#c9d0f5;font-size:13px}
+.isl-roadlist li span{font-weight:800}
+.isl-roadlist li.on{background:rgba(255,212,94,.16);color:#ffe27a}
+.isl-medals{margin:8px 0}
+.isl-shelf .award{min-width:0}
+.isl-shelf .small{font-size:12px}
+.isl-parents{margin:10px 0;padding:10px 12px;border-radius:12px;background:rgba(255,212,94,.08);border:1px solid rgba(255,212,94,.3)}
+.isl-parents p{margin:6px 0}
+body[data-world="island"][data-motion="on"] .isl-star{animation:islTwinkle 3.2s ease-in-out infinite}
+body[data-world="island"][data-motion="on"] .isl-blades{animation:islSpin 9s linear infinite;transform-box:fill-box;transform-origin:center}
+body[data-world="island"][data-motion="on"] .isl-fire{animation:islFlicker 1.1s ease-in-out infinite alternate;transform-box:fill-box;transform-origin:50% 100%}
+body[data-world="island"][data-motion="on"] .isl-fogblob{animation:islDrift 9s ease-in-out infinite alternate}
+body[data-world="island"]:not([data-motion="off"]) .isl-gain.got .isl-spk{animation:islPop .8s ease-out}
+body[data-world="island"][data-motion="on"] .isl-modal .isl-big{animation:islFloat 2.6s ease-in-out infinite}
+@keyframes islTwinkle{50%{opacity:.25}}
+@keyframes islSpin{to{transform:rotate(360deg)}}
+@keyframes islFlicker{to{transform:scaleY(1.15)}}
+@keyframes islDrift{to{transform:translateX(10px)}}
+@keyframes islPop{0%{transform:scale(.4) rotate(-40deg)}60%{transform:scale(1.5) rotate(10deg)}100%{transform:scale(1)}}
+@keyframes islFloat{50%{transform:translateY(-6px)}}
+@media (prefers-reduced-motion:reduce){body[data-world="island"] *{animation:none!important}}
 </style>
 </head>
 <body>
@@ -545,6 +656,9 @@ const CHALLENGE_VERSION=1;
 const CHALLENGE_EVENT_SCHEMA=1;
 const CHALLENGE_ALGORITHM=1;
 const CHALLENGE_FORMAT=1;
+// A backup file that carries Firefly Island choices is format 2, so an older page refuses it as newer
+// instead of dropping the island part. A file without island choices stays format 1.
+const BACKUP_FORMAT_ISLAND=2;
 const CHALLENGE_KEY="challenge";
 const CHALLENGE_MAX_EVENTS=10000;
 const CHALLENGE_MAX_CHARS=1500000;
@@ -969,7 +1083,7 @@ function challengeStable(value){
 function challengeProgressFromBase(base){
  const loaded=challengeLoadNs(base);
  if(!loaded.ok)throw challengeFail(loaded.code);
- return {
+ const progress={
   daily:challengeDateDaily(base.daily),
   chapter:{
    res:plain(base.res)?base.res:{},
@@ -979,13 +1093,16 @@ function challengeProgressFromBase(base){
   sim:{sess:Array.isArray(base.sess)?base.sess:[]},
   challenge:loaded.ns
  };
+ const island=islandBackupValue(base.island);
+ if(island)progress.island=island;
+ return progress;
 }
 function challengeEnvelopeFromProgress(progress){
  const stable=challengeStable(progress);
  const body=JSON.stringify(stable);
  const length=challengeUtf8(body).length;
  if(body.length>challengeLimits.chars||length>challengeLimits.chars)throw challengeFail("limit");
- const text=JSON.stringify({format:CHALLENGE_FORMAT,algorithm:"sha256",checksum:challengeChecksum(body),length:length,progress:stable});
+ const text=JSON.stringify({format:stable.island?BACKUP_FORMAT_ISLAND:CHALLENGE_FORMAT,algorithm:"sha256",checksum:challengeChecksum(body),length:length,progress:stable});
  if(text.length>challengeLimits.chars)throw challengeFail("limit");
  return text;
 }
@@ -998,14 +1115,15 @@ function challengeParseEnvelope(text){
  let parsed;
  try{parsed=JSON.parse(text)}catch(e){throw challengeFail("corrupt")}
  if(!plain(parsed)||!Number.isInteger(parsed.format))throw challengeFail("corrupt");
- if(parsed.format>CHALLENGE_FORMAT)throw challengeFail("future");
- if(parsed.format!==CHALLENGE_FORMAT)throw challengeFail("corrupt");
+ if(parsed.format>BACKUP_FORMAT_ISLAND)throw challengeFail("future");
+ if(parsed.format!==CHALLENGE_FORMAT&&parsed.format!==BACKUP_FORMAT_ISLAND)throw challengeFail("corrupt");
+ const withIsland=parsed.format===BACKUP_FORMAT_ISLAND;
  if(parsed.algorithm!=="sha256")throw challengeFail("corrupt");
  if(typeof parsed.checksum!=="string"||!/^[0-9a-f]{64}$/.test(parsed.checksum))throw challengeFail("corrupt");
  if(!Number.isSafeInteger(parsed.length)||parsed.length<0)throw challengeFail("corrupt");
  if(!challengeExactKeys(parsed,["format","algorithm","checksum","length","progress"]))throw challengeFail("corrupt");
  const progress=parsed.progress;
- if(!plain(progress)||!challengeExactKeys(progress,["daily","chapter","sim","challenge"]))throw challengeFail("corrupt");
+ if(!plain(progress)||!challengeExactKeys(progress,withIsland?["daily","chapter","sim","challenge","island"]:["daily","chapter","sim","challenge"]))throw challengeFail("corrupt");
  if(!plain(progress.chapter)||!challengeExactKeys(progress.chapter,["res","mastery","prog"]))throw challengeFail("corrupt");
  if(!plain(progress.sim)||!challengeExactKeys(progress.sim,["sess"])||!Array.isArray(progress.sim.sess))throw challengeFail("corrupt");
  if(!plain(progress.daily))throw challengeFail("corrupt");
@@ -1016,12 +1134,18 @@ function challengeParseEnvelope(text){
   if(progress.challenge.v>CHALLENGE_VERSION)throw challengeFail("future");
   challenge=challengeCheckV1(progress.challenge);
  }
- const stable=challengeStable({
+ if(withIsland){
+  if(!plain(progress.island)||!Number.isInteger(progress.island.v))throw challengeFail("corrupt");
+  if(progress.island.v>ISLAND_VERSION)throw challengeFail("future");
+ }
+ const shaped={
   daily:progress.daily,
   chapter:progress.chapter,
   sim:progress.sim,
   challenge:challenge
- });
+ };
+ if(withIsland)shaped.island=progress.island;
+ const stable=challengeStable(shaped);
  const body=JSON.stringify(stable);
  const length=challengeUtf8(body).length;
  if(length!==parsed.length)throw challengeFail("mismatch");
@@ -1049,7 +1173,9 @@ function challengeSummarize(text){
   simSessions:parsed.progress.sim.sess.length,
   challengeEvents:challenge?challenge.events.length:0,
   stage:challenge?challengeReduce(challenge.events).stage:CHALLENGE_STAGES[0],
-  stored:loaded.ok?(loaded.empty?"empty":"ok"):loaded.code
+  islandChoices:!!parsed.progress.island,
+  islandHere:plain(base.island),
+  stored:islandStoredFuture(base)?"future":loaded.ok?(loaded.empty?"empty":"ok"):loaded.code
  };
 }
 function challengeCommitReplace(base,spec){
@@ -1057,6 +1183,7 @@ function challengeCommitReplace(base,spec){
  if((Number(base.rev)||0)!==spec.rev)return {ok:false,code:"stale"};
  const loaded=challengeLoadNs(base);
  if(!loaded.ok)return loaded;
+ if(islandStoredFuture(base))return {ok:false,code:"future"};
  let parsed;
  try{parsed=challengeParseEnvelope(spec.text)}catch(e){return {ok:false,code:(e&&e.code)||"corrupt"}}
  let undo;
@@ -1075,6 +1202,8 @@ function challengeCommitReplace(base,spec){
  base.sess=progress.sim.sess;
  if(progress.challenge)base[CHALLENGE_KEY]=progress.challenge;
  else delete base[CHALLENGE_KEY];
+ if(progress.island)base.island=islandBackupValue(progress.island);
+ else delete base.island;
  return {ok:true,undo:undo,state:challengeReduce(progress.challenge?progress.challenge.events:[])};
 }
 function challengeExport(){
@@ -1091,6 +1220,7 @@ function challengeImport(text,opt){
  const patch={challengeReplace:{text:text,rev:opt.rev},_challengeBox:box};
  const finish=function(){
   if(!box.result||!box.result.ok)throw challengeFail((box.result&&box.result.code)||"refused");
+  islandClearLocal();
   return box.result;
  };
  if(locksOn()){
@@ -1129,6 +1259,7 @@ const SHIR_CHALLENGE={
  eventSchema:CHALLENGE_EVENT_SCHEMA,
  algorithm:CHALLENGE_ALGORITHM,
  format:CHALLENGE_FORMAT,
+ islandFormat:BACKUP_FORMAT_ISLAND,
  key:CHALLENGE_KEY,
  stages:CHALLENGE_STAGES,
  limits:challengeLimits,
@@ -1149,7 +1280,7 @@ function challengeBackupCard(){
  const note=challengeUndoText?"<p id=\"backupDone\">ההתקדמות הוחלפה. אפשר להוריד את הגיבוי שלפני ההחלפה.</p><p><button type=\"button\" class=\"tap\" onclick=\"challengeDownloadUndo()\">הורדת הגיבוי שלפני ההחלפה</button></p>":"";
  return `<details class="card mini" id="backupCard"><summary>גיבוי</summary>
 ${note}
-<p class="small">הקובץ כולל את מסע היום, את תרגול הפרקים ואת הסימולציות שנשמרו, ואת יומן האתגר. הוא לא כולל טיוטה של גרסה עתידית, ולא משנה אותה.</p>
+<p class="small">הקובץ כולל את מסע היום, את תרגול הפרקים ואת הסימולציות שנשמרו, את יומן האתגר ואת הבחירות באי הגחליליות. הוא לא כולל טיוטה של גרסה עתידית, ולא משנה אותה. קובץ עם בחירות של אי הגחליליות נפתח רק בגרסה הזו של הדף או בגרסה חדשה ממנה.</p>
 <div class="backupActions"><button type="button" class="tap" onclick="challengeDownload()">הורדת גיבוי</button>
 <button type="button" class="tap" onclick="challengePreviewCurrent()">תצוגה של הגיבוי הנוכחי</button></div>
 <label class="small" for="backupText">קובץ להחלפה</label>
@@ -1171,6 +1302,8 @@ function challengeRenderPreview(text){
  if(!slot)return;
  const blocked=preview.stored!=="ok"&&preview.stored!=="empty";
  let body="<p>ימים במסע: "+preview.dailyDays+". תשובות פרקים: "+preview.chapterAnswers+". נושאים: "+preview.chapterTopics+". סשנים שמורים: "+preview.chapterSessions+". סימולציות: "+preview.simSessions+". אירועי אתגר: "+preview.challengeEvents+". שלב: "+esc(preview.stage)+".</p>";
+ if(preview.islandChoices)body+="<p>הקובץ כולל את הבחירות באי הגחליליות: הגחלילית, צבעי הפנסים, מתנות הלילה והגילויים שכבר נראו. ההחלפה מעבירה אותן לכאן.</p>";
+ else if(preview.islandHere)body+="<p>אין בקובץ בחירות של אי הגחליליות. ההחלפה מוחקת את הבחירות שיש כאן. ניצוצות ופנסים מחושבים מחדש מהתשובות שבקובץ.</p>";
  body+="<p class=\"small\">פורמט "+preview.format+", "+esc(preview.algorithm)+", אורך "+preview.length+".</p>";
  if(blocked){
   body+="<p>ההחלפה נעצרה. הנתונים השמורים כאן לא מגרסה שהקובץ הזה יכול להחליף.</p>";
@@ -1299,6 +1432,7 @@ function normalizeStore(raw){
   const deal=challengeDealCanon(raw.challengeDeal);
   if(deal)next.challengeDeal=deal;
  }
+ if(plain(raw.island))next.island=raw.island;
  return next;
 }
 function loadStore(){
@@ -1341,6 +1475,7 @@ function mergeUiIntoMeta(base, ui){
  if(ui.motion==="on"||ui.motion==="reduced"||ui.motion==="off")next.motion=ui.motion;
  else if(next.motion!=="on"&&next.motion!=="reduced"&&next.motion!=="off")next.motion="reduced";
  if(ui.theme==="classic"||ui.theme==="night"||ui.theme==="bluewhite")next.theme=ui.theme;
+ if(ui.world==="island"||ui.world==="none")next.world=ui.world;
  if(typeof ui.setAt==="string"&&ui.setAt)next.setAt=ui.setAt;
  obj.ui=next;
  entry.draft=JSON.stringify(obj);
@@ -1447,12 +1582,21 @@ function commitPatch(patch){
    if(deal)base.challengeDeal=deal;
   }
  }
+ if(patch.islandSet){
+  const cur=base.island;
+  if(!plain(patch.island)||seenSchema>BRIDGE_SCHEMA||(plain(cur)&&Number(cur.v)>ISLAND_VERSION)){
+   if(patch._islandBox)patch._islandBox.done=false;
+   return false;
+  }
+  base.island=islandMerge(cur,patch.island);
+ }
  let nextRev=(Number(base.rev)||0)+1;
  if(patch.revAtLeast&&nextRev<=patch.revAtLeast)nextRev=patch.revAtLeast+1;
  base.rev=nextRev;
  ensureDcMeta(base);
  const written=writeRaw(base);
  if(!written&&patch._challengeBox)patch._challengeBox.result={ok:false,code:"refused"};
+ if(patch._islandBox)patch._islandBox.done=!!written;
  return written;
 }
 function writeRaw(base){
@@ -1473,7 +1617,7 @@ function savePatch(patch,opt){
  if(!storageOn)return;
  opt=opt||{};
  patch=patch||{};
- if(schemaBlocked&&(patch.dailyKey||patch.mastery||patch.challengeAppend||patch.challengeReplace||patch.challengeDealSet)){
+ if(schemaBlocked&&(patch.dailyKey||patch.mastery||patch.challengeAppend||patch.challengeReplace||patch.challengeDealSet||patch.islandSet)){
   showUpdateRequired();
   if(patch._challengeBox)patch._challengeBox.result={ok:false,code:"refused"};
   return;
@@ -2394,7 +2538,7 @@ function missionSummaryHtml(){
  const events=missionEvents(),m=missionModel(events);
  const topic=m.info&&m.info.topic;
  if(!Object.prototype.hasOwnProperty.call(challengeUi,"sessionInfo"))challengeUiScope(m.info);
- return `<section class="card mission-shell" id="missionSummary">${persistNote()}${challengeUi&&challengeUi.msg?`<p class="no" role="status">${esc(challengeUi.msg)}</p>`:""}<p class="mission-kicker">${esc(missionTitle(topic))}</p><h2>${m.done?"עוד תחנה במסע שלך.":"גם חלק מהדרך הוא התקדמות."}</h2>${missionLandscape()}<p class="mission-badge">${m.done?"המשימה הושלמה ונשמרה ✓":"התשובות נשמרו · המשימה חלקית"}</p><div class="mission-target"><h3>היום תרגלנו דרך לחשוב.</h3><div class="mission-stats"><div><b>${m.n}</b><span>שאלות נענו</span></div><div><b>${m.firstCorrect}</b><span>נכונות בניסיון הראשון</span></div></div>${m.retryCorrect?`<p>${m.retryCorrect===1?"תשובה אחת נכונה אחרי תרגול קודם של אותה שאלה.":m.retryCorrect+" תשובות נכונות אחרי תרגול קודם של אותה שאלה."} זה אינו ניסיון ראשון.</p>`:""}${m.incorrect?`<p>${m.incorrect===1?"תשובה אחת עדיין צריכה תרגול.":m.incorrect+" תשובות עדיין צריכות תרגול."} ההסברים זמינים בסיכום התשובות.</p>`:""}<p>השלמה אינה מעידה על שליטה בנושא.</p><details><summary>התשובות וההסברים במשימה</summary>${m.block.map(a=>{const q=BANK.find(q=>q.id===a.qid);return q?`<div class="mission-review"><b>${show(q.q)}</b><p class="${a.ok?"ok":"no"}">${a.ok?"תשובה נכונה":"עוד תרגול"}</p><div>${show(q.exp||"")}</div></div>`:""}).join("")}</details></div><div class="mission-target"><p>בפעם הבאה</p><b>עוד הזדמנות לחשוב, בקצב שלך.</b><p>התחנה נשמרה. אפשר להמשיך כשנוח, אם יש שאלות זמינות.</p></div><p><button type="button" class="primary tap cta" onclick="challengeFinish()">סיימנו להיום</button></p><p class="mission-secondary"><button type="button" class="tap" onclick="missionMore()">עוד תרגול</button></p><p class="mission-secondary"><button type="button" class="tap" onclick="home()">לתפריט</button></p></section>`;
+ return `<section class="card mission-shell" id="missionSummary">${persistNote()}${islandOn()?islandMissionHtml():""}${challengeUi&&challengeUi.msg?`<p class="no" role="status">${esc(challengeUi.msg)}</p>`:""}<p class="mission-kicker">${esc(missionTitle(topic))}</p><h2>${m.done?"עוד תחנה במסע שלך.":"גם חלק מהדרך הוא התקדמות."}</h2>${missionLandscape()}<p class="mission-badge">${m.done?"המשימה הושלמה ונשמרה ✓":"התשובות נשמרו · המשימה חלקית"}</p><div class="mission-target"><h3>היום תרגלנו דרך לחשוב.</h3><div class="mission-stats"><div><b>${m.n}</b><span>שאלות נענו</span></div><div><b>${m.firstCorrect}</b><span>נכונות בניסיון הראשון</span></div></div>${m.retryCorrect?`<p>${m.retryCorrect===1?"תשובה אחת נכונה אחרי תרגול קודם של אותה שאלה.":m.retryCorrect+" תשובות נכונות אחרי תרגול קודם של אותה שאלה."} זה אינו ניסיון ראשון.</p>`:""}${m.incorrect?`<p>${m.incorrect===1?"תשובה אחת עדיין צריכה תרגול.":m.incorrect+" תשובות עדיין צריכות תרגול."} ההסברים זמינים בסיכום התשובות.</p>`:""}<p>השלמה אינה מעידה על שליטה בנושא.</p><details><summary>התשובות וההסברים במשימה</summary>${m.block.map(a=>{const q=BANK.find(q=>q.id===a.qid);return q?`<div class="mission-review"><b>${show(q.q)}</b><p class="${a.ok?"ok":"no"}">${a.ok?"תשובה נכונה":"עוד תרגול"}</p><div>${show(q.exp||"")}</div></div>`:""}).join("")}</details></div><div class="mission-target"><p>בפעם הבאה</p><b>עוד הזדמנות לחשוב, בקצב שלך.</b><p>התחנה נשמרה. אפשר להמשיך כשנוח, אם יש שאלות זמינות.</p></div><p><button type="button" class="primary tap cta" onclick="challengeFinish()">סיימנו להיום</button></p><p class="mission-secondary"><button type="button" class="tap" onclick="missionMore()">עוד תרגול</button></p><p class="mission-secondary"><button type="button" class="tap" onclick="home()">לתפריט</button></p></section>`;
 }
 function missionMore(){
  let result;const ui=challengeUi;try{result=challengeUiLife("session_end")}catch(e){challengeUiLifeFail(e,false);return}
@@ -2568,6 +2712,7 @@ function challengeRenderAsk(){
  if(revealed){
   body+=`<div class="exp"><b class="${challengeUi.ok?"ok":"no"}">${challengeUi.ok?"נכון.":"לא נכון."}</b> ${show(q.exp||"")}</div><p class="small">זה תרגול, לא תוצאת מבחן.</p>`;
  }
+ if(revealed&&challengeUi.islandGain&&islandOn())body+=islandGainHtml(challengeUi.islandGain,challengeUi.ok);
  body+=missionProgressHtml();
  body+=`<div class="dock"><button type="button" class="tap mission-save" onclick="challengePause()">לעצור ולשמור (השהיה)</button>`;
  if(!revealed)body+=`<button type="button" class="primary tap" onclick="challengeCheck()">בדיקה</button>`;
@@ -2726,12 +2871,14 @@ function challengeCheck(){
   ok=challengeUi.arr.join("|")===q.items.join("|");
  }else{challengeUi.msg="אי אפשר לבדוק את השאלה הזו";challengeRender();return}
  const before=challengeViewStage();
+ const islBefore=islandOn()?islandModel():null;
  let result;
  try{result=challengeEngine.answer({qid:q.id,ok:ok})}
  catch(e){challengeUi.msg=challengeErrText(e);challengeRender();return}
  challengeSettle(result,()=>{
   challengeUi.revealed=true;
   challengeUi.ok=ok;
+  challengeUi.islandGain=islBefore?islandGain(islBefore,islandModel(),q):null;
   const after=challengeViewStage();
   const beforeIdx=CHALLENGE_STAGES.indexOf(before);
   const afterIdx=CHALLENGE_STAGES.indexOf(after);
@@ -3032,6 +3179,10 @@ function home(){
  const last=store.sess.slice(-5).reverse();
  if(last.length){legacy+=`<div class="card"><h3>תרגולים אחרונים</h3><table><tr><th>תאריך</th><th>סוג</th><th>ציון</th></tr>`+last.map(s=>`<tr><td>${s.d}</td><td>${s.m}</td><td>${s.c}/${s.t}</td></tr>`).join("")+`</table></div>`}
  h+=`<details class="card mini" id="morePractice"><summary>עוד תרגול: פרקים וסימולציה קצרה</summary><p class="small">בסימולציה הקצרה יש שעון לכל חלק. בתרגול לפי פרק אפשר לבדוק אחרי כל תשובה, בלי שעון.</p>${legacy}</details>`;
+ if(islandOn()&&!schemaBlocked){
+  const cut=h.indexOf('<div id="parentsPanel"');
+  h=islandHomeHtml()+(cut>=0?h.slice(cut).replace('<div class="lookpick">',islandParentsHtml()+'<div class="lookpick">'):"");
+ }
  $("app").innerHTML=h;
 }
 function toggleParents(){const d=$("parentsPanel");if(d)d.hidden=!d.hidden}
@@ -3046,7 +3197,7 @@ function cancelReset(){
  if(!box)return;
  box.innerHTML=`<button type="button" class="danger tap" onclick="askReset()">איפוס כל ההתקדמות</button>`;
 }
-function resetAll(){stopTimer();S=null;D=null;store=blankStore();seenTypeBag=null;try{localStorage.removeItem(SEEN_TYPE_KEY)}catch(e){}savePatch({reset:true});home()}
+function resetAll(){stopTimer();S=null;D=null;store=blankStore();seenTypeBag=null;try{localStorage.removeItem(SEEN_TYPE_KEY)}catch(e){}islandClearLocal();savePatch({reset:true});home()}
 
 /* ===== התחלת סשן ===== */
 /* The short form is pinned to the 15 items its id rule picked on 2026-10-10
@@ -4326,6 +4477,7 @@ function dailyRender(){
   const corr=q.t==="typed"?` התשובה: <span dir="ltr" class="formula">${esc(q.ans)}</span>`:q.t==="order"?` הסדר: ${esc(q.items.join(" ← "))}`:"";
   const line=linkSentence(q.exp);
   h+=linkHtml(q.exp);
+  if(D.islandGain&&islandOn())h+=islandGainHtml(D.islandGain,D.feedback);
   if(D.feedback)h+=`<div class="exp"><b>נכון!</b>${corr}<br>${show(line)}</div>`+dailyExtraHtml(line,q.exp);
   else h+=`<div class="exp"><b>לומדים מהניסיון.</b>${corr}<br>${show(q.exp)}</div>`+dailyExtraHtml(q.exp,q.exp);
   h+=`<p>המטרה היא להבין את הדרך, לא לצבור רצף.</p>`;
@@ -4377,8 +4529,11 @@ function dailyCheck(){
   ok=D.arr.join("|")===q.items.join("|");
  }
  seenTypeAdd(questionTypeKey(q));
+ const islBefore=islandOn()?islandModel():null;
  D.answers.push({id:q.id,ch:q.ch,sub:q.sub||"",ok});
- D.feedback=ok;persistDaily();dailyRender();
+ D.feedback=ok;persistDaily();
+ D.islandGain=islBefore?islandGain(islBefore,islandModel(),q):null;
+ dailyRender();
 }
 function applyMastery(answers){
  if(!Array.isArray(answers))return;
@@ -4432,6 +4587,7 @@ function dailySummary(entry){
  const freshNames=(rewardFresh||[]).map(id=>{const row=rewardCatalog().find(a=>a.id===id);return row?row.name:""}).filter(Boolean);
  const freshLine=freshNames.length?`<p class="trophyline">גביע חדש בארון: ${esc(freshNames.join(" · "))}</p>`:"";
  placeDock(false);
+ if(islandOn()){$("app").innerHTML=islandBedHtml(entry,count,freshLine,answers);return}
  $("app").innerHTML=`<div class="card dailyskin" ${skinAttrs()}>${skinBlock()}<h2>השלמתם את מסע היום</h2>${trophiesHtml(4,true)}<p class="trophyline">4 גביעים להיום</p>${freshLine}${weeklyBarHtml(entry&&entry.day)}${summaryQNavHtml(answers)}<p class="scoreline">${count} מתוך 4 נכון.</p><p class="scoreline">זה תרגול, לא תוצאת מבחן.</p><p>גם ניסיונות וקריאת הסבר הם חלק מהלמידה.</p><p>${savedDayLine()} אין קנס אם לא מתרגלים מחר.</p><p><button type="button" class="primary tap" onclick="continueUntimed()">המשך בלי שעון</button> <button type="button" class="tap" onclick="home()">חזרה</button></p></div>`;
 }
 function linkSentence(exp){
@@ -4475,6 +4631,7 @@ function continueUntimed(){
 
 /* THEME (display only). Stored in the same ui blob as skin and motion (one storage key, no second key). The mock exam is always classic. */
 let sessionTheme=null;
+let sessionWorld=null;
 function themeNow(){
  if(sessionTheme==="classic"||sessionTheme==="night"||sessionTheme==="bluewhite")return sessionTheme;
  let ui=null;try{ui=readMetaUi()}catch(e){}
@@ -4488,28 +4645,32 @@ function applyTheme(){
   try{document.documentElement.setAttribute("data-theme",effectiveTheme())}catch(e){}
   let m="reduced";try{m=currentMotion()}catch(e){}
   b.setAttribute("data-motion",m);
+  b.setAttribute("data-world",islandOn()?"island":"none");
  }catch(e){}
 }
 function syncLookButtons(){
- try{const t=themeNow();document.querySelectorAll("[data-look]").forEach(el=>el.setAttribute("aria-pressed",el.getAttribute("data-look")===t?"true":"false"))}catch(e){}
+ try{const t=lookNow();document.querySelectorAll("[data-look]").forEach(el=>el.setAttribute("aria-pressed",el.getAttribute("data-look")===t?"true":"false"))}catch(e){}
 }
 function chooseTheme(v){
  v=v==="classic"?"classic":v==="bluewhite"?"bluewhite":"night";
+ const wasIsland=worldNow()==="island";
  sessionTheme=v;
+ sessionWorld="none";
  applyTheme();syncLookButtons();
+ if(wasIsland&&screen==="home")home();
  if(!canPersist())return;
- const saved=savePatch({uiSet:true,ui:{skin:currentSkin(),motion:currentMotion(),theme:v,setAt:new Date().toISOString()}});
+ const saved=savePatch({uiSet:true,ui:{skin:currentSkin(),motion:currentMotion(),theme:v,world:"none",setAt:new Date().toISOString()}});
  const settle=()=>{
   if(sessionTheme!==v)return;
   const ui=readMetaUi();
-  if(ui&&ui.theme===v){sessionTheme=null;applyTheme();syncLookButtons()}
+  if(ui&&ui.theme===v){sessionTheme=null;if(sessionWorld==="none"&&ui.world!=="island")sessionWorld=null;applyTheme();syncLookButtons()}
  };
  if(saved&&typeof saved.then==="function")saved.then(settle,function(){});
  else settle();
 }
 function lookPickHtml(){
- const on=v=>themeNow()===v?"true":"false";
- return `<div class="lookpick"><b>מראה</b><p class="small">איך האפליקציה נראית. סימולציית המבחן תמיד נראית קלאסית, בלי הסחות.</p><div class="lookrow"><button type="button" class="tap" data-look="bluewhite" aria-pressed="${on("bluewhite")}" onclick="chooseTheme('bluewhite')"><span class="sw bw"></span>כחול על לבן</button><button type="button" class="tap" data-look="night" aria-pressed="${on("night")}" onclick="chooseTheme('night')"><span class="sw n"></span>מסלול לילה</button><button type="button" class="tap" data-look="classic" aria-pressed="${on("classic")}" onclick="chooseTheme('classic')"><span class="sw c"></span>קלאסי</button></div></div>`;
+ const on=v=>lookNow()===v?"true":"false";
+ return `<div class="lookpick"><b>מראה</b><p class="small">איך האפליקציה נראית. סימולציית המבחן תמיד נראית קלאסית, בלי הסחות.</p><div class="lookrow"><button type="button" class="tap" data-look="bluewhite" aria-pressed="${on("bluewhite")}" onclick="chooseTheme('bluewhite')"><span class="sw bw"></span>כחול על לבן</button><button type="button" class="tap" data-look="night" aria-pressed="${on("night")}" onclick="chooseTheme('night')"><span class="sw n"></span>מסלול לילה</button><button type="button" class="tap" data-look="classic" aria-pressed="${on("classic")}" onclick="chooseTheme('classic')"><span class="sw c"></span>קלאסי</button><button type="button" class="tap" data-look="island" aria-pressed="${on("island")}" onclick="chooseIsland()"><span class="sw isl"></span>אי הגחליליות</button></div><p class="small">אי הגחליליות: מפה, ניצוצות על תשובות נכונות ופריטים לגחלילית. בלי שעון, בלי רצף חובה ובלי השוואה.</p></div>`;
 }
 function trailHtml(n){
  n=Math.max(0,Math.min(4,n|0));
@@ -4521,6 +4682,536 @@ function trailHtml(n){
  const pulse=n<4?`<circle class="pulse" cx="${pts[n][0]}" cy="${pts[n][1]}" r="36"/>`:"";
  const len=n===0?0:[0,70,170,300,400][n];
  return `<div class="trail" role="img" aria-label="${n} מתוך 4 גביעים להיום"><svg viewBox="0 0 320 250" aria-hidden="true"><path class="tpath" d="${d}"/><path class="tdone" d="${d}" pathLength="400" stroke-dasharray="${len} 400" style="--len:${len}"/>${pulse}${nodes}</svg></div>`;
+}
+/* FIREFLY ISLAND (A1-A12, approved by Roy on 2026-11-21; review fixes and D4 the same day; docs/decisions/architecture.md). A look picked in the parents panel.
+ Everything earned is worked out from store.daily and the mission answers in the challenge log.
+ Only the child's choices are saved, under "island" inside shirprep_v2. The simulation never shows it. */
+const ISLAND_VERSION=1;
+const ISLAND_REGIONS={
+ 1:{name:"יער המילים",crew:"נור",way:"קוראים את כל המשפט לפני שבוחרים. מילת הקישור אומרת לאן המשפט הולך.",x:94,y:132},
+ 2:{name:"גשר האבנים",crew:"טל",way:"בודקים מה משתנה מצעד לצעד, ואז בודקים את החוק על כל הצעדים.",x:268,y:132},
+ 3:{name:"מחנה הלילה",crew:"גל",way:"מתחילים ממה שבטוח, ומסמנים מה כבר אי אפשר.",x:182,y:222},
+ 4:{name:"מערת ההדים",crew:"זיו",way:"אומרים את הקשר במשפט אחד, ובודקים אם אותו משפט מתאים גם לזוג השני.",x:82,y:306},
+ 5:{name:"טחנת הרוח",crew:"פז",way:"כותבים מה ידוע ומה שואלים, ובסוף בודקים שהתשובה הגיונית.",x:280,y:306},
+ 6:{name:"חוף הצורות",crew:"שחר",way:"בודקים תכונה אחת בכל פעם: מספר, כיוון, מילוי.",x:182,y:382}
+};
+const ISLAND_CREW_LOOK={1:{shape:"round",color:"teal",wings:"stripes",acc:"none"},2:{shape:"square",color:"amber",wings:"plain",acc:"none"},3:{shape:"round",color:"coral",wings:"stripes",acc:"none"},4:{shape:"square",color:"violet",wings:"plain",acc:"none"},5:{shape:"drop",color:"ice",wings:"stripes",acc:"none"},6:{shape:"drop",color:"amber",wings:"dots",acc:"none"}};
+const ISLAND_SPOTS=[[0,-44],[-32,-34],[32,-34],[-50,-8],[50,-8]];
+const ISLAND_RANKS=[{name:"ניצוץ",at:0},{name:"להבה",at:30},{name:"לפיד",at:100},{name:"כוכב",at:220}];
+const ISLAND_COLORS={amber:{name:"צהוב",fill:"#ffab2e",line:"#a35f00",glow:"#ffc94d"},teal:{name:"טורקיז",fill:"#2fd3c2",line:"#0b7d73",glow:"#56e6d6"},coral:{name:"ורוד",fill:"#ff7096",line:"#a82850",glow:"#ff94b0"},violet:{name:"סגול",fill:"#b48cff",line:"#6b45c4",glow:"#c79bff"},ice:{name:"תכלת",fill:"#8fd8ff",line:"#3a86b5",glow:"#c4e2ff"}};
+const ISLAND_PARTS={
+ shape:{label:"צורה",names:{round:"עגול",square:"מרובע",drop:"טיפה"},free:["round","square"]},
+ color:{label:"צבע",names:{amber:"צהוב",teal:"טורקיז",coral:"ורוד",violet:"סגול",ice:"תכלת"},free:["amber","teal","coral"]},
+ wings:{label:"כנפיים",names:{plain:"חלקות",stripes:"פסים",dots:"נקודות"},free:["plain","stripes"]},
+ acc:{label:"אביזר",names:{none:"בלי",cap:"כובע קוסם",glasses:"משקפי חוקר",scarf:"צעיף",bow:"פפיון",crown:"כתר אור",halo:"הילת אור"},free:["none"]}
+};
+const ISLAND_LOOK_DEFAULT={shape:"round",color:"amber",wings:"stripes",acc:"none"};
+const ISLAND_ROAD=[
+ {id:"violet",part:"color",name:"צבע סגול",at:3},
+ {id:"cap",part:"acc",name:"כובע קוסם",at:10},
+ {id:"dots",part:"wings",name:"כנפי נקודות",at:20},
+ {id:"glasses",part:"acc",name:"משקפי חוקר",at:35},
+ {id:"ice",part:"color",name:"צבע תכלת",at:55},
+ {id:"scarf",part:"acc",name:"צעיף",at:80},
+ {id:"drop",part:"shape",name:"גוף טיפה",at:110},
+ {id:"bow",part:"acc",name:"פפיון",at:145},
+ {id:"crown",part:"acc",name:"כתר אור",at:185},
+ {id:"halo",part:"acc",name:"הילת אור",at:230}
+];
+const ISLAND_GIFTS=[["star","moon"],["flower","mushroom"],["shell","kite"],["owl","fish"],["boat","bell"]];
+const ISLAND_GIFT_NAMES={star:"כוכב נופל",moon:"ירח כסוף",flower:"פרח לילה",mushroom:"פטרייה זוהרת",shell:"צדף ענק",kite:"עפיפון",owl:"ינשוף",fish:"דג זהב",boat:"סירה קטנה",bell:"פעמון רוח"};
+const ISLAND_GIFT_SPOTS={star:[306,34],moon:[52,40],flower:[140,182],mushroom:[226,182],shell:[124,412],kite:[338,214],owl:[40,196],fish:[338,422],boat:[24,422],bell:[300,384]};
+const ISLAND_TROPHIES=[
+ {id:"fix",name:"לא מוותרים",hint:"תשובה נכונה לשאלה שבפעם קודמת הייתה בה טעות."},
+ {id:"gold",name:"עין חדה",hint:"פנס זהב ראשון: אותו נושא, שאלה אחרת, יום אחר, ובניסיון הראשון."},
+ {id:"crew",name:"ראש צוות",hint:"כל שש הגחליליות של הצוות הצטרפו."},
+ {id:"map",name:"ממפים את האי",hint:"פגשתם כל תחנה באי."}
+];
+const ISLAND_STATES={fog:"בערפל",lit:"מוארת",bronze:"ארד",silver:"כסף",gold:"זהב"};
+// This tab's island choices that are not in storage: saves still waiting for the write lock,
+// and choices this tab could not save (read-only tab, storage off). Everything else is read from store.island.
+let islandPending=[];
+let islandSession=[];
+let islandRegionOpen=0;
+function islandHas(obj,k){return typeof k==="string"&&Object.prototype.hasOwnProperty.call(obj,k)}
+function islandOn(){return worldNow()==="island"&&!(S&&S.mode==="sim")}
+// A station is a topic that can pay sparks: it has a daily item, or enough reviewed items for a mission (4).
+// A topic with chapter practice only is listed in its region as practice only, so no station stays in fog for ever.
+function islandStations(){
+ if(islandStations.cache)return islandStations.cache;
+ let topics=[];try{topics=challengeCatalog().topics}catch(e){topics=[]}
+ const out=[],only=[];
+ Object.keys(CH).forEach(c=>{
+  Object.keys(CH[c].subs).forEach(s=>{
+   const qs=BANK.filter(q=>q&&Number(q.ch)===Number(c)&&q.sub===s&&served(q)&&!inSimPool(q));
+   if(!qs.length)return;
+   const row=topics.find(t=>t.sub===s);
+   const daily=qs.filter(q=>inDailyPool(q)).length;
+   const mission=row&&row.mode!=="unavailable"?qs.filter(q=>challengeItemEligible(q)).length:0;
+   const st={sub:s,ch:Number(c),name:CH[c].subs[s],n:qs.length,daily:daily,mission:mission};
+   if(daily>0||mission>=4)out.push(st);else only.push(st);
+  });
+ });
+ islandStations.practiceOnly=only;
+ return islandStations.cache=out;
+}
+function islandPracticeOnly(){islandStations();return islandStations.practiceOnly||[]}
+function islandItem(id){
+ if(!islandItem.map){
+  const m=Object.create(null);
+  BANK.forEach(q=>{if(q&&served(q)&&!inSimPool(q))m[q.id]=q});
+  islandItem.map=m;
+ }
+ return islandItem.map[String(id)]||null;
+}
+function islandNormalize(raw){
+ const out={v:ISLAND_VERSION,look:Object.assign({},ISLAND_LOOK_DEFAULT),lanterns:{},gifts:{},seen:{}};
+ if(!plain(raw))return out;
+ if(Number(raw.v)>ISLAND_VERSION){out.future=true;return out}
+ const look=plain(raw.look)?raw.look:{};
+ Object.keys(ISLAND_PARTS).forEach(p=>{if(islandHas(ISLAND_PARTS[p].names,look[p]))out.look[p]=look[p]});
+ const subs=new Set(islandStations().map(s=>s.sub));
+ if(plain(raw.lanterns))Object.keys(raw.lanterns).forEach(k=>{if(subs.has(k)&&islandHas(ISLAND_COLORS,raw.lanterns[k]))out.lanterns[k]=raw.lanterns[k]});
+ const gifts=new Set([].concat.apply([],ISLAND_GIFTS));
+ if(plain(raw.gifts))Object.keys(raw.gifts).sort().forEach(k=>{if(Object.keys(out.gifts).length<ISLAND_GIFTS.length&&isRealDay(k)&&gifts.has(raw.gifts[k]))out.gifts[k]=raw.gifts[k]});
+ if(plain(raw.seen))Object.keys(raw.seen).forEach(k=>{if(Object.keys(out.seen).length<160&&/^(welcome|(crew|road|tro|lantern):[a-z0-9-]{1,24})$/.test(k))out.seen[k]=1});
+ return out;
+}
+function islandMerge(base,delta){
+ const out=islandNormalize(base);
+ if(out.future||!plain(delta))return out;
+ if(plain(delta.look))out.look=islandNormalize({look:Object.assign({},out.look,delta.look)}).look;
+ if(plain(delta.lanterns))Object.keys(delta.lanterns).forEach(k=>{out.lanterns[k]=delta.lanterns[k]});
+ if(plain(delta.gifts))Object.keys(delta.gifts).forEach(k=>{if(!out.gifts[k])out.gifts[k]=delta.gifts[k]});
+ if(plain(delta.seen))Object.keys(delta.seen).forEach(k=>{out.seen[k]=1});
+ return islandNormalize(out);
+}
+function islandRaw(){return store&&plain(store.island)?store.island:null}
+function islandStoredFuture(base){return !!base&&plain(base.island)&&Number(base.island.v)>ISLAND_VERSION}
+function islandClearLocal(){islandPending=[];islandSession=[]}
+function islandSessionPut(delta){
+ const cur=islandNormalize(islandRaw());
+ ["look","lanterns","gifts","seen"].forEach(part=>{
+  if(!plain(delta[part]))return;
+  Object.keys(delta[part]).forEach(k=>{
+   const had=islandSession.findIndex(e=>e.part===part&&e.key===k);
+   if(had>=0){if(part==="gifts")return;islandSession.splice(had,1)}
+   islandSession.push({part:part,key:k,value:delta[part][k],was:islandHas(cur[part],k)?cur[part][k]:null});
+  });
+ });
+}
+function islandOverlay(){
+ islandPending=islandPending.filter(p=>{
+  if(p.box.done===true)return false;
+  if(p.box.done===false){islandSessionPut(p.delta);return false}
+  return true;
+ });
+ // A choice this tab could not save gives way as soon as storage changes that same value
+ // (another tab chose, reset, or restored a backup).
+ const cur=islandNormalize(islandRaw());
+ islandSession=islandSession.filter(e=>(islandHas(cur[e.part],e.key)?cur[e.part][e.key]:null)===e.was);
+ const out={look:{},lanterns:{},gifts:{},seen:{}};
+ const put=(part,k,v)=>{if(part!=="gifts"||!islandHas(out.gifts,k))out[part][k]=v};
+ islandSession.forEach(e=>put(e.part,e.key,e.value));
+ islandPending.forEach(p=>["look","lanterns","gifts","seen"].forEach(part=>{if(plain(p.delta[part]))Object.keys(p.delta[part]).forEach(k=>put(part,k,p.delta[part][k]))}));
+ return out;
+}
+function islandState(){return islandMerge(islandRaw(),islandOverlay())}
+function islandSave(delta){
+ const raw=islandRaw();
+ if(!canPersist()||(plain(raw)&&Number(raw.v)>ISLAND_VERSION)){islandSessionPut(delta);return}
+ const entry={delta:delta,box:{}};
+ islandPending.push(entry);
+ const req=savePatch({islandSet:true,island:delta,_islandBox:entry.box});
+ if(req&&typeof req.then==="function")req.then(()=>{if(entry.box.done!==true)entry.box.done=false},()=>{entry.box.done=false});
+ else if(entry.box.done!==true)entry.box.done=false;
+}
+function islandBackupValue(raw){
+ if(!plain(raw))return null;
+ if(Number(raw.v)>ISLAND_VERSION)return raw;
+ const n=islandNormalize(raw);
+ return {v:n.v,look:n.look,lanterns:n.lanterns,gifts:n.gifts,seen:n.seen};
+}
+function islandAnswers(daily,events){
+ const out=[];
+ if(plain(daily))Object.keys(daily).forEach(day=>{
+  if(isDcKey(day)||!isRealDay(day))return;
+  const e=daily[day];
+  const list=e&&Array.isArray(e.answers)?e.answers:[];
+  list.forEach((a,i)=>{if(a&&a.id!=null)out.push({qid:String(a.id),ok:!!a.ok,day:day,at:i,src:"d"})});
+ });
+ let mission=[];
+ try{mission=challengeAcceptedAnswers(Array.isArray(events)?events:[])}catch(e){mission=[]}
+ mission.forEach(a=>{if(a&&a.qid!=null&&isRealDay(a.localDay))out.push({qid:String(a.qid),ok:!!a.ok,day:a.localDay,at:Number(a.at)||0,src:"m"})});
+ out.sort((a,b)=>a.day<b.day?-1:a.day>b.day?1:a.src===b.src?a.at-b.at:a.src==="d"?-1:1);
+ return out;
+}
+function islandModel(opt){
+ opt=opt||{};
+ const daily=opt.daily!=null?opt.daily:(store&&store.daily)||{};
+ const events=opt.events!=null?opt.events:rewardEventsFromStore();
+ const isl=opt.island!==undefined?islandNormalize(opt.island):islandState();
+ const items=Object.create(null),topics=Object.create(null),regionOk={},byDay={};
+ let sparks=0,first=0,fixed=0;
+ islandAnswers(daily,events).forEach(a=>{
+  const q=islandItem(a.qid);
+  if(!q)return;
+  const t=topics[q.sub]||(topics[q.sub]={n:0,first:{},fixed:0,lastOk:true});
+  const d=byDay[a.day]||(byDay[a.day]={sparks:0,first:0,fixed:0});
+  t.n++;t.lastOk=a.ok;
+  if(a.ok)regionOk[q.ch]=true;
+  const seen=items[a.qid];
+  if(!seen){
+   items[a.qid]={paid:a.ok?3:0};
+   if(a.ok){sparks+=3;first++;d.sparks+=3;d.first++;t.first[a.qid]=a.day}
+  }else if(!seen.paid&&a.ok){
+   seen.paid=2;sparks+=2;fixed++;d.sparks+=2;d.fixed++;t.fixed++;
+  }
+ });
+ const stations=islandStations().map(st=>{
+  const t=topics[st.sub];
+  let state="fog";
+  if(t&&t.n){
+   const ids=Object.keys(t.first);
+   const days=new Set(ids.map(id=>t.first[id]));
+   state=days.size>=2?"gold":ids.length?"silver":t.fixed?"bronze":"lit";
+  }
+  return {sub:st.sub,ch:st.ch,name:st.name,n:st.n,state:state,fix:!!(t&&t.n&&!t.lastOk),color:isl.lanterns[st.sub]||"amber"};
+ });
+ const regions=Object.keys(ISLAND_REGIONS).map(Number).map(ch=>{
+  const list=stations.filter(s=>s.ch===ch);
+  return {ch:ch,name:ISLAND_REGIONS[ch].name,crew:ISLAND_REGIONS[ch].crew,way:ISLAND_REGIONS[ch].way,stations:list,met:list.filter(s=>s.state!=="fog").length,joined:!!regionOk[ch]};
+ });
+ const gold=stations.filter(s=>s.state==="gold").length;
+ const trophies=ISLAND_TROPHIES.map(t=>({id:t.id,name:t.name,hint:t.hint,earned:t.id==="fix"?fixed>0:t.id==="gold"?gold>0:t.id==="crew"?regions.every(r=>r.joined):stations.every(s=>s.state!=="fog")}));
+ return {
+  sparks:sparks,first:first,fixed:fixed,answered:Object.keys(items).length,gold:gold,
+  rank:ISLAND_RANKS.filter(r=>sparks>=r.at).pop(),nextRank:ISLAND_RANKS.find(r=>r.at>sparks)||null,
+  unlocked:ISLAND_ROAD.filter(r=>sparks>=r.at).map(r=>r.id),next:ISLAND_ROAD.find(r=>sparks<r.at)||null,
+  stations:stations,regions:regions,trophies:trophies,byDay:byDay,isl:isl
+ };
+}
+function islandOwned(part,id,model){
+ if(ISLAND_PARTS[part].free.indexOf(id)>=0)return true;
+ const row=ISLAND_ROAD.find(r=>r.part===part&&r.id===id);
+ return !!row&&model.unlocked.indexOf(id)>=0;
+}
+function islandLook(model){
+ const look=Object.assign({},model.isl.look);
+ Object.keys(ISLAND_PARTS).forEach(p=>{if(!islandOwned(p,look[p],model))look[p]=ISLAND_LOOK_DEFAULT[p]});
+ return look;
+}
+function islandUnlocks(model){
+ const out=[];
+ model.regions.forEach(r=>{if(r.joined)out.push({key:"crew:"+r.ch,kind:"crew",region:r})});
+ ISLAND_ROAD.forEach(r=>{if(model.unlocked.indexOf(r.id)>=0)out.push({key:"road:"+r.id,kind:"road",item:r})});
+ model.trophies.forEach(t=>{if(t.earned)out.push({key:"tro:"+t.id,kind:"trophy",trophy:t})});
+ model.stations.forEach(s=>{if(s.state!=="fog"&&!model.isl.lanterns[s.sub])out.push({key:"lantern:"+s.sub,kind:"lantern",station:s})});
+ return out;
+}
+function islandQueue(model){
+ const seen=model.isl.seen;
+ if(!seen.welcome)return [{key:"welcome",kind:"welcome"}];
+ return islandUnlocks(model).filter(u=>!seen[u.key]);
+}
+function islandRefresh(){
+ if(screen==="islandcard"){islandCardOpen();return}
+ if(screen==="summary"){dailySummary();return}
+ if(screen==="challenge"&&challengeUi){challengeRender();return}
+ home();
+}
+function islandAck(key){
+ const seen={};
+ if(key==="welcome"){seen.welcome=1;islandUnlocks(islandModel()).forEach(u=>{seen[u.key]=1})}
+ else if(/^(crew|road|tro|lantern):[a-z0-9-]{1,24}$/.test(key))seen[key]=1;
+ islandSave({seen:seen});
+ islandRefresh();
+}
+function islandWear(id){
+ const row=ISLAND_ROAD.find(r=>r.id===id);
+ if(!row)return;
+ const look={};look[row.part]=id;
+ islandSave({look:look,seen:{["road:"+id]:1}});
+ islandRefresh();
+}
+function islandPickLantern(sub,color){
+ const model=islandModel();
+ if(!model.stations.some(s=>s.sub===sub)||!islandHas(ISLAND_COLORS,color)||!islandOwned("color",color,model))return;
+ islandSave({lanterns:{[sub]:color},seen:{["lantern:"+sub]:1}});
+ islandRefresh();
+}
+function islandSetLook(part,id){
+ const model=islandModel();
+ if(!islandHas(ISLAND_PARTS,part)||!islandHas(ISLAND_PARTS[part].names,id)||!islandOwned(part,id,model))return;
+ const look={};look[part]=id;
+ islandSave({look:look});
+ islandCardOpen();
+}
+function islandGiftFor(day,model){
+ if(model.isl.gifts[day])return {chosen:model.isl.gifts[day]};
+ const used=Object.keys(model.isl.gifts).length;
+ return used<ISLAND_GIFTS.length?{pair:ISLAND_GIFTS[used]}:null;
+}
+function islandChooseGift(day,id){
+ const model=islandModel();
+ const gift=dayCompleted(store.daily[day])?islandGiftFor(day,model):null;
+ if(!gift||!gift.pair||gift.pair.indexOf(id)<0)return;
+ islandSave({gifts:{[day]:id}});
+ dailySummary();
+}
+function islandGain(before,after,q){
+ if(!before||!after||!q)return null;
+ const b=before.stations.find(s=>s.sub===q.sub),a=after.stations.find(s=>s.sub===q.sub);
+ return {sparks:after.sparks-before.sparks,from:b?b.state:"fog",to:a?a.state:"fog",name:a?a.name:""};
+}
+function islandGainHtml(g,ok){
+ if(!g)return "";
+ const line=g.sparks===3?"בניסיון ראשון: 3 ניצוצות.":g.sparks===2?"אחרי תיקון: 2 ניצוצות.":ok?"את השאלה הזו כבר פתרתם, והניצוצות שלה כבר אצלכם.":"הפעם בלי ניצוצות. כשהשאלה תחזור, תיקון שווה 2 ניצוצות.";
+ const up=g.to!==g.from?`<span class="isl-up">התחנה ${esc(g.name)}: ${ISLAND_STATES[g.to]}</span>`:"";
+ return `<div class="isl-gain${g.sparks?" got":""}" role="status">${islandSparkSvg()}<b>${g.sparks?"+"+g.sparks:"0"}</b><span>${line}</span>${up}</div>`;
+}
+function islandSparkSvg(){return `<svg class="isl-spk" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5 14.6 9.4 22.5 12 14.6 14.6 12 22.5 9.4 14.6 1.5 12 9.4 9.4Z"/></svg>`}
+function islandBug(o,opt){
+ opt=opt||{};
+ const c=ISLAND_COLORS[o.color]||ISLAND_COLORS.amber,mark="#27306b";
+ const wing=sx=>{
+  let inner="";
+  if(o.wings==="stripes")inner=`<path d="M11 -18 9 2M23 -21 23 5M35 -18 37 2" fill="none" stroke="${mark}" stroke-width="3.6" stroke-linecap="round"/>`;
+  if(o.wings==="dots")inner=`<circle cx="11" cy="-8" r="3.8" fill="${mark}"/><circle cx="23" cy="-8" r="3.8" fill="${mark}"/><circle cx="35" cy="-8" r="3.8" fill="${mark}"/>`;
+  return `<g transform="translate(50 46) scale(${sx} 1) rotate(-18)"><ellipse cx="23" cy="-8" rx="22" ry="14" fill="#eaf7ff" fill-opacity=".9" stroke="#9cc4ea" stroke-width="1.6"/>${inner}</g>`;
+ };
+ let body;
+ if(o.shape==="square")body=`<rect x="30" y="40" width="40" height="40" rx="9" fill="${c.fill}" stroke="${c.line}" stroke-width="2.5"/>`;
+ else if(o.shape==="drop")body=`<path d="M50 37 72 76Q50 86 28 76Z" fill="${c.fill}" stroke="${c.line}" stroke-width="2.5" stroke-linejoin="round"/>`;
+ else body=`<circle cx="50" cy="60" r="21" fill="${c.fill}" stroke="${c.line}" stroke-width="2.5"/>`;
+ const eyes=opt.sleep?`<path d="M37 59Q42 63 47 59M53 59Q58 63 63 59" fill="none" stroke="#2a2140" stroke-width="2.4" stroke-linecap="round"/>`:`<circle cx="42" cy="58" r="6.4" fill="#fff"/><circle cx="58" cy="58" r="6.4" fill="#fff"/><circle cx="43.2" cy="59" r="3" fill="#2a2140"/><circle cx="56.8" cy="59" r="3" fill="#2a2140"/>`;
+ const mouth=opt.sleep?"":`<path d="M45.5 68Q50 72 54.5 68" fill="none" stroke="#2a2140" stroke-width="2.2" stroke-linecap="round"/>`;
+ const tail=`<circle cx="50" cy="88" r="15" fill="#ffe680" fill-opacity=".28"/><circle cx="50" cy="88" r="7.5" fill="#ffe680" stroke="#fff8c9" stroke-width="1.5"/>`;
+ const a=o.acc;
+ let acc="";
+ if(a==="cap")acc=`<path d="M36 42 50 10 64 42Z" fill="#6a5acd" stroke="#40348f" stroke-width="2" stroke-linejoin="round"/><circle cx="50" cy="29" r="3" fill="#ffd45e"/><path d="M32 42H68" stroke="#40348f" stroke-width="4.5" stroke-linecap="round"/>`;
+ if(a==="glasses")acc=`<circle cx="42" cy="58" r="8.8" fill="none" stroke="#2a2140" stroke-width="2.6"/><circle cx="58" cy="58" r="8.8" fill="none" stroke="#2a2140" stroke-width="2.6"/>`;
+ if(a==="crown")acc=`<path d="M36 43V26L44 34 50 22 56 34 64 26V43Z" fill="#ffd45e" stroke="#b88410" stroke-width="2" stroke-linejoin="round"/><circle cx="50" cy="36" r="2.8" fill="#ff7096"/>`;
+ if(a==="scarf")acc=`<path d="M33 71Q50 79 67 71V78Q50 86 33 78Z" fill="#e2445c"/><path d="M60 78l5 12-9-3z" fill="#e2445c"/>`;
+ if(a==="bow")acc=`<path d="M50 75 37 68V82ZM50 75 63 68V82Z" fill="#b06cff" stroke="#6b2fc0" stroke-width="1.5" stroke-linejoin="round"/><circle cx="50" cy="75" r="3.2" fill="#6b2fc0"/>`;
+ const halo=a==="halo"?`<ellipse cx="50" cy="20" rx="17" ry="5" fill="none" stroke="#fff3a6" stroke-width="3.2"/><circle cx="50" cy="56" r="40" fill="#fff3a6" fill-opacity=".12"/>`:"";
+ const label=opt.label?` role="img" aria-label="${escAttr(opt.label)}"`:` aria-hidden="true"`;
+ return `<svg class="isl-bug${opt.cls?" "+opt.cls:""}" viewBox="0 0 100 100"${label}>${halo}${wing(1)}${wing(-1)}<path d="M44 41Q40 28 33 26M56 41Q60 28 67 26" fill="none" stroke="${c.line}" stroke-width="2.4" stroke-linecap="round"/><circle cx="33" cy="26" r="3" fill="${c.line}"/><circle cx="67" cy="26" r="3" fill="${c.line}"/>${tail}${body}${eyes}${mouth}${acc}</svg>`;
+}
+function islandBugAt(o,x,y,size,opt){
+ const inner=islandBug(o,opt).replace(/^<svg[^>]*>/,"").replace(/<\/svg>$/,"");
+ const s=size/100;
+ return `<g transform="translate(${x-size/2} ${y-size/2}) scale(${s})">${inner}</g>`;
+}
+function islandLandmark(ch){
+ if(ch===1)return `<path d="M-30 12l10-24 10 24z" fill="#1a5a50"/><path d="M-12 12l13-32 13 32z" fill="#23806f"/><path d="M10 12l10-24 10 24z" fill="#1f6b5e"/><path d="M-21 12v5M1 12v6M20 12v5" stroke="#3b2f55" stroke-width="3"/>`;
+ if(ch===2)return `<path d="M-34 14Q0-6 34 14" fill="none" stroke="#1d4f7c" stroke-width="12" stroke-linecap="round"/><ellipse cx="-24" cy="6" rx="8" ry="5" fill="#c9cfe8"/><ellipse cx="-8" cy="1" rx="8" ry="5" fill="#dfe3f5"/><ellipse cx="8" cy="1" rx="8" ry="5" fill="#c9cfe8"/><ellipse cx="24" cy="6" rx="8" ry="5" fill="#dfe3f5"/>`;
+ if(ch===3)return `<path d="M-22 14 0-18 22 14Z" fill="#e0805e" stroke="#7a3b2a" stroke-width="2" stroke-linejoin="round"/><path d="M-6 14 0 3 6 14Z" fill="#2a1a33"/><path class="isl-fire" d="M30 14q-8-10 0-20 8 10 0 20z" fill="#ffb347"/><path d="M24 15h12" stroke="#5a3a1e" stroke-width="3" stroke-linecap="round"/>`;
+ if(ch===4)return `<path d="M-28 16Q-28-20 0-22 28-20 28 16Z" fill="#4a4f7a"/><path d="M-12 16Q-12-4 0-6 12-4 12 16Z" fill="#141a3a"/><circle cx="-18" cy="-4" r="2" fill="#7d86b5"/><circle cx="16" cy="-10" r="2" fill="#7d86b5"/>`;
+ if(ch===5)return `<path d="M-8 18-4-8H4L8 18Z" fill="#d9d2c0" stroke="#8a8270" stroke-width="1.5"/><g class="isl-blades" transform="translate(0 -8)"><path d="M0 0-3-24H3ZM0 0 24-3V3ZM0 0 3 24H-3ZM0 0-24 3V-3Z" fill="#f2efe6" stroke="#8a8270" stroke-width="1"/><circle r="3" fill="#8a8270"/></g>`;
+ return `<path d="M-20 12Q0-24 20 12Z" fill="#ffd6b0" stroke="#c98b5a" stroke-width="2" stroke-linejoin="round"/><path d="M0 12-10-8M0 12 0-12M0 12 10-8" stroke="#c98b5a" stroke-width="2" fill="none"/><path d="M-34 18q34 8 68 0" stroke="#e8d6a8" stroke-width="5" fill="none" stroke-linecap="round"/>`;
+}
+function islandGiftSvg(id){
+ if(id==="star")return `<path d="M0-12 3-3 12 0 3 3 0 12-3 3-12 0-3-3Z" fill="#fff3a6"/><path d="M-6 6-22 18" stroke="#fff3a6" stroke-width="2" stroke-linecap="round" opacity=".6"/>`;
+ if(id==="moon")return `<path d="M6-12A13 13 0 1 0 8 12 10 10 0 1 1 6-12Z" fill="#e8ecff"/>`;
+ if(id==="flower")return `<path d="M0 14V0" stroke="#3c8a5a" stroke-width="2.5"/><circle cy="-6" r="4" fill="#ff94b0"/><circle cx="-6" cy="0" r="4" fill="#ff94b0"/><circle cx="6" cy="0" r="4" fill="#ff94b0"/><circle cy="6" r="4" fill="#ff94b0"/><circle r="3.5" fill="#ffd45e"/>`;
+ if(id==="mushroom")return `<path d="M-11 0Q0-16 11 0Z" fill="#56e6d6"/><rect x="-3.5" y="0" width="7" height="10" rx="2" fill="#e8ecff"/><circle cx="-4" cy="-5" r="1.6" fill="#fff"/><circle cx="4" cy="-4" r="1.6" fill="#fff"/>`;
+ if(id==="shell")return `<path d="M-12 8Q0-16 12 8Z" fill="#ffd6b0" stroke="#c98b5a" stroke-width="1.5"/><path d="M0 8-6-4M0 8V-7M0 8 6-4" stroke="#c98b5a" stroke-width="1.5"/>`;
+ if(id==="kite")return `<path d="M0-14 10 0 0 10-10 0Z" fill="#ff7096" stroke="#a82850" stroke-width="1.5"/><path d="M0 10q-4 6 2 10q-6 4 0 8" fill="none" stroke="#e8ecff" stroke-width="1.5"/>`;
+ if(id==="owl")return `<ellipse cy="2" rx="10" ry="12" fill="#8a6f5a"/><circle cx="-4" cy="-2" r="4" fill="#fff3a6"/><circle cx="4" cy="-2" r="4" fill="#fff3a6"/><circle cx="-4" cy="-2" r="1.6" fill="#2a2140"/><circle cx="4" cy="-2" r="1.6" fill="#2a2140"/><path d="M-2 4h4l-2 3z" fill="#ffab2e"/>`;
+ if(id==="fish")return `<path d="M-12 0Q0-10 10 0 0 10-12 0Z" fill="#ffc94d"/><path d="M10 0 18-7V7Z" fill="#ffab2e"/><circle cx="-5" cy="-2" r="1.6" fill="#2a2140"/>`;
+ if(id==="boat")return `<path d="M-14 4H14L9 11H-9Z" fill="#c98b5a"/><path d="M0 4V-14L11 2Z" fill="#e8ecff"/>`;
+ return `<path d="M0-12V-8" stroke="#c9cfe8" stroke-width="2"/><path d="M-8 6Q-8-8 0-8 8-8 8 6Z" fill="#ffd45e" stroke="#b88410" stroke-width="1.5"/><circle cy="9" r="2.5" fill="#b88410"/>`;
+}
+function islandGiftIcon(id){return `<svg viewBox="-22 -22 44 44" aria-hidden="true">${islandGiftSvg(id)}</svg>`}
+function islandRoute(day){
+ const saved=store.daily[day];
+ let ids=saved&&Array.isArray(saved.ids)&&saved.ids.length===4?saved.ids:null;
+ if(!ids){try{ids=easyToHard(questionsForDay(day)).map(q=>q.id)}catch(e){ids=[]}}
+ const done=saved&&saved.complete?4:saved&&Array.isArray(saved.answers)?Math.min(4,saved.answers.length):0;
+ const stops=ids.map(id=>BANK.find(q=>q&&q.id===id)).filter(Boolean).map(q=>({ch:Number(q.ch),sub:q.sub,name:CH[q.ch]&&CH[q.ch].subs[q.sub]||q.sub}));
+ return {stops:stops,done:done,complete:!!(saved&&saved.complete),started:!!(saved&&Array.isArray(saved.answers)&&saved.answers.length)};
+}
+function islandLanternSvg(s,x,y){
+ if(s.state==="fog")return `<circle cx="${x}" cy="${y}" r="6" fill="#3b4677"/><circle class="isl-puff" cx="${x}" cy="${y}" r="13" fill="#b9c4ee" fill-opacity=".28"/>`;
+ const glow=ISLAND_COLORS[s.color].glow;
+ const ring=s.state==="gold"?"#ffd700":s.state==="silver"?"#e3e8f5":s.state==="bronze"?"#d08a4a":"";
+ return `<circle class="isl-glow" cx="${x}" cy="${y}" r="13" fill="${glow}" fill-opacity=".32"/>${ring?`<circle cx="${x}" cy="${y}" r="9" fill="none" stroke="${ring}" stroke-width="3"/>`:""}<circle cx="${x}" cy="${y}" r="6" fill="${glow}" stroke="#fff8c9" stroke-width="1.2"/>${s.fix?`<circle cx="${x+8}" cy="${y-8}" r="3.4" fill="#ffbf7a" stroke="#4d3020" stroke-width="1"/>`:""}`;
+}
+function islandMapHtml(model,route){
+ const W=360,H=440;
+ let stars="",seed=11;
+ for(let i=0;i<34;i++){seed=(seed*73+41)%997;const x=seed/997*W;seed=(seed*73+41)%997;const y=seed/997*H;seed=(seed*73+41)%997;stars+=`<circle class="isl-star" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${1+(seed%3)*.45}" fill="#fff6c9" style="animation-delay:-${(seed%28)/10}s"/>`}
+ const met=model.stations.filter(s=>s.state!=="fog").length,all=model.stations.length||1;
+ const beam=(.15+.75*met/all).toFixed(2);
+ let regions="",fog="",crew="";
+ model.regions.forEach(r=>{
+  const p=ISLAND_REGIONS[r.ch];
+  regions+=`<g transform="translate(${p.x} ${p.y})">${islandLandmark(r.ch)}</g>`;
+  r.stations.forEach((s,i)=>{const o=ISLAND_SPOTS[i%ISLAND_SPOTS.length];regions+=islandLanternSvg(s,p.x+o[0],p.y+o[1])});
+  if(!r.met)fog+=`<g class="isl-fogblob"><ellipse cx="${p.x}" cy="${p.y}" rx="66" ry="40" fill="#b9c4ee" fill-opacity=".55"/><ellipse cx="${p.x+30}" cy="${p.y-18}" rx="42" ry="26" fill="#cfd6f5" fill-opacity=".45"/></g>`;
+  if(r.joined)crew+=islandBugAt(ISLAND_CREW_LOOK[r.ch],p.x+62,p.y+18,30);
+ });
+ const gifts=Object.keys(model.isl.gifts).map(k=>model.isl.gifts[k]).map(id=>{const pt=ISLAND_GIFT_SPOTS[id];return pt?`<g transform="translate(${pt[0]} ${pt[1]})">${islandGiftSvg(id)}</g>`:""}).join("");
+ const pts=[[56,398]].concat(route.stops.map(s=>{const p=ISLAND_REGIONS[s.ch];return [p.x,p.y]}));
+ let path="";
+ for(let i=1;i<pts.length;i++){
+  const a=pts[i-1],b=pts[i],mx=(a[0]+b[0])/2+(i%2?28:-28),my=(a[1]+b[1])/2;
+  const lit=i<=route.done;
+  path+=`<path d="M${a[0]} ${a[1]}Q${mx} ${my} ${b[0]} ${b[1]}" fill="none" stroke="${lit?"#ffd45e":"#c9d0f5"}" stroke-width="${lit?5:3}" stroke-linecap="round" stroke-dasharray="${lit?"none":"3 9"}"${lit?' class="isl-litpath"':""}/>`;
+ }
+ const at=route.done?route.stops[Math.min(route.done,route.stops.length)-1]:null;
+ const here=at?[ISLAND_REGIONS[at.ch].x-60,ISLAND_REGIONS[at.ch].y+16]:[pts[0][0],pts[0][1]-18];
+ const me=islandBugAt(islandLook(model),here[0],here[1],44,{});
+ const label=`מפת האי: ${met} מתוך ${model.stations.length} תחנות מוארות, ${model.regions.filter(r=>r.joined).length} מתוך 6 חברי צוות.`;
+ let svg=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escAttr(label)}"><defs><filter id="islBlur" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="11"/></filter><radialGradient id="islSea" cx="50%" cy="45%" r="70%"><stop offset="0" stop-color="#14244f"/><stop offset="1" stop-color="#070c24"/></radialGradient></defs><rect width="${W}" height="${H}" fill="url(#islSea)"/>${stars}`;
+ svg+=`<path d="M30 420Q-8 330 30 250Q4 160 44 92Q82 40 150 62Q236 30 312 96Q362 170 336 262Q366 352 322 420Q182 452 30 420Z" fill="#12305a" stroke="#1c4a7c" stroke-width="3"/><path d="M52 404Q22 324 54 252Q32 168 66 108Q100 66 156 84Q232 58 296 114Q338 178 316 262Q340 344 304 402Q182 430 52 404Z" fill="#153a5e"/>`;
+ svg+=`<g transform="translate(182 40)"><path d="M-70 4Q0-30 70 4" fill="#ffe680" fill-opacity="${(beam*.35).toFixed(2)}"/><path d="M-9 34-6-6H6L9 34Z" fill="#dfe4fb"/><path d="M-8 22H8L7.4 12H-7.4Z" fill="#c9506f"/><rect x="-8" y="-18" width="16" height="12" rx="2" fill="#ffe680" fill-opacity="${beam}"/><path d="M-10-18 0-28 10-18Z" fill="#c9506f"/></g>`;
+ svg+=path+regions+gifts+crew+me+`<g filter="url(#islBlur)">${fog}</g></svg>`;
+ const buttons=model.regions.map(r=>{
+  const p=ISLAND_REGIONS[r.ch];
+  const lab=`${r.name}: ${r.met} מתוך ${r.stations.length} תחנות מוארות${r.joined?". "+r.crew+" בצוות":""}`;
+  return `<button type="button" class="isl-reg tap${islandRegionOpen===r.ch?" on":""}" style="left:${(p.x/W*100).toFixed(2)}%;top:${(p.y/H*100).toFixed(2)}%" aria-label="${escAttr(lab)}" aria-expanded="${islandRegionOpen===r.ch?"true":"false"}" onclick="islandOpenRegion(${r.ch})"><span>${esc(r.name)}</span></button>`;
+ }).join("");
+ return `<div class="isl-map">${svg}${buttons}</div>`;
+}
+function islandOpenRegion(ch){
+ islandRegionOpen=islandRegionOpen===ch?0:ch;
+ home();
+ const el=$("islRegion");
+ if(el&&el.scrollIntoView)try{el.scrollIntoView({behavior:"smooth",block:"nearest"})}catch(e){}
+}
+function islandRegionHtml(model){
+ const r=model.regions.find(x=>x.ch===islandRegionOpen);
+ if(!r)return "";
+ let events=[];try{events=missionEvents()}catch(e){}
+ const open=(()=>{try{return challengeSessionInfo(events)}catch(e){return null}})();
+ const rows=r.stations.map(s=>{
+  let canMission=false;
+  try{canMission=missionAvailable(s.sub,events).length>=4}catch(e){}
+  const chip=`<span class="isl-chip ${s.state}">${ISLAND_STATES[s.state]}</span>${s.fix?`<span class="isl-chip fix">לתיקון</span>`:""}`;
+  const go=canMission?`<button type="button" class="tap" onclick="islandMission('${s.sub}')">${open&&open.topic===s.sub?"ממשיכים במשלחת":"משלחת: 4 שאלות"}</button>`:"";
+  return `<li><span class="isl-dot" style="--lc:${s.state==="fog"?"#3b4677":ISLAND_COLORS[s.color].glow}"></span><div><b>${esc(s.name)}</b><div class="isl-chips">${chip}</div></div><div class="isl-acts">${go}<button type="button" class="tap" onclick="islandPractice(${s.ch},'${s.sub}')">תרגול חופשי</button></div></li>`;
+ }).join("");
+ const only=islandPracticeOnly().filter(s=>s.ch===r.ch).map(s=>`<li><span class="isl-dot" style="--lc:#3b4677"></span><div><b>${esc(s.name)}</b><div class="isl-chips"><span class="isl-chip">בלי תחנה</span></div></div><div class="isl-acts"><button type="button" class="tap" onclick="islandPractice(${s.ch},'${s.sub}')">תרגול חופשי</button></div></li>`).join("");
+ const onlyHtml=only?`<h3 class="isl-onlyh">רק בתרגול חופשי</h3><p class="small">הנושאים האלה עוד לא מגיעים במסלול הלילה או במשלחות, ולכן אין להם תחנה ופנס.</p><ul class="isl-stations">${only}</ul>`:"";
+ const crew=r.joined?`<div class="isl-crewline">${islandBug(ISLAND_CREW_LOOK[r.ch],{cls:"isl-mini"})}<p><b>${esc(r.crew)}:</b> ${esc(r.way)}</p></div>`:`<p class="small">${esc(r.crew)} מחכה כאן. תשובה נכונה ראשונה באזור מצרפת אותה לצוות.</p>`;
+ return `<section class="card isl-sheet" id="islRegion" aria-label="${escAttr(r.name)}"><div class="isl-sheethead"><h2>${esc(r.name)}</h2><button type="button" class="tap" onclick="islandOpenRegion(${r.ch})">סגירה</button></div>${crew}<p class="small isl-modes">מסלול הלילה ומשלחת מאירים פנסים ונותנים ניצוצות. תרגול חופשי הוא בלי שעון ובלי ניצוצות, והוא לא משנה פנסים.</p><ul class="isl-stations">${rows}</ul>${onlyHtml}<p class="small">ארד: תיקון אחרי טעות. כסף: נכון בניסיון הראשון. זהב: שאלה אחרת באותו נושא, ביום אחר, נכונה בניסיון הראשון.</p></section>`;
+}
+function islandMission(sub){
+ let info=null;try{info=challengeSessionInfo(missionEvents())}catch(e){}
+ if(info&&info.topic===sub){missionOpen();return}
+ if(info){missionTopics();return}
+ challengeUi={screen:"topics",msg:""};challengeScreen=true;screen="challenge";
+ missionBegin(sub);
+}
+function islandPractice(c,sub){startPractice(c,sub)}
+function islandRevealHtml(model){
+ const u=islandQueue(model)[0];
+ if(!u)return "";
+ let body="";
+ if(u.kind==="welcome"){
+  const lit=model.stations.filter(s=>s.state!=="fog").length;
+  body=`<p class="isl-kicker">אי הגחליליות</p><h2 id="islRevealTitle">הערפל מחכה לאור שלכם</h2>${islandBug(islandLook(model),{cls:"isl-big"})}<p>כל נושא שמגיע במסלול הלילה או במשלחת הוא תחנה באי. כל תשובה שם מאירה פנס ומפזרת ערפל.</p><p>תשובה נכונה בניסיון הראשון שווה 3 ניצוצות. תשובה נכונה לשאלה שבפעם קודמת הייתה בה טעות שווה 2. ניצוצות אף פעם לא יורדים, והם פותחים פריטים לגחלילית שלכם.</p>${lit?`<p>האי כבר זוכר את התרגול שלכם: ${lit} תחנות מוארות ו-${model.sparks} ניצוצות.</p>`:""}<p><button type="button" class="primary tap cta" onclick="islandAck('welcome')">יוצאים לאי</button></p>`;
+ }else if(u.kind==="crew"){
+  body=`<p class="isl-kicker">גחלילית חדשה בצוות</p><h2 id="islRevealTitle">${esc(u.region.crew)} מ${esc(u.region.name)}</h2>${islandBug(ISLAND_CREW_LOOK[u.region.ch],{cls:"isl-big"})}<p>${esc(u.region.crew)} מביאה דרך לחשוב:</p><blockquote class="isl-way">${esc(u.region.way)}</blockquote><p><button type="button" class="primary tap cta" onclick="islandAck('crew:${u.region.ch}')">ברוכה הבאה לצוות</button></p>`;
+ }else if(u.kind==="road"){
+  const look=Object.assign({},islandLook(model));look[u.item.part]=u.item.id;
+  body=`<p class="isl-kicker">נפתח בדרך האור · ${u.item.at} ניצוצות</p><h2 id="islRevealTitle">${esc(u.item.name)}</h2>${islandBug(look,{cls:"isl-big"})}<p><button type="button" class="primary tap cta" onclick="islandWear('${u.item.id}')">ללבוש עכשיו</button> <button type="button" class="tap" onclick="islandAck('road:${u.item.id}')">אחר כך</button></p>`;
+ }else if(u.kind==="trophy"){
+  body=`<p class="isl-kicker">גביע חדש</p><h2 id="islRevealTitle">${esc(u.trophy.name)}</h2><div class="isl-cup">${trophySvg(true)}</div><p>${esc(u.trophy.hint)}</p><p><button type="button" class="primary tap cta" onclick="islandAck('tro:${u.trophy.id}')">לארון</button></p>`;
+ }else{
+  const s=u.station;
+  const sw=Object.keys(ISLAND_COLORS).filter(c=>islandOwned("color",c,model)).map(c=>`<button type="button" class="tap isl-sw" style="--lc:${ISLAND_COLORS[c].glow}" onclick="islandPickLantern('${s.sub}','${c}')"><span></span>${ISLAND_COLORS[c].name}</button>`).join("");
+  body=`<p class="isl-kicker">תחנה חדשה הוארה</p><h2 id="islRevealTitle">${esc(s.name)}</h2><p>באיזה צבע יאיר הפנס שלה על המפה?</p><div class="isl-swrow">${sw}</div>`;
+ }
+ return `<div class="stepmodal isl-modal" role="dialog" aria-modal="true" aria-labelledby="islRevealTitle"><div class="card stepcard isl-reveal">${body}</div></div>`;
+}
+function islandHomeHtml(){
+ const model=islandModel();
+ const day=dayKey();
+ const route=islandRoute(day);
+ const next=model.next;
+ const road=next?`<div class="isl-road"><div class="isl-roadtext">${islandSparkSvg()}<span>עוד ${next.at-model.sparks} ניצוצות: <b>${esc(next.name)}</b></span></div><div class="isl-roadbar" role="progressbar" aria-label="דרך האור" aria-valuemin="0" aria-valuemax="${next.at}" aria-valuenow="${model.sparks}"><i style="width:${Math.round(100*model.sparks/next.at)}%"></i></div></div>`:`<div class="isl-road"><div class="isl-roadtext">${islandSparkSvg()}<span>כל ${ISLAND_ROAD.length} הפריטים בדרך האור פתוחים.</span></div></div>`;
+ const stops=route.stops.map((s,i)=>`<li class="${i<route.done?"done":i===route.done&&!route.complete?"cur":""}"><span class="isl-n">${i<route.done?"✓":i+1}</span><span>${esc(ISLAND_REGIONS[s.ch].name)}</span><small>${esc(s.name)}</small></li>`).join("");
+ const cta=route.complete?"לסיכום הלילה":route.started?"ממשיכים במסלול":"יוצאים למסלול הלילה";
+ const status=route.complete?`<p class="status">מסלול הלילה הושלם. אין שאלה חדשה עד מחר, ואפשר לצאת למשלחת.</p>`:route.started?`<p class="status">${route.done} מתוך 4 תחנות במסלול. ההמשך שמור בדפדפן הזה.</p>`:"";
+ let open=null;try{open=challengeSessionInfo(missionEvents())}catch(e){}
+ const mission=open?`<div class="card isl-trip"><h3>משלחת פתוחה</h3><p>${esc(missionTitle(open.topic))}</p><p><button type="button" class="tap cta" onclick="missionOpen()">ממשיכים במשלחת</button></p></div>`:`<div class="card isl-trip"><h3>משלחות</h3><p>בחרו אזור במפה ותחנה בתוכו. משלחת היא 4 שאלות באותו נושא, בלי שעון.</p></div>`;
+ return `<section class="isl-home"><div class="isl-hud"><button type="button" class="isl-me tap" onclick="islandCardOpen()" aria-label="${escAttr("הכרטיס שלי: דרגת "+model.rank.name)}">${islandBug(islandLook(model),{cls:"isl-mini"})}<span><b>${esc(model.rank.name)}</b><small>הכרטיס שלי</small></span></button><div class="isl-sparks" role="img" aria-label="${model.sparks} ניצוצות">${islandSparkSvg()}<b>${model.sparks}</b></div></div>${road}${persistNote()}${islandMapHtml(model,route)}${islandRegionHtml(model)}<div class="card isl-tonight"><h2>מסלול הלילה</h2><p class="lead">4 תחנות באי, בלי שעון. כל תשובה מאירה פנס.</p><ol class="isl-stops">${stops}</ol>${status}<button class="primary tap hero-btn cta" onclick="dailyStart()">${cta}</button></div>${mission}${weeklyBarHtml()}<p class="isl-links"><button type="button" class="tap" onclick="openCabinet()">ארון הגביעים</button><button type="button" class="tap" onclick="openTopics()">עוד תרגול: פרקים וסימולציה</button></p></section>${islandRevealHtml(model)}`;
+}
+function islandBedHtml(entry,count,freshLine,answers){
+ const model=islandModel();
+ const day=entry&&entry.day||dayKey();
+ const d=model.byDay[day]||{sparks:0,first:0,fixed:0};
+ const gift=dayCompleted(store.daily[day])?islandGiftFor(day,model):null;
+ let giftHtml;
+ if(gift&&gift.pair)giftHtml=`<div class="isl-gift"><h3>מתנת לילה</h3><p>בחרו מתנה אחת. היא תופיע על המפה ותישאר שם.</p><div class="isl-giftrow">${gift.pair.map(id=>`<button type="button" class="tap" onclick="islandChooseGift('${day}','${id}')">${islandGiftIcon(id)}<span>${esc(ISLAND_GIFT_NAMES[id])}</span></button>`).join("")}</div></div>`;
+ else if(gift&&gift.chosen)giftHtml=`<div class="isl-gift"><h3>מתנת הלילה</h3><div class="isl-giftrow"><span class="isl-gifted">${islandGiftIcon(gift.chosen)}<span>${esc(ISLAND_GIFT_NAMES[gift.chosen])} כבר על המפה.</span></span></div></div>`;
+ else giftHtml=`<p class="small">כל ${ISLAND_GIFTS.length} מתנות הלילה כבר באי.</p>`;
+ const sleepers=[islandLook(model)].concat(model.regions.filter(r=>r.joined).map(r=>ISLAND_CREW_LOOK[r.ch]));
+ const left=Math.ceil(sleepers.length/2);
+ const bugs=sleepers.map((o,i)=>islandBugAt(o,i<left?140-i*40:220+(i-left)*40,150,i?40:50,{sleep:true})).join("");
+ const scene=`<svg class="isl-scene" viewBox="0 0 360 190" role="img" aria-label="${escAttr("הגחליליות ישנות ליד המדורה. "+(sleepers.length-1)+" חברי צוות.")}"><rect width="360" height="190" rx="18" fill="#0b1438"/><circle cx="300" cy="40" r="16" fill="#e8ecff"/><circle cx="292" cy="34" r="16" fill="#0b1438"/><path d="M0 170Q180 140 360 170V190H0Z" fill="#153a5e"/><g transform="translate(180 120)"><path class="isl-fire" d="M0 14q-14-14 0-34 14 20 0 34z" fill="#ffb347"/><path d="M0 14q-7-8 0-18 7 10 0 18z" fill="#ffe680"/><path d="M-16 16h32" stroke="#5a3a1e" stroke-width="4" stroke-linecap="round"/></g>${bugs}<text x="54" y="60" font-size="16" fill="#c9d0f5">z</text><text x="66" y="46" font-size="12" fill="#c9d0f5">z</text></svg>`;
+ return `<div class="card isl-bed">${persistNote()}<h2>מסלול הלילה הושלם</h2>${scene}<div class="isl-night"><div>${islandSparkSvg()}<b>+${d.sparks}</b><span>ניצוצות היום</span></div><div><b>${d.first}</b><span>בניסיון הראשון</span></div><div><b>${d.fixed}</b><span>אחרי תיקון</span></div></div>${freshLine}${giftHtml}${summaryQNavHtml(answers)}<p class="scoreline">${count} מתוך 4 נכון.</p><p class="scoreline">זה תרגול, לא תוצאת מבחן.</p>${weeklyBarHtml(day)}<p>${savedDayLine()} אין קנס אם לא מתרגלים מחר.</p><p><button type="button" class="primary tap" onclick="home()">חזרה לאי</button> <button type="button" class="tap" onclick="continueUntimed()">המשך בלי שעון</button></p></div>${islandRevealHtml(model)}`;
+}
+function islandMissionHtml(){
+ const model=islandModel();
+ const next=model.next?`עוד ${model.next.at-model.sparks} ניצוצות: ${esc(model.next.name)}.`:"כל הפריטים בדרך האור פתוחים.";
+ return `<div class="isl-gain got isl-missionline">${islandSparkSvg()}<b>${model.sparks}</b><span>ניצוצות עד עכשיו. ${next}</span></div>${islandRevealHtml(model)}`;
+}
+function islandCardOpen(){
+ if(S&&S.mode==="sim")return;
+ stopTimer();
+ placeDock(false);
+ S=null;
+ screen="islandcard";
+ $("app").innerHTML=islandCardHtml();
+}
+function islandCardHtml(){
+ const model=islandModel();
+ const look=islandLook(model);
+ const parts=Object.keys(ISLAND_PARTS).map(p=>{
+  const opts=Object.keys(ISLAND_PARTS[p].names).map(id=>{
+   const own=islandOwned(p,id,model);
+   const row=ISLAND_ROAD.find(r=>r.part===p&&r.id===id);
+   if(!own)return `<button type="button" class="tap isl-opt locked" disabled aria-label="${escAttr(ISLAND_PARTS[p].names[id]+", נפתח ב-"+(row?row.at:0)+" ניצוצות")}"><svg class="lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="11" width="12" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2"/></svg>${row?row.at:""}</button>`;
+   return `<button type="button" class="tap isl-opt" aria-pressed="${look[p]===id?"true":"false"}" onclick="islandSetLook('${p}','${id}')">${esc(ISLAND_PARTS[p].names[id])}</button>`;
+  }).join("");
+  return `<div class="isl-part"><b>${ISLAND_PARTS[p].label}</b><div class="isl-opts">${opts}</div></div>`;
+ }).join("");
+ const road=ISLAND_ROAD.map(r=>`<li class="${model.unlocked.indexOf(r.id)>=0?"on":""}"><span>${r.at}</span>${esc(r.name)}</li>`).join("");
+ const rank=model.nextRank?`עוד ${model.nextRank.at-model.sparks} ניצוצות לדרגת ${model.nextRank.name}.`:"הדרגה הגבוהה ביותר.";
+ const regions=model.regions.map(r=>`<div class="isl-medals"><b>${esc(r.name)}</b><div class="isl-chips">${r.stations.map(s=>`<span class="isl-chip ${s.state}" title="${escAttr(s.name)}">${esc(s.name)} · ${ISLAND_STATES[s.state]}</span>`).join("")}</div></div>`).join("");
+ const crew=model.regions.map(r=>r.joined?`<div class="isl-crewline">${islandBug(ISLAND_CREW_LOOK[r.ch],{cls:"isl-mini"})}<p><b>${esc(r.crew)}</b> · ${esc(r.name)}<br>${esc(r.way)}</p></div>`:`<div class="isl-crewline off"><span class="isl-mini isl-ghost" aria-hidden="true"></span><p><b>${esc(r.crew)}</b> · ${esc(r.name)}<br>עוד לא הצטרפה. תשובה נכונה ראשונה באזור מצרפת אותה.</p></div>`).join("");
+ const trophies=model.trophies.map(t=>`<div class="award${t.earned?" on":""}">${trophySvg(t.earned)}<span class="name">${esc(t.name)}</span><span class="small">${esc(t.hint)}</span></div>`).join("");
+ return `<div class="card isl-card">${persistNote()}<div class="isl-sheethead"><h2>הכרטיס שלי</h2><button type="button" class="tap" onclick="home()">חזרה לאי</button></div><div class="isl-hero">${islandBug(look,{cls:"isl-big",label:"הגחלילית שלי"})}<div><p class="isl-kicker">דרגה</p><p class="isl-rank">${esc(model.rank.name)}</p><p class="isl-sparks">${islandSparkSvg()}<b>${model.sparks}</b></p><p class="small">${rank}</p></div></div><div class="isl-stats"><div><b>${model.first}</b><span>בניסיון הראשון</span></div><div><b>${model.fixed}</b><span>אחרי תיקון</span></div><div><b>${model.gold}</b><span>פנסי זהב</span></div></div><h3>הגחלילית שלי</h3>${parts}<h3>דרך האור</h3><ol class="isl-roadlist">${road}</ol><p class="small">הדרך נגמרת אחרי ${ISLAND_ROAD.length} פריטים. ניצוצות לא יורדים ולא נקנים.</p><h3>הצוות</h3>${crew}<h3>פנסים</h3>${regions}<h3>גביעי האי</h3><div class="shelfrow isl-shelf">${trophies}</div><p><button type="button" class="tap" onclick="openCabinet()">ארון הגביעים</button></p></div>${islandRevealHtml(model)}`;
+}
+function islandParentsHtml(){
+ const model=islandModel();
+ const days=rewardDayList(store&&store.daily).length;
+ return `<div class="isl-parents"><b>אי הגחליליות: מה קורה (רק מהדפדפן הזה)</b><p>ימים עם מסלול שהושלם: ${days}. שאלות שנענו במסלולים ובמשלחות: ${model.answered}.</p><p>נכונות בניסיון הראשון: ${model.first} מתוך ${model.answered}. תוקנו אחרי טעות קודמת: ${model.fixed}. פנסי זהב: ${model.gold}.</p><p class="small">ניצוצות רק על תשובה נכונה במסלול הלילה או במשלחת, ופעם אחת לכל שאלה. תרגול חופשי לפי נושא לא משנה את האי. בלי שעון, בלי רצף חובה ובלי השוואה. הסימולציה לא חלק מהאי.</p></div>`;
+}
+function worldNow(){
+ if(sessionWorld==="island"||sessionWorld==="none")return sessionWorld;
+ let ui=null;try{ui=readMetaUi()}catch(e){}
+ return ui&&ui.world==="island"?"island":"none";
+}
+function lookNow(){return worldNow()==="island"?"island":themeNow()}
+function chooseIsland(){
+ const was=worldNow();
+ sessionTheme="night";sessionWorld="island";
+ applyTheme();syncLookButtons();
+ if(was!=="island"&&screen==="home")home();
+ if(!canPersist())return;
+ const saved=savePatch({uiSet:true,ui:{skin:currentSkin(),motion:currentMotion(),theme:"night",world:"island",setAt:new Date().toISOString()}});
+ const settle=()=>{
+  if(sessionWorld!=="island")return;
+  const ui=readMetaUi();
+  if(ui&&ui.theme==="night"&&ui.world==="island"){sessionTheme=null;sessionWorld=null;applyTheme();syncLookButtons()}
+ };
+ if(saved&&typeof saved.then==="function")saved.then(settle,function(){});
+ else settle();
 }
 initConcurrency();
 applyTheme();
