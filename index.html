@@ -500,6 +500,36 @@ body[data-world="island"][data-motion="on"] .isl-modal .isl-big{animation:islFlo
 @keyframes islPop{0%{transform:scale(.4) rotate(-40deg)}60%{transform:scale(1.5) rotate(10deg)}100%{transform:scale(1)}}
 @keyframes islFloat{50%{transform:translateY(-6px)}}
 @media (prefers-reduced-motion:reduce){body[data-world="island"] *{animation:none!important}}
+/* FIREFLY TRAIL (T1-T7). The island home's trail tab: one winding trail, stones, landmarks and chests. */
+.trl-tabs{display:flex;gap:4px;padding:4px;margin:0 auto 6px;width:max-content;max-width:100%;border-radius:99px;background:rgba(255,255,255,.08)}
+body[data-world="island"] .trl-tabs button{min-height:40px;margin:0;padding:4px 20px;border:0;border-radius:99px;background:transparent;color:#c9d0f5;font-weight:700}
+body[data-world="island"] .trl-tabs button[aria-selected="true"]{background:#33407f;color:#fff}
+.trl-scroll{position:relative;max-height:min(64vh,600px);overflow-y:auto;border-radius:24px;background:#0b1236;box-shadow:0 10px 30px rgba(0,0,0,.35),inset 0 0 0 1.5px rgba(255,255,255,.08)}
+.trl-box{position:relative}
+/* R2-2: on wide screens the trail keeps its phone size (360px), so the next landmark stays in view. */
+.trl-panel,.trl-scroll,.trl-other,.trl-sheet{box-sizing:border-box;width:100%;max-width:360px;margin-left:auto;margin-right:auto}
+.trl-box>svg{display:block;width:100%;height:auto}
+.trl-list{list-style:none;margin:0;padding:0}
+body[data-world="island"] .trl-hit{position:absolute;width:64px;height:64px;min-height:0;margin:0;padding:0;border:0;border-radius:50%;background:transparent;transform:translate(-50%,-50%);cursor:pointer}
+body[data-world="island"] .trl-hit.cur{width:76px;height:76px}
+body[data-world="island"] .trl-hit.land{width:84px;height:84px}
+body[data-world="island"] .trl-hit:focus-visible{outline:3px solid #ffd45e;outline-offset:3px}
+.trl-name{position:absolute;top:100%;left:50%;transform:translate(-50%,2px);white-space:nowrap;font-size:12.5px;font-weight:700;line-height:1.2;padding:3px 9px;border-radius:99px;background:rgba(7,12,36,.82);border:1.5px solid rgba(255,255,255,.18);color:#eef3ff}
+.trl-bub{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;padding:6px 14px;border-radius:99px;background:#ffd45e;color:#2b1e00;font-weight:800;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,.35);pointer-events:none}
+.trl-fog{position:absolute;top:30px;left:0;right:0;margin:0;padding:0 12px;text-align:center;font-size:12.5px;line-height:1.3;color:#c9d0f5}
+.trl-panel{display:flex;flex-direction:column;gap:6px}
+.trl-panel p{margin:2px 0}
+.trl-cta{display:flex;flex-direction:column;align-items:stretch;gap:8px}
+.trl-other{text-align:center}
+.trl-other button{min-height:40px;margin:2px}
+.trl-dots{display:inline-flex;gap:6px;vertical-align:middle}
+.trl-dots i{width:12px;height:12px;border-radius:50%;border:2px solid #a9b1dc;display:inline-block}
+.trl-dots i.f{background:#ffd45e;border-color:#ffd45e}
+.trl-dots i.x{background:#2ee6c5;border-color:#2ee6c5}
+.trl-line{font-weight:700;color:#2ee6c5}
+.trl-try{width:64px;height:64px}
+body[data-world="island"][data-motion="on"] .trl-pulse{animation:trlPulse 1.8s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes trlPulse{0%,100%{opacity:.35;transform:scale(1)}50%{opacity:.8;transform:scale(1.14)}}
 </style>
 </head>
 <body>
@@ -647,7 +677,11 @@ function normDay(v){
  let choice=v.choice;
  if(choice==null||choice==="")choice=null;
  else{choice=Number(choice);if(!Number.isInteger(choice)||choice<0)choice=null}
- return {complete:!!v.complete,day:v.day==null?"":String(v.day),index:Number.isFinite(index)?index:0,example:v.example!==false,feedback:v.feedback===true?true:v.feedback===false?false:null,draft:v.draft==null?"":String(v.draft),choice,perm:normPerm(v.perm),arr:Array.isArray(v.arr)?v.arr.map(x=>String(x)):null,touched:!!v.touched,answers:normAnswers(v.answers),ids:Array.isArray(v.ids)?v.ids.map(x=>String(x)):[]};
+ const out={complete:!!v.complete,day:v.day==null?"":String(v.day),index:Number.isFinite(index)?index:0,example:v.example!==false,feedback:v.feedback===true?true:v.feedback===false?false:null,draft:v.draft==null?"":String(v.draft),choice,perm:normPerm(v.perm),arr:Array.isArray(v.arr)?v.arr.map(x=>String(x)):null,touched:!!v.touched,answers:normAnswers(v.answers),ids:Array.isArray(v.ids)?v.ids.map(x=>String(x)):[]};
+ // A completed night route keeps when it finished (Firefly Trail), so stones stay in the order they were finished.
+ const done=Number(v.doneAt);
+ if(out.complete&&Number.isFinite(done)&&done>0)out.doneAt=done;
+ return out;
 }
 /* ===== אתגר: חוזה אירועים =====
    The log lives at shirprep_v2.challenge. State is challengeReduce(events).
@@ -2562,51 +2596,11 @@ function journeyPlan(events,stage){
  const distinctChapters=new Set(picked.map(function(p){return p.ch})).size;
  return {ok:true,supply:supply,distinctChapters:distinctChapters,limited:distinctChapters<4,plan:plan,stops:stops,stamp:plan.map(function(p){return p.qid}).join("|")};
 }
-// DRAFT copy pending review. Five arrivals, then a lit lighthouse. Later summaries do not retell that ending.
-// Place names here are not island regions.
-const JOURNEY_DEST="המגדלור שמעבר לאיים";
-const JOURNEY_START="היעד הראשון: חוף הצדפים, בדרך אל המגדלור.";
-const JOURNEY_AFTER="המגדלור דולק. אפשר להמשיך לצאת לתחנות כל עוד יש שאלות שמחכות.";
-const JOURNEY_MORE="עוד מסע הושלם.";
+// DRAFT copy pending review. The expedition story is told on the trail (TRAIL_LEGS).
 const JOURNEY_EMPTY="אין כרגע מסע מתאים של ארבע תחנות. אפשר לתרגל לפי נושא, ומסלול הלילה מחכה מחר.";
 const JOURNEY_LOAD="המסע לא נטען כרגע.";
-const JOURNEY_WHY="כל ארבע תחנות שמסיימים מקדמות את הסיפור.";
-const JOURNEY_WHY_ON="תשובות נכונות בתחנות ממשיכות להוסיף ניצוצות, כמו תמיד.";
 const JOURNEY_HOME="ארבע תחנות, בלי שעון. כשיש מספיק שאלות, הן מגיעות מאזורים שונים.";
 const JOURNEY_LIMITED="יש עכשיו פחות אזורים עם שאלות פנויות, ולכן חלק מהתחנות באותו אזור.";
-const JOURNEY_STORY=Object.freeze([
- {arrive:"הגעתם לחוף הצדפים. מכאן כבר רואים את המגדלור.",next:"היעד הבא: שביל הסלעים."},
- {arrive:"עברתם את שביל הסלעים. המגדלור קרוב יותר.",next:"היעד הבא: המעיין הנסתר."},
- {arrive:"מצאתם את המעיין הנסתר. האור של המגדלור כבר מגיע אליכם.",next:"היעד הבא: מרגלות המגדלור."},
- {arrive:"הגעתם למרגלות המגדלור.",next:"עוד מסע אחד, ומטפסים למעלה."},
- {arrive:"טיפסתם והדלקתם את המגדלור. כל הדרך הושלמה!"}
-]);
-function journeyCompletedCount(events){
- const answers=challengeAcceptedAnswers(events||[]);
- const n=Object.create(null);
- for(let i=0;i<answers.length;i++){
-  if(answers[i].schema!==2)continue;
-  n[answers[i].session]=(n[answers[i].session]||0)+1;
- }
- let done=0;
- for(const id in n)if(n[id]>=4)done++;
- return done;
-}
-function journeyArrival(count){
- const n=count|0;
- if(n<=0)return "";
- if(n>JOURNEY_STORY.length)return JOURNEY_MORE;
- return JOURNEY_STORY[n-1].arrive;
-}
-function journeyNextGoal(count){
- const n=count|0;
- if(n<=0)return JOURNEY_START;
- if(n>=JOURNEY_STORY.length)return JOURNEY_AFTER;
- return JOURNEY_STORY[n-1].next;
-}
-function journeyWhy(count){
- return (count|0)<JOURNEY_STORY.length?JOURNEY_WHY:JOURNEY_WHY_ON;
-}
 function journeyPlanNow(){
  try{return journeyPlan(missionEvents(),challengeDeriveStage(missionEvents()))}catch(e){return {ok:false}}
 }
@@ -2830,8 +2824,7 @@ function missionProgressHtml(){
 }
 function journeySummaryHtml(){
  const events=missionEvents(),m=missionModel(events);
- const done=journeyCompletedCount(events);
- const arrive=journeyArrival(done);
+ const arrive=m.n>=4?trailArriveLine():TRAIL_PART;
  const stops=(m.info&&m.info.plan||[]).map(function(slot,i){
   const ch=journeyChapterOfTopic(slot.topic);
   const region=(ISLAND_REGIONS[ch]&&ISLAND_REGIONS[ch].name)||"";
@@ -2839,7 +2832,7 @@ function journeySummaryHtml(){
   const ans=m.block[i];
   return `<li><span class="isl-n">${ans?"✓":i+1}</span><span>${esc(region)}</span><small>${esc(name)}</small></li>`;
  }).join("");
- return `<section class="card mission-shell" id="journeySummary">${persistNote()}${islandOn()?islandMissionHtml():""}<p class="isl-kicker">המסע</p><h2 id="journeyArrive">${esc(arrive)}</h2><ol class="isl-stops">${stops}</ol><p>${esc(journeyWhy(done))}</p><p><button type="button" class="primary tap cta" onclick="challengeFinish()">חזרה לאי</button></p></section>`;
+ return `<section class="card mission-shell" id="journeySummary">${persistNote()}${islandOn()?islandMissionHtml():""}<p class="isl-kicker">המסע</p><h2 id="journeyArrive">${esc(arrive)}</h2><ol class="isl-stops">${stops}</ol><p>${esc(TRAIL_WHY)}</p><p><button type="button" class="primary tap cta" onclick="challengeFinish()">חזרה לאי</button></p></section>`;
 }
 function journeyGapHtml(){
  return `<section class="card" id="journeyGap"><h2>התחנה לא זמינה</h2><p>השאלה שנשמרה לתחנה הזו כבר לא במאגר המשלחות. אי אפשר לענות עליה, והתשובות שכבר נשמרו נשארות.</p><p><button type="button" class="primary tap" onclick="challengeFinish()">סיום המסע</button></p><p><button type="button" class="tap" onclick="home()">לתפריט</button></p></section>`;
@@ -2852,11 +2845,10 @@ function journeyPreviewHtml(){
  if(failed)return `<section class="card" id="journeyPreview">${note}<h2>אין מסע עכשיו</h2><p id="journeyLoad">${esc(JOURNEY_LOAD)}</p><p><button type="button" class="tap" onclick="home()">חזרה לאי</button></p></section>`;
  if(!built||!built.ok)return `<section class="card" id="journeyPreview">${note}<h2>אין מסע עכשיו</h2><p id="journeyEmpty">${esc(JOURNEY_EMPTY)}</p><p><button type="button" class="tap" onclick="home()">חזרה לאי</button></p></section>`;
  if(challengeUi)challengeUi.previewStamp=built.stamp;
- const told=journeyCompletedCount(missionEvents());
- const goal=journeyNextGoal(told);
+ const goal=trailGoalLine();
  const rows=built.stops.map(function(s,i){return `<li><span class="isl-n">${i+1}</span><span>${esc(s.region)}</span><small>${esc(s.name)}</small></li>`}).join("");
  const limited=built.limited?`<p class="small" id="journeyLimited">${esc(JOURNEY_LIMITED)}</p>`:"";
- return `<section class="card" id="journeyPreview">${note}<p class="isl-kicker">לפני היציאה</p><h2 id="journeyGoal">${esc(goal)}</h2><ol class="isl-stops">${rows}</ol>${limited}<p>${esc(journeyWhy(told))}</p><p><button type="button" class="primary tap cta" onclick="journeyBegin()">יוצאים לדרך</button></p><p><button type="button" class="tap" onclick="home()">חזרה לאי</button></p></section>`;
+ return `<section class="card" id="journeyPreview">${note}<p class="isl-kicker">לפני היציאה</p><h2 id="journeyGoal">${esc(goal)}</h2><ol class="isl-stops">${rows}</ol>${limited}<p>${esc(TRAIL_WHY)}</p><p><button type="button" class="primary tap cta" onclick="journeyBegin()">יוצאים לדרך</button></p><p><button type="button" class="tap" onclick="home()">חזרה לאי</button></p></section>`;
 }
 function journeyOpen(){
  let info=null;try{info=challengeSessionInfo(missionEvents())}catch(e){}
@@ -2886,7 +2878,7 @@ function missionSummaryHtml(){
  if(m.info&&m.info.mix)return journeySummaryHtml();
  const topic=m.info&&m.info.topic;
  if(!Object.prototype.hasOwnProperty.call(challengeUi,"sessionInfo"))challengeUiScope(m.info);
- return `<section class="card mission-shell" id="missionSummary">${persistNote()}${islandOn()?islandMissionHtml():""}${challengeUi&&challengeUi.msg?`<p class="no" role="status">${esc(challengeUi.msg)}</p>`:""}<p class="mission-kicker">${esc(missionTitle(topic))}</p><h2>${m.done?"עוד תחנה במסע שלך.":"גם חלק מהדרך הוא התקדמות."}</h2>${missionLandscape()}<p class="mission-badge">${m.done?"המשימה הושלמה ונשמרה ✓":"התשובות נשמרו · המשימה חלקית"}</p><div class="mission-target"><h3>היום תרגלנו דרך לחשוב.</h3><div class="mission-stats"><div><b>${m.n}</b><span>שאלות נענו</span></div><div><b>${m.firstCorrect}</b><span>נכונות בניסיון הראשון</span></div></div>${m.retryCorrect?`<p>${m.retryCorrect===1?"תשובה אחת נכונה אחרי תרגול קודם של אותה שאלה.":m.retryCorrect+" תשובות נכונות אחרי תרגול קודם של אותה שאלה."} זה אינו ניסיון ראשון.</p>`:""}${m.incorrect?`<p>${m.incorrect===1?"תשובה אחת עדיין צריכה תרגול.":m.incorrect+" תשובות עדיין צריכות תרגול."} ההסברים זמינים בסיכום התשובות.</p>`:""}<p>השלמה אינה מעידה על שליטה בנושא.</p><details><summary>התשובות וההסברים במשימה</summary>${m.block.map(a=>{const q=BANK.find(q=>q.id===a.qid);return q?`<div class="mission-review"><b>${show(q.q)}</b><p class="${a.ok?"ok":"no"}">${a.ok?"תשובה נכונה":"עוד תרגול"}</p><div>${show(q.exp||"")}</div></div>`:""}).join("")}</details></div><div class="mission-target"><p>בפעם הבאה</p><b>עוד הזדמנות לחשוב, בקצב שלך.</b><p>התחנה נשמרה. אפשר להמשיך כשנוח, אם יש שאלות זמינות.</p></div><p><button type="button" class="primary tap cta" onclick="challengeFinish()">סיימנו להיום</button></p><p class="mission-secondary"><button type="button" class="tap" onclick="missionMore()">עוד תרגול</button></p><p class="mission-secondary"><button type="button" class="tap" onclick="home()">לתפריט</button></p></section>`;
+ return `<section class="card mission-shell" id="missionSummary">${persistNote()}${islandOn()?islandMissionHtml()+(m.done?`<p class="trl-line" id="trailLine">${esc(trailArriveLine())}</p>`:""):""}${challengeUi&&challengeUi.msg?`<p class="no" role="status">${esc(challengeUi.msg)}</p>`:""}<p class="mission-kicker">${esc(missionTitle(topic))}</p><h2>${m.done?"עוד תחנה במסע שלך.":"גם חלק מהדרך הוא התקדמות."}</h2>${missionLandscape()}<p class="mission-badge">${m.done?"המשימה הושלמה ונשמרה ✓":"התשובות נשמרו · המשימה חלקית"}</p><div class="mission-target"><h3>היום תרגלנו דרך לחשוב.</h3><div class="mission-stats"><div><b>${m.n}</b><span>שאלות נענו</span></div><div><b>${m.firstCorrect}</b><span>נכונות בניסיון הראשון</span></div></div>${m.retryCorrect?`<p>${m.retryCorrect===1?"תשובה אחת נכונה אחרי תרגול קודם של אותה שאלה.":m.retryCorrect+" תשובות נכונות אחרי תרגול קודם של אותה שאלה."} זה אינו ניסיון ראשון.</p>`:""}${m.incorrect?`<p>${m.incorrect===1?"תשובה אחת עדיין צריכה תרגול.":m.incorrect+" תשובות עדיין צריכות תרגול."} ההסברים זמינים בסיכום התשובות.</p>`:""}<p>השלמה אינה מעידה על שליטה בנושא.</p><details><summary>התשובות וההסברים במשימה</summary>${m.block.map(a=>{const q=BANK.find(q=>q.id===a.qid);return q?`<div class="mission-review"><b>${show(q.q)}</b><p class="${a.ok?"ok":"no"}">${a.ok?"תשובה נכונה":"עוד תרגול"}</p><div>${show(q.exp||"")}</div></div>`:""}).join("")}</details></div><div class="mission-target"><p>בפעם הבאה</p><b>עוד הזדמנות לחשוב, בקצב שלך.</b><p>התחנה נשמרה. אפשר להמשיך כשנוח, אם יש שאלות זמינות.</p></div><p><button type="button" class="primary tap cta" onclick="challengeFinish()">סיימנו להיום</button></p><p class="mission-secondary"><button type="button" class="tap" onclick="missionMore()">עוד תרגול</button></p><p class="mission-secondary"><button type="button" class="tap" onclick="home()">לתפריט</button></p></section>`;
 }
 function missionMore(){
  let result;const ui=challengeUi;try{result=challengeUiLife("session_end")}catch(e){challengeUiLifeFail(e,false);return}
@@ -3543,9 +3535,12 @@ function home(){
  h+=`<details class="card mini" id="morePractice"><summary>עוד תרגול: פרקים וסימולציה קצרה</summary><p class="small">בסימולציה הקצרה יש שעון לכל חלק. בתרגול לפי פרק אפשר לבדוק אחרי כל תשובה, בלי שעון.</p>${legacy}</details>`;
  if(islandOn()&&!schemaBlocked){
   const cut=h.indexOf('<div id="parentsPanel"');
-  h=islandHomeHtml()+(cut>=0?h.slice(cut).replace('<div class="lookpick">',islandParentsHtml()+'<div class="lookpick">'):"");
+  h=islandWorldHtml()+(cut>=0?h.slice(cut).replace('<div class="lookpick">',islandParentsHtml()+'<div class="lookpick">'):"");
  }
+ let keep=null;
+ try{const old=document.querySelector?document.querySelector(".trl-scroll"):null;if(old)keep=old.scrollTop}catch(e){}
  $("app").innerHTML=h;
+ if(islandOn()&&!schemaBlocked&&islandTab==="trail")trailScroll(keep);
 }
 function toggleParents(){const d=$("parentsPanel");if(d)d.hidden=!d.hidden}
 function openTopics(){const d=$("morePractice");if(d){d.open=true;d.scrollIntoView({behavior:"smooth",block:"start"})}}
@@ -4932,7 +4927,7 @@ function dailyNext(){
  if(prev&&prev.complete){rewardFresh=[];dailySummary(prev);return}
  D.finalized=true;
  const beforeIds=rewardEarnedIds();
- const entry={complete:true,answers:D.answers.map(a=>({id:a.id,ch:a.ch,sub:a.sub||"",ok:!!a.ok})),day:D.day,ids:D.qs.map(q=>q.id)};
+ const entry={complete:true,answers:D.answers.map(a=>({id:a.id,ch:a.ch,sub:a.sub||"",ok:!!a.ok})),day:D.day,ids:D.qs.map(q=>q.id),doneAt:Date.now()};
  store.daily[D.day]=entry;
  applyMastery(entry.answers);
  savePatch({dailyKey:D.day,dailyEntry:entry,mastery:store.mastery});
@@ -5048,7 +5043,8 @@ function trailHtml(n){
 /* FIREFLY ISLAND (A1-A12, approved by Roy on 2026-11-21; review fixes and D4 the same day; docs/decisions/architecture.md). A look picked in the parents panel.
  Everything earned is worked out from store.daily and the mission answers in the challenge log.
  Only the child's choices are saved, under "island" inside shirprep_v2. The simulation never shows it. */
-const ISLAND_VERSION=1;
+// Version 2 adds trail chest choices. A stored island without chests stays version 1.
+const ISLAND_VERSION=2;
 const ISLAND_REGIONS={
  1:{name:"יער המילים",crew:"נור",way:"קוראים את כל המשפט לפני שבוחרים. מילת הקישור אומרת לאן המשפט הולך.",x:94,y:132},
  2:{name:"גשר האבנים",crew:"טל",way:"בודקים מה משתנה מצעד לצעד, ואז בודקים את החוק על כל הצעדים.",x:268,y:132},
@@ -5060,12 +5056,12 @@ const ISLAND_REGIONS={
 const ISLAND_CREW_LOOK={1:{shape:"round",color:"teal",wings:"stripes",acc:"none"},2:{shape:"square",color:"amber",wings:"plain",acc:"none"},3:{shape:"round",color:"coral",wings:"stripes",acc:"none"},4:{shape:"square",color:"violet",wings:"plain",acc:"none"},5:{shape:"drop",color:"ice",wings:"stripes",acc:"none"},6:{shape:"drop",color:"amber",wings:"dots",acc:"none"}};
 const ISLAND_SPOTS=[[0,-44],[-32,-34],[32,-34],[-50,-8],[50,-8]];
 const ISLAND_RANKS=[{name:"ניצוץ",at:0},{name:"להבה",at:30},{name:"לפיד",at:100},{name:"כוכב",at:220}];
-const ISLAND_COLORS={amber:{name:"צהוב",fill:"#ffab2e",line:"#a35f00",glow:"#ffc94d"},teal:{name:"טורקיז",fill:"#2fd3c2",line:"#0b7d73",glow:"#56e6d6"},coral:{name:"ורוד",fill:"#ff7096",line:"#a82850",glow:"#ff94b0"},violet:{name:"סגול",fill:"#b48cff",line:"#6b45c4",glow:"#c79bff"},ice:{name:"תכלת",fill:"#8fd8ff",line:"#3a86b5",glow:"#c4e2ff"}};
+const ISLAND_COLORS={amber:{name:"צהוב",fill:"#ffab2e",line:"#a35f00",glow:"#ffc94d"},teal:{name:"טורקיז",fill:"#2fd3c2",line:"#0b7d73",glow:"#56e6d6"},coral:{name:"ורוד",fill:"#ff7096",line:"#a82850",glow:"#ff94b0"},violet:{name:"סגול",fill:"#b48cff",line:"#6b45c4",glow:"#c79bff"},ice:{name:"תכלת",fill:"#8fd8ff",line:"#3a86b5",glow:"#c4e2ff"},mint:{name:"מנטה",fill:"#6fe3b5",line:"#1f8a62",glow:"#9ef0cf"},lilac:{name:"לילך",fill:"#d0a8ff",line:"#7a4fc0",glow:"#e0c4ff"},ruby:{name:"אודם",fill:"#ff5a6e",line:"#a01c33",glow:"#ff8a99"},lime:{name:"ליים",fill:"#b8f04a",line:"#5f8a12",glow:"#d2f78a"},sky:{name:"שמיים",fill:"#5ab8ff",line:"#1f6fa8",glow:"#93d2ff"},sunset:{name:"שקיעה",fill:"#ff9a52",line:"#b0501a",glow:"#ffbc8a"},silver:{name:"כסוף",fill:"#d6dcef",line:"#7c86a8",glow:"#eef1fb"},dawn:{name:"זריחה",fill:"#ffb3c7",line:"#b0506d",glow:"#ffd1dd"}};
 const ISLAND_PARTS={
  shape:{label:"צורה",names:{round:"עגול",square:"מרובע",drop:"טיפה"},free:["round","square"]},
- color:{label:"צבע",names:{amber:"צהוב",teal:"טורקיז",coral:"ורוד",violet:"סגול",ice:"תכלת"},free:["amber","teal","coral"]},
- wings:{label:"כנפיים",names:{plain:"חלקות",stripes:"פסים",dots:"נקודות"},free:["plain","stripes"]},
- acc:{label:"אביזר",names:{none:"בלי",cap:"כובע קוסם",glasses:"משקפי חוקר",scarf:"צעיף",bow:"פפיון",crown:"כתר אור",halo:"הילת אור"},free:["none"]}
+ color:{label:"צבע",names:{amber:"צהוב",teal:"טורקיז",coral:"ורוד",violet:"סגול",ice:"תכלת",mint:"מנטה",lilac:"לילך",ruby:"אודם",lime:"ליים",sky:"שמיים",sunset:"שקיעה",silver:"כסוף",dawn:"זריחה"},free:["amber","teal","coral"]},
+ wings:{label:"כנפיים",names:{plain:"חלקות",stripes:"פסים",dots:"נקודות",stars:"כוכבים",hearts:"לבבות",zigzag:"זיגזג",rings:"טבעות"},free:["plain","stripes"]},
+ acc:{label:"אביזר",names:{none:"בלי",cap:"כובע קוסם",glasses:"משקפי חוקר",scarf:"צעיף",bow:"פפיון",crown:"כתר אור",halo:"הילת אור",blossom:"פרח",leaf:"עלה",lantern:"פנס נייר",bandana:"מטפחת",feather:"נוצה",headphones:"אוזניות",goggles:"משקפי טיסה",backpack:"תרמיל",starclip:"סיכת כוכב",cape:"גלימה",beacon:"כובע מגדלור",sunhat:"כובע שמש"},free:["none"]}
 };
 const ISLAND_LOOK_DEFAULT={shape:"round",color:"amber",wings:"stripes",acc:"none"};
 const ISLAND_ROAD=[
@@ -5127,7 +5123,7 @@ function islandItem(id){
  return islandItem.map[String(id)]||null;
 }
 function islandNormalize(raw){
- const out={v:ISLAND_VERSION,look:Object.assign({},ISLAND_LOOK_DEFAULT),lanterns:{},gifts:{},seen:{}};
+ const out={v:1,look:Object.assign({},ISLAND_LOOK_DEFAULT),lanterns:{},gifts:{},seen:{},chests:{}};
  if(!plain(raw))return out;
  if(Number(raw.v)>ISLAND_VERSION){out.future=true;return out}
  const look=plain(raw.look)?raw.look:{};
@@ -5136,7 +5132,10 @@ function islandNormalize(raw){
  if(plain(raw.lanterns))Object.keys(raw.lanterns).forEach(k=>{if(subs.has(k)&&islandHas(ISLAND_COLORS,raw.lanterns[k]))out.lanterns[k]=raw.lanterns[k]});
  const gifts=new Set([].concat.apply([],ISLAND_GIFTS));
  if(plain(raw.gifts))Object.keys(raw.gifts).sort().forEach(k=>{if(Object.keys(out.gifts).length<ISLAND_GIFTS.length&&isRealDay(k)&&gifts.has(raw.gifts[k]))out.gifts[k]=raw.gifts[k]});
- if(plain(raw.seen))Object.keys(raw.seen).forEach(k=>{if(Object.keys(out.seen).length<160&&/^(welcome|(crew|road|tro|lantern):[a-z0-9-]{1,24})$/.test(k))out.seen[k]=1});
+ if(plain(raw.seen))Object.keys(raw.seen).forEach(k=>{if(Object.keys(out.seen).length<160&&/^(welcome|(crew|road|tro|lantern|land):[a-z0-9-]{1,24})$/.test(k))out.seen[k]=1});
+ if(plain(raw.chests))Object.keys(raw.chests).forEach(k=>{const L=TRAIL_LEGS[Number(k)-1];if(String(Number(k))===k&&L&&L.chest.some(c=>c[1]===raw.chests[k]))out.chests[k]=raw.chests[k]});
+ // Version 2 holds what a version 1 page would drop: chest choices and landmark seen keys.
+ if(Object.keys(out.chests).length||Object.keys(out.seen).some(k=>k.indexOf("land:")===0))out.v=2;
  return out;
 }
 function islandMerge(base,delta){
@@ -5145,19 +5144,20 @@ function islandMerge(base,delta){
  if(plain(delta.look))out.look=islandNormalize({look:Object.assign({},out.look,delta.look)}).look;
  if(plain(delta.lanterns))Object.keys(delta.lanterns).forEach(k=>{out.lanterns[k]=delta.lanterns[k]});
  if(plain(delta.gifts))Object.keys(delta.gifts).forEach(k=>{if(!out.gifts[k])out.gifts[k]=delta.gifts[k]});
+ if(plain(delta.chests))Object.keys(delta.chests).forEach(k=>{if(!out.chests[k])out.chests[k]=delta.chests[k]});
  if(plain(delta.seen))Object.keys(delta.seen).forEach(k=>{out.seen[k]=1});
  return islandNormalize(out);
 }
 function islandRaw(){return store&&plain(store.island)?store.island:null}
 function islandStoredFuture(base){return !!base&&plain(base.island)&&Number(base.island.v)>ISLAND_VERSION}
-function islandClearLocal(){islandPending=[];islandSession=[]}
+function islandClearLocal(){islandPending=[];islandSession=[];trailSel=null}
 function islandSessionPut(delta){
  const cur=islandNormalize(islandRaw());
- ["look","lanterns","gifts","seen"].forEach(part=>{
+ ["look","lanterns","gifts","seen","chests"].forEach(part=>{
   if(!plain(delta[part]))return;
   Object.keys(delta[part]).forEach(k=>{
    const had=islandSession.findIndex(e=>e.part===part&&e.key===k);
-   if(had>=0){if(part==="gifts")return;islandSession.splice(had,1)}
+   if(had>=0){if(part==="gifts"||part==="chests")return;islandSession.splice(had,1)}
    islandSession.push({part:part,key:k,value:delta[part][k],was:islandHas(cur[part],k)?cur[part][k]:null});
   });
  });
@@ -5172,10 +5172,10 @@ function islandOverlay(){
  // (another tab chose, reset, or restored a backup).
  const cur=islandNormalize(islandRaw());
  islandSession=islandSession.filter(e=>(islandHas(cur[e.part],e.key)?cur[e.part][e.key]:null)===e.was);
- const out={look:{},lanterns:{},gifts:{},seen:{}};
- const put=(part,k,v)=>{if(part!=="gifts"||!islandHas(out.gifts,k))out[part][k]=v};
+ const out={look:{},lanterns:{},gifts:{},seen:{},chests:{}};
+ const put=(part,k,v)=>{if((part!=="gifts"&&part!=="chests")||!islandHas(out[part],k))out[part][k]=v};
  islandSession.forEach(e=>put(e.part,e.key,e.value));
- islandPending.forEach(p=>["look","lanterns","gifts","seen"].forEach(part=>{if(plain(p.delta[part]))Object.keys(p.delta[part]).forEach(k=>put(part,k,p.delta[part][k]))}));
+ islandPending.forEach(p=>["look","lanterns","gifts","seen","chests"].forEach(part=>{if(plain(p.delta[part]))Object.keys(p.delta[part]).forEach(k=>put(part,k,p.delta[part][k]))}));
  return out;
 }
 function islandState(){return islandMerge(islandRaw(),islandOverlay())}
@@ -5192,7 +5192,9 @@ function islandBackupValue(raw){
  if(!plain(raw))return null;
  if(Number(raw.v)>ISLAND_VERSION)return raw;
  const n=islandNormalize(raw);
- return {v:n.v,look:n.look,lanterns:n.lanterns,gifts:n.gifts,seen:n.seen};
+ const out={v:n.v,look:n.look,lanterns:n.lanterns,gifts:n.gifts,seen:n.seen};
+ if(Object.keys(n.chests).length)out.chests=n.chests;
+ return out;
 }
 function islandAnswers(daily,events){
  const out=[];
@@ -5255,6 +5257,8 @@ function islandModel(opt){
 }
 function islandOwned(part,id,model){
  if(ISLAND_PARTS[part].free.indexOf(id)>=0)return true;
+ const leg=trailChestOf(part,id);
+ if(leg>=0)return !!(model.isl.chests&&model.isl.chests[String(leg+1)]===id);
  const row=ISLAND_ROAD.find(r=>r.part===part&&r.id===id);
  return !!row&&model.unlocked.indexOf(id)>=0;
 }
@@ -5268,13 +5272,20 @@ function islandUnlocks(model){
  model.regions.forEach(r=>{if(r.joined)out.push({key:"crew:"+r.ch,kind:"crew",region:r})});
  ISLAND_ROAD.forEach(r=>{if(model.unlocked.indexOf(r.id)>=0)out.push({key:"road:"+r.id,kind:"road",item:r})});
  model.trophies.forEach(t=>{if(t.earned)out.push({key:"tro:"+t.id,kind:"trophy",trophy:t})});
+ const reached=trailModel().reached;
+ for(let L=0;L<reached;L++)out.push({key:"land:"+(L+1),kind:"land",leg:L});
  model.stations.forEach(s=>{if(s.state!=="fog"&&!model.isl.lanterns[s.sub])out.push({key:"lantern:"+s.sub,kind:"lantern",station:s})});
  return out;
 }
-function islandQueue(model){
+function islandQueue(model,onHome){
  const seen=model.isl.seen;
  if(!seen.welcome)return [{key:"welcome",kind:"welcome"}];
- return islandUnlocks(model).filter(u=>!seen[u.key]);
+ const list=islandUnlocks(model);
+ // Landmark reveals open on the island home only (not bedtime, a summary or the card), and only for the latest
+ // landmark reached. Earlier chests wait on the trail, so a child who walked on before this never gets a stack.
+ let last=null;
+ list.forEach(u=>{if(u.kind==="land")last=u});
+ return list.filter(u=>(u.kind!=="land"||(onHome===true&&u===last))&&!seen[u.key]);
 }
 function islandRefresh(){
  if(screen==="islandcard"){islandCardOpen();return}
@@ -5285,7 +5296,7 @@ function islandRefresh(){
 function islandAck(key){
  const seen={};
  if(key==="welcome"){seen.welcome=1;islandUnlocks(islandModel()).forEach(u=>{seen[u.key]=1})}
- else if(/^(crew|road|tro|lantern):[a-z0-9-]{1,24}$/.test(key))seen[key]=1;
+ else if(/^(crew|road|tro|lantern|land):[a-z0-9-]{1,24}$/.test(key))seen[key]=1;
  islandSave({seen:seen});
  islandRefresh();
 }
@@ -5340,6 +5351,10 @@ function islandBug(o,opt){
   let inner="";
   if(o.wings==="stripes")inner=`<path d="M11 -18 9 2M23 -21 23 5M35 -18 37 2" fill="none" stroke="${mark}" stroke-width="3.6" stroke-linecap="round"/>`;
   if(o.wings==="dots")inner=`<circle cx="11" cy="-8" r="3.8" fill="${mark}"/><circle cx="23" cy="-8" r="3.8" fill="${mark}"/><circle cx="35" cy="-8" r="3.8" fill="${mark}"/>`;
+  if(o.wings==="stars")inner=[11,23,35].map(x=>`<path d="M${x} -14l1.6 4.4 4.4 1.6-4.4 1.6-1.6 4.4-1.6-4.4-4.4-1.6 4.4-1.6z" fill="${mark}"/>`).join("");
+  if(o.wings==="hearts")inner=[11,23,35].map(x=>`<path d="M${x} -3c-4-3-6.5-6-3.4-8.6 1.6-1.3 3.4-.6 3.4 1 0-1.6 1.8-2.3 3.4-1 3.1 2.6.6 5.6-3.4 8.6z" fill="${mark}"/>`).join("");
+  if(o.wings==="zigzag")inner=`<path d="M4 -6 10 -14 16 -4 22 -14 28 -4 34 -14 40 -6" fill="none" stroke="${mark}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`;
+  if(o.wings==="rings")inner=[11,23,35].map(x=>`<circle cx="${x}" cy="-8" r="4.2" fill="none" stroke="${mark}" stroke-width="2.4"/>`).join("");
   return `<g transform="translate(50 46) scale(${sx} 1) rotate(-18)"><ellipse cx="23" cy="-8" rx="22" ry="14" fill="#eaf7ff" fill-opacity=".9" stroke="#9cc4ea" stroke-width="1.6"/>${inner}</g>`;
  };
  let body;
@@ -5356,9 +5371,20 @@ function islandBug(o,opt){
  if(a==="crown")acc=`<path d="M36 43V26L44 34 50 22 56 34 64 26V43Z" fill="#ffd45e" stroke="#b88410" stroke-width="2" stroke-linejoin="round"/><circle cx="50" cy="36" r="2.8" fill="#ff7096"/>`;
  if(a==="scarf")acc=`<path d="M33 71Q50 79 67 71V78Q50 86 33 78Z" fill="#e2445c"/><path d="M60 78l5 12-9-3z" fill="#e2445c"/>`;
  if(a==="bow")acc=`<path d="M50 75 37 68V82ZM50 75 63 68V82Z" fill="#b06cff" stroke="#6b2fc0" stroke-width="1.5" stroke-linejoin="round"/><circle cx="50" cy="75" r="3.2" fill="#6b2fc0"/>`;
+ if(a==="blossom")acc=`<g transform="translate(61 37)"><circle cy="-5" r="4.2" fill="#ff94b0"/><circle cx="-5" r="4.2" fill="#ff94b0"/><circle cx="5" r="4.2" fill="#ff94b0"/><circle cy="5" r="4.2" fill="#ff94b0"/><circle r="3.4" fill="#ffd45e"/></g>`;
+ if(a==="leaf")acc=`<path d="M50 40Q36 30 44 14Q58 22 50 40Z" fill="#3fbf6e" stroke="#1f7a43" stroke-width="1.6"/><path d="M50 39Q46 28 46 18" stroke="#1f7a43" stroke-width="1.4" fill="none"/>`;
+ if(a==="lantern")acc=`<path d="M67 26 74 34" stroke="#5a3a1e" stroke-width="1.6"/><circle cx="74.5" cy="41" r="10" fill="#ffd45e" fill-opacity=".25"/><rect x="69" y="34" width="11" height="14" rx="4" fill="#ff8a3d" stroke="#a84a12" stroke-width="1.4"/>`;
+ if(a==="bandana")acc=`<path d="M30 52Q50 38 70 52L69 45Q50 32 31 45Z" fill="#2e7de0"/><circle cx="40" cy="46" r="1.4" fill="#fff"/><circle cx="50" cy="42" r="1.4" fill="#fff"/><circle cx="60" cy="46" r="1.4" fill="#fff"/><path d="M69 48l9-2-5 7z" fill="#2e7de0"/>`;
+ if(a==="feather")acc=`<path d="M54 40Q70 18 62 4Q50 18 54 40Z" fill="#b48cff" stroke="#6b45c4" stroke-width="1.5"/><path d="M54 40Q60 22 62 6" stroke="#6b45c4" stroke-width="1.2" fill="none"/>`;
+ if(a==="headphones")acc=`<path d="M29 58Q29 30 50 30Q71 30 71 58" fill="none" stroke="#2a2140" stroke-width="4"/><rect x="24" y="52" width="9" height="15" rx="4" fill="#ff7096" stroke="#2a2140" stroke-width="2"/><rect x="67" y="52" width="9" height="15" rx="4" fill="#ff7096" stroke="#2a2140" stroke-width="2"/>`;
+ if(a==="goggles")acc=`<path d="M30 45H70" stroke="#5a3b1e" stroke-width="4"/><circle cx="42" cy="44" r="6.5" fill="#8fd8ff" stroke="#5a3b1e" stroke-width="2.4"/><circle cx="58" cy="44" r="6.5" fill="#8fd8ff" stroke="#5a3b1e" stroke-width="2.4"/>`;
+ if(a==="starclip")acc=`<path d="M63 33 65.5 38.5 71.5 39 67 43 68.5 49 63 46 57.5 49 59 43 54.5 39 60.5 38.5Z" fill="#ffd45e" stroke="#b88410" stroke-width="1.2"/>`;
+ if(a==="beacon")acc=`<circle cx="50" cy="24" r="11" fill="#ffe680" fill-opacity=".35"/><rect x="44" y="27" width="12" height="13" rx="2" fill="#fff" stroke="#c9506f" stroke-width="2"/><rect x="44" y="32" width="12" height="4" fill="#c9506f"/><path d="M42 27 50 19 58 27Z" fill="#c9506f"/>`;
+ if(a==="sunhat")acc=`<ellipse cx="50" cy="40" rx="27" ry="6" fill="#f2d27a" stroke="#b88a2a" stroke-width="1.8"/><path d="M38 40Q38 24 50 24Q62 24 62 40Z" fill="#f2d27a" stroke="#b88a2a" stroke-width="1.8"/><path d="M38.5 36H61.5" stroke="#ff7096" stroke-width="3"/>`;
+ const back=a==="cape"?`<path d="M34 50Q50 56 66 50L76 88Q50 96 24 88Z" fill="#c9506f" stroke="#8a2a46" stroke-width="1.6"/>`:a==="backpack"?`<rect x="64" y="50" width="14" height="20" rx="4" fill="#8a5a2b" stroke="#5a3a1e" stroke-width="1.8"/>`:"";
  const halo=a==="halo"?`<ellipse cx="50" cy="20" rx="17" ry="5" fill="none" stroke="#fff3a6" stroke-width="3.2"/><circle cx="50" cy="56" r="40" fill="#fff3a6" fill-opacity=".12"/>`:"";
  const label=opt.label?` role="img" aria-label="${escAttr(opt.label)}"`:` aria-hidden="true"`;
- return `<svg class="isl-bug${opt.cls?" "+opt.cls:""}" viewBox="0 0 100 100"${label}>${halo}${wing(1)}${wing(-1)}<path d="M44 41Q40 28 33 26M56 41Q60 28 67 26" fill="none" stroke="${c.line}" stroke-width="2.4" stroke-linecap="round"/><circle cx="33" cy="26" r="3" fill="${c.line}"/><circle cx="67" cy="26" r="3" fill="${c.line}"/>${tail}${body}${eyes}${mouth}${acc}</svg>`;
+ return `<svg class="isl-bug${opt.cls?" "+opt.cls:""}" viewBox="0 0 100 100"${label}>${halo}${back}${wing(1)}${wing(-1)}<path d="M44 41Q40 28 33 26M56 41Q60 28 67 26" fill="none" stroke="${c.line}" stroke-width="2.4" stroke-linecap="round"/><circle cx="33" cy="26" r="3" fill="${c.line}"/><circle cx="67" cy="26" r="3" fill="${c.line}"/>${tail}${body}${eyes}${mouth}${acc}</svg>`;
 }
 function islandBugAt(o,x,y,size,opt){
  const inner=islandBug(o,opt).replace(/^<svg[^>]*>/,"").replace(/<\/svg>$/,"");
@@ -5438,6 +5464,7 @@ function islandMapHtml(model,route){
  return `<div class="isl-map">${svg}${buttons}</div>`;
 }
 function islandOpenRegion(ch){
+ islandTab="map";
  islandRegionOpen=islandRegionOpen===ch?0:ch;
  home();
  const el=$("islRegion");
@@ -5468,13 +5495,13 @@ function islandMission(sub){
  missionBegin(sub);
 }
 function islandPractice(c,sub){startPractice(c,sub)}
-function islandRevealHtml(model){
- const u=islandQueue(model)[0];
+function islandRevealHtml(model,onHome){
+ const u=islandQueue(model,onHome)[0];
  if(!u)return "";
  let body="";
  if(u.kind==="welcome"){
   const lit=model.stations.filter(s=>s.state!=="fog").length;
-  body=`<p class="isl-kicker">אי הגחליליות</p><h2 id="islRevealTitle">הערפל מחכה לאור שלכם</h2>${islandBug(islandLook(model),{cls:"isl-big"})}<p>כל נושא שמגיע במסלול הלילה או במשלחת הוא תחנה באי. כל תשובה שם מאירה פנס ומפזרת ערפל.</p><p>תשובה נכונה בניסיון הראשון שווה 3 ניצוצות. תשובה נכונה לשאלה שבפעם קודמת הייתה בה טעות שווה 2. ניצוצות אף פעם לא יורדים, והם פותחים פריטים לגחלילית שלכם.</p>${lit?`<p>האי כבר זוכר את התרגול שלכם: ${lit} תחנות מוארות ו-${model.sparks} ניצוצות.</p>`:""}<p><button type="button" class="primary tap cta" onclick="islandAck('welcome')">יוצאים לאי</button></p>`;
+  body=`<p class="isl-kicker">אי הגחליליות</p><h2 id="islRevealTitle">הערפל מחכה לאור שלכם</h2>${islandBug(islandLook(model),{cls:"isl-big"})}<p>כל נושא שמגיע במסלול הלילה או במשלחת הוא תחנה באי. כל תשובה שם מאירה פנס ומפזרת ערפל.</p><p>תשובה נכונה בניסיון הראשון שווה 3 ניצוצות. תשובה נכונה לשאלה שבפעם קודמת הייתה בה טעות שווה 2. ניצוצות אף פעם לא יורדים, והם פותחים פריטים לגחלילית שלכם.</p><p>כל ארבע שאלות שמסיימים הן צעד בשביל. בכל נקודת נוף מחכה תיבה.</p>${lit?`<p>האי כבר זוכר את התרגול שלכם: ${lit} תחנות מוארות ו-${model.sparks} ניצוצות.</p>`:""}<p><button type="button" class="primary tap cta" onclick="islandAck('welcome')">יוצאים לאי</button></p>`;
  }else if(u.kind==="crew"){
   body=`<p class="isl-kicker">גחלילית חדשה בצוות</p><h2 id="islRevealTitle">${esc(u.region.crew)} מ${esc(u.region.name)}</h2>${islandBug(ISLAND_CREW_LOOK[u.region.ch],{cls:"isl-big"})}<p>${esc(u.region.crew)} מביאה דרך לחשוב:</p><blockquote class="isl-way">${esc(u.region.way)}</blockquote><p><button type="button" class="primary tap cta" onclick="islandAck('crew:${u.region.ch}')">ברוכה הבאה לצוות</button></p>`;
  }else if(u.kind==="road"){
@@ -5482,6 +5509,10 @@ function islandRevealHtml(model){
   body=`<p class="isl-kicker">נפתח בדרך האור · ${u.item.at} ניצוצות</p><h2 id="islRevealTitle">${esc(u.item.name)}</h2>${islandBug(look,{cls:"isl-big"})}<p><button type="button" class="primary tap cta" onclick="islandWear('${u.item.id}')">ללבוש עכשיו</button> <button type="button" class="tap" onclick="islandAck('road:${u.item.id}')">אחר כך</button></p>`;
  }else if(u.kind==="trophy"){
   body=`<p class="isl-kicker">גביע חדש</p><h2 id="islRevealTitle">${esc(u.trophy.name)}</h2><div class="isl-cup">${trophySvg(true)}</div><p>${esc(u.trophy.hint)}</p><p><button type="button" class="primary tap cta" onclick="islandAck('tro:${u.trophy.id}')">לארון</button></p>`;
+ }else if(u.kind==="land"){
+  const L=TRAIL_LEGS[u.leg],crew=ISLAND_REGIONS[L.crew],chosen=model.isl.chests[String(u.leg+1)];
+  const chest=chosen?`<p>מהתיבה: ${esc(trailItemName(chosen))}. עכשיו בכרטיס שלי.</p>`:`<p>בוחרים אחד משניים, והבחירה נשמרת.</p><div class="isl-giftrow">${trailChestButtons(model,u.leg)}</div>`;
+  body=`<p class="isl-kicker">נקודת נוף בשביל · ${u.leg+1} מתוך ${TRAIL_LEGS.length}</p><h2 id="islRevealTitle">${esc(L.name)}</h2><p>${esc(L.line)}</p><div class="isl-crewline">${islandBug(ISLAND_CREW_LOOK[L.crew],{cls:"isl-mini"})}<p><b>${esc(crew.crew)}</b> מביאה דרך לחשוב:</p></div><blockquote class="isl-way">${esc(crew.way)}</blockquote><h3>תיבה</h3>${chest}<p><button type="button" class="tap" onclick="islandAck('land:${u.leg+1}')">${chosen?"ממשיכים":"אחר כך"}</button></p>`;
  }else{
   const s=u.station;
   const sw=Object.keys(ISLAND_COLORS).filter(c=>islandOwned("color",c,model)).map(c=>`<button type="button" class="tap isl-sw" style="--lc:${ISLAND_COLORS[c].glow}" onclick="islandPickLantern('${s.sub}','${c}')"><span></span>${ISLAND_COLORS[c].name}</button>`).join("");
@@ -5489,12 +5520,15 @@ function islandRevealHtml(model){
  }
  return `<div class="stepmodal isl-modal" role="dialog" aria-modal="true" aria-labelledby="islRevealTitle"><div class="card stepcard isl-reveal">${body}</div></div>`;
 }
+function islandHudHtml(model){
+ const next=model.next;
+ const road=next?`<div class="isl-road"><div class="isl-roadtext">${islandSparkSvg()}<span>עוד ${next.at-model.sparks} ניצוצות: <b>${esc(next.name)}</b></span></div><div class="isl-roadbar" role="progressbar" aria-label="דרך האור" aria-valuemin="0" aria-valuemax="${next.at}" aria-valuenow="${model.sparks}"><i style="width:${Math.round(100*model.sparks/next.at)}%"></i></div></div>`:`<div class="isl-road"><div class="isl-roadtext">${islandSparkSvg()}<span>כל ${ISLAND_ROAD.length} הפריטים בדרך האור פתוחים.</span></div></div>`;
+ return `<div class="isl-hud"><button type="button" class="isl-me tap" onclick="islandCardOpen()" aria-label="${escAttr("הכרטיס שלי: דרגת "+model.rank.name)}">${islandBug(islandLook(model),{cls:"isl-mini"})}<span><b>${esc(model.rank.name)}</b><small>הכרטיס שלי</small></span></button><div class="isl-sparks" role="img" aria-label="${model.sparks} ניצוצות">${islandSparkSvg()}<b>${model.sparks}</b></div></div>${road}`;
+}
 function islandHomeHtml(){
  const model=islandModel();
  const day=dayKey();
  const route=islandRoute(day);
- const next=model.next;
- const road=next?`<div class="isl-road"><div class="isl-roadtext">${islandSparkSvg()}<span>עוד ${next.at-model.sparks} ניצוצות: <b>${esc(next.name)}</b></span></div><div class="isl-roadbar" role="progressbar" aria-label="דרך האור" aria-valuemin="0" aria-valuemax="${next.at}" aria-valuenow="${model.sparks}"><i style="width:${Math.round(100*model.sparks/next.at)}%"></i></div></div>`:`<div class="isl-road"><div class="isl-roadtext">${islandSparkSvg()}<span>כל ${ISLAND_ROAD.length} הפריטים בדרך האור פתוחים.</span></div></div>`;
  const stops=route.stops.map((s,i)=>`<li class="${i<route.done?"done":i===route.done&&!route.complete?"cur":""}"><span class="isl-n">${i<route.done?"✓":i+1}</span><span>${esc(ISLAND_REGIONS[s.ch].name)}</span><small>${esc(s.name)}</small></li>`).join("");
  const cta=route.complete?"לסיכום הלילה":route.started?"ממשיכים במסלול":"יוצאים למסלול הלילה";
  const status=route.complete?`<p class="status">מסלול הלילה הושלם. אין שאלה חדשה עד מחר, ואפשר לצאת למשלחת.</p>`:route.started?`<p class="status">${route.done} מתוך 4 תחנות במסלול. ההמשך שמור בדפדפן הזה.</p>`:"";
@@ -5516,7 +5550,7 @@ function islandHomeHtml(){
   else mission=`<div class="card isl-trip" id="journeyCard"><h3>ממשיכים במסע</h3><p id="journeyEmpty">${esc(JOURNEY_EMPTY)}</p></div>`;
  }
  mission+=`<details class="card isl-topics" id="topicPractice"><summary>תרגול לפי נושא</summary><p>משלחת היא 4 שאלות באותו נושא, בלי שעון. אפשר גם לבחור תחנה במפה.</p><p><button type="button" class="tap" onclick="missionTopics()">לבחור נושא</button></p></details>`;
- return `<section class="isl-home"><div class="isl-hud"><button type="button" class="isl-me tap" onclick="islandCardOpen()" aria-label="${escAttr("הכרטיס שלי: דרגת "+model.rank.name)}">${islandBug(islandLook(model),{cls:"isl-mini"})}<span><b>${esc(model.rank.name)}</b><small>הכרטיס שלי</small></span></button><div class="isl-sparks" role="img" aria-label="${model.sparks} ניצוצות">${islandSparkSvg()}<b>${model.sparks}</b></div></div>${road}${persistNote()}${islandMapHtml(model,route)}${islandRegionHtml(model)}<div class="card isl-tonight"><h2>מסלול הלילה</h2><p class="lead">4 תחנות באי, בלי שעון. כל תשובה מאירה פנס.</p><ol class="isl-stops">${stops}</ol>${status}<button class="${routeCls}" onclick="dailyStart()">${cta}</button></div>${mission}${weeklyBarHtml()}<p class="isl-links"><button type="button" class="tap" onclick="openCabinet()">ארון הגביעים</button><button type="button" class="tap" onclick="openTopics()">עוד תרגול: פרקים וסימולציה</button></p></section>${islandRevealHtml(model)}`;
+ return `<section class="isl-home">${islandHudHtml(model)}${persistNote()}${islandMapHtml(model,route)}${islandRegionHtml(model)}<div class="card isl-tonight"><h2>מסלול הלילה</h2><p class="lead">4 תחנות באי, בלי שעון. כל תשובה מאירה פנס.</p><ol class="isl-stops">${stops}</ol>${status}<button class="${routeCls}" onclick="dailyStart()">${cta}</button></div>${mission}${weeklyBarHtml()}<p class="isl-links"><button type="button" class="tap" onclick="openCabinet()">ארון הגביעים</button><button type="button" class="tap" onclick="openTopics()">עוד תרגול: פרקים וסימולציה</button></p></section>${islandRevealHtml(model,true)}`;
 }
 function islandBedHtml(entry,count,freshLine,answers){
  const model=islandModel();
@@ -5565,6 +5599,11 @@ function islandCardHtml(){
   const opts=Object.keys(ISLAND_PARTS[p].names).map(id=>{
    const own=islandOwned(p,id,model);
    const row=ISLAND_ROAD.find(r=>r.part===p&&r.id===id);
+   const leg=trailChestOf(p,id);
+   if(!own&&leg>=0){
+    if(model.isl.chests[String(leg+1)])return "";
+    return `<button type="button" class="tap isl-opt locked" disabled aria-label="${escAttr(ISLAND_PARTS[p].names[id]+", בתיבה בשביל: "+TRAIL_LEGS[leg].name)}"><svg class="lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="11" width="12" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2"/></svg>תיבה</button>`;
+   }
    if(!own)return `<button type="button" class="tap isl-opt locked" disabled aria-label="${escAttr(ISLAND_PARTS[p].names[id]+", נפתח ב-"+(row?row.at:0)+" ניצוצות")}"><svg class="lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="11" width="12" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2"/></svg>${row?row.at:""}</button>`;
    return `<button type="button" class="tap isl-opt" aria-pressed="${look[p]===id?"true":"false"}" onclick="islandSetLook('${p}','${id}')">${esc(ISLAND_PARTS[p].names[id])}</button>`;
   }).join("");
@@ -5575,12 +5614,345 @@ function islandCardHtml(){
  const regions=model.regions.map(r=>`<div class="isl-medals"><b>${esc(r.name)}</b><div class="isl-chips">${r.stations.map(s=>`<span class="isl-chip ${s.state}" title="${escAttr(s.name)}">${esc(s.name)} · ${ISLAND_STATES[s.state]}</span>`).join("")}</div></div>`).join("");
  const crew=model.regions.map(r=>r.joined?`<div class="isl-crewline">${islandBug(ISLAND_CREW_LOOK[r.ch],{cls:"isl-mini"})}<p><b>${esc(r.crew)}</b> · ${esc(r.name)}<br>${esc(r.way)}</p></div>`:`<div class="isl-crewline off"><span class="isl-mini isl-ghost" aria-hidden="true"></span><p><b>${esc(r.crew)}</b> · ${esc(r.name)}<br>עוד לא הצטרפה. תשובה נכונה ראשונה באזור מצרפת אותה.</p></div>`).join("");
  const trophies=model.trophies.map(t=>`<div class="award${t.earned?" on":""}">${trophySvg(t.earned)}<span class="name">${esc(t.name)}</span><span class="small">${esc(t.hint)}</span></div>`).join("");
- return `<div class="card isl-card">${persistNote()}<div class="isl-sheethead"><h2>הכרטיס שלי</h2><button type="button" class="tap" onclick="home()">חזרה לאי</button></div><div class="isl-hero">${islandBug(look,{cls:"isl-big",label:"הגחלילית שלי"})}<div><p class="isl-kicker">דרגה</p><p class="isl-rank">${esc(model.rank.name)}</p><p class="isl-sparks">${islandSparkSvg()}<b>${model.sparks}</b></p><p class="small">${rank}</p></div></div><div class="isl-stats"><div><b>${model.first}</b><span>בניסיון הראשון</span></div><div><b>${model.fixed}</b><span>אחרי תיקון</span></div><div><b>${model.gold}</b><span>פנסי זהב</span></div></div><h3>הגחלילית שלי</h3>${parts}<h3>דרך האור</h3><ol class="isl-roadlist">${road}</ol><p class="small">הדרך נגמרת אחרי ${ISLAND_ROAD.length} פריטים. ניצוצות לא יורדים ולא נקנים.</p><h3>הצוות</h3>${crew}<h3>פנסים</h3>${regions}<h3>גביעי האי</h3><div class="shelfrow isl-shelf">${trophies}</div><p><button type="button" class="tap" onclick="openCabinet()">ארון הגביעים</button></p></div>${islandRevealHtml(model)}`;
+ return `<div class="card isl-card">${persistNote()}<div class="isl-sheethead"><h2>הכרטיס שלי</h2><button type="button" class="tap" onclick="home()">חזרה לאי</button></div><div class="isl-hero">${islandBug(look,{cls:"isl-big",label:"הגחלילית שלי"})}<div><p class="isl-kicker">דרגה</p><p class="isl-rank">${esc(model.rank.name)}</p><p class="isl-sparks">${islandSparkSvg()}<b>${model.sparks}</b></p><p class="small">${rank}</p></div></div><div class="isl-stats"><div><b>${model.first}</b><span>בניסיון הראשון</span></div><div><b>${model.fixed}</b><span>אחרי תיקון</span></div><div><b>${model.gold}</b><span>פנסי זהב</span></div></div><h3>הגחלילית שלי</h3>${parts}<h3>דרך האור</h3><ol class="isl-roadlist">${road}</ol><p class="small">הדרך נגמרת אחרי ${ISLAND_ROAD.length} פריטים. ניצוצות לא יורדים ולא נקנים.</p><p class="small">תיבות שנפתחו בשביל: ${Object.keys(model.isl.chests).length} מתוך ${TRAIL_LEGS.length}. פריט עם מנעול ותיבה מחכה בנקודת נוף.</p><h3>הצוות</h3>${crew}<h3>פנסים</h3>${regions}<h3>גביעי האי</h3><div class="shelfrow isl-shelf">${trophies}</div><p><button type="button" class="tap" onclick="openCabinet()">ארון הגביעים</button></p></div>${islandRevealHtml(model)}`;
 }
 function islandParentsHtml(){
  const model=islandModel();
  const days=rewardDayList(store&&store.daily).length;
- return `<div class="isl-parents"><b>אי הגחליליות: מה קורה (רק מהדפדפן הזה)</b><p>ימים עם מסלול שהושלם: ${days}. שאלות שנענו במסלולים ובמשלחות: ${model.answered}.</p><p>נכונות בניסיון הראשון: ${model.first} מתוך ${model.answered}. תוקנו אחרי טעות קודמת: ${model.fixed}. פנסי זהב: ${model.gold}.</p><p class="small">ניצוצות רק על תשובה נכונה במסלול הלילה או במשלחת, ופעם אחת לכל שאלה. תרגול חופשי לפי נושא לא משנה את האי. בלי שעון, בלי רצף חובה ובלי השוואה. הסימולציה לא חלק מהאי.</p></div>`;
+ return `<div class="isl-parents"><b>אי הגחליליות: מה קורה (רק מהדפדפן הזה)</b><p>ימים עם מסלול שהושלם: ${days}. שאלות שנענו במסלולים ובמשלחות: ${model.answered}.</p><p>נכונות בניסיון הראשון: ${model.first} מתוך ${model.answered}. תוקנו אחרי טעות קודמת: ${model.fixed}. פנסי זהב: ${model.gold}.</p><p>צעדים בשביל: ${trailModel().count}. נקודות נוף: ${trailModel().reached} מתוך ${TRAIL_LEGS.length}.</p><p class="small">ניצוצות רק על תשובה נכונה במסלול הלילה או במשלחת, ופעם אחת לכל שאלה. תרגול חופשי לפי נושא לא משנה את האי. בלי שעון, בלי רצף חובה ובלי השוואה. הסימולציה לא חלק מהאי.</p></div>`;
+}
+/* FIREFLY TRAIL (T1-T7, approved by Roy on 2026-11-26 with TD1-TD7 as recommended; docs/decisions/architecture.md).
+ In the island look, home is a trail. Every finished set of four questions is a stone: a complete night route,
+ or a topic mission or mixed expedition with four graded answers. Stones, dots and landmarks are worked out
+ from store.daily and the challenge log. The island saves chest choices (island.chests) and landmark seen keys;
+ a completed night saves when it finished (doneAt), so stones keep the order they were finished in. */
+const TRAIL_LEGS=Object.freeze([
+ {name:"חוף הצורות",region:6,crew:6,kind:"shore",len:4,line:"השביל מתחיל בחוף. רחוק מעבר למים מהבהב אור.",chest:[["color","mint"],["color","lilac"]]},
+ {name:"יער המילים",region:1,crew:1,kind:"forest",len:5,line:"בין העצים מתגלות אבנים שזוהרות בחושך. מישהו סימן כאן דרך.",chest:[["acc","blossom"],["acc","leaf"]]},
+ {name:"גשר האבנים",region:2,crew:2,kind:"bridge",len:5,line:"מעבר לגשר, האור שמעבר למים נראה ברור יותר.",chest:[["wings","stars"],["wings","hearts"]]},
+ {name:"מחנה הלילה",region:3,crew:3,kind:"camp",len:6,line:"במחנה מחכה מפה ישנה. האור הוא מגדלור, והדרך אליו עוברת בכל האי.",chest:[["acc","lantern"],["acc","bandana"]]},
+ {name:"מערת ההדים",region:4,crew:4,kind:"cave",len:6,line:"ההדים במערה חוזרים על מילה אחת: מגדלור.",chest:[["color","ruby"],["color","lime"]]},
+ {name:"טחנת הרוח",region:5,crew:5,kind:"mill",len:6,line:"מראש הטחנה רואים את כל האי, ורחוק בים את המגדלור. סירה קטנה מחכה בחוף.",chest:[["acc","feather"],["acc","headphones"]]},
+ {name:"חוף הצדפים",region:0,crew:1,kind:"shells",len:7,line:"הגעתם לחוף הצדפים. מכאן כבר רואים את המגדלור.",chest:[["color","sky"],["color","sunset"]]},
+ {name:"שביל הסלעים",region:0,crew:2,kind:"rocks",len:7,line:"עברתם את שביל הסלעים. המגדלור קרוב יותר.",chest:[["acc","goggles"],["acc","backpack"]]},
+ {name:"המעיין הנסתר",region:0,crew:3,kind:"spring",len:7,line:"מצאתם את המעיין הנסתר. האור של המגדלור כבר מגיע אליכם.",chest:[["wings","zigzag"],["wings","rings"]]},
+ {name:"מרגלות המגדלור",region:0,crew:4,kind:"foot",len:8,line:"הגעתם למרגלות המגדלור.",chest:[["acc","starclip"],["acc","cape"]]},
+ {name:"המדרגות הלולייניות",region:0,crew:5,kind:"stairs",len:8,line:"מדרגה אחרי מדרגה. השמיים מתחילים להתבהר.",chest:[["color","silver"],["color","dawn"]]},
+ {name:"המגדלור",region:0,crew:6,kind:"top",len:8,line:"טיפסתם והדלקתם את המגדלור. השחר עולה, וכל הדרך הושלמה!",chest:[["acc","beacon"],["acc","sunhat"]]}
+]);
+const TRAIL_SKY=["#1d2c66","#1b2961","#19265b","#172356","#152050","#131d4a","#111a44","#10183f","#0f163b","#161a45","#2a2455","#4a3166"];
+const TRAIL_WHY="כל ארבע שאלות שמסיימים הן צעד בשביל.";
+const TRAIL_AFTER="המגדלור דולק. השביל ממשיך כל עוד יש שאלות שמחכות.";
+const TRAIL_MORE="עוד צעד בשביל, אחרי המגדלור.";
+const TRAIL_PART="המסע נעצר באמצע, והתשובות נשמרו. צעד בשביל הוא ארבע תחנות שלמות.";
+const TRAIL_OUT="השאלות החדשות במשלחות נגמרו לעת עתה. מסלול הלילה מחכה מחר, ואין קנס על הפסקה.";
+let islandTab="trail";
+let trailSel=null;
+let trailDrawn=-1,trailScrolled=-1;
+function trailEnds(){let e=0;return TRAIL_LEGS.map(L=>e+=L.len)}
+function trailDayAt(ms){const d=new Date(ms);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+// Stones from saved answers, in the order they were finished: by day, then by time. Every fourth graded answer
+// of a session is a stone. A night saved before doneAt existed has no finish time and comes first in its day.
+function trailModel(opt){
+ opt=opt||{};
+ const daily=opt.daily!=null?opt.daily:(store&&store.daily)||{};
+ const events=opt.events!=null?opt.events:rewardEventsFromStore();
+ const recs=[],stones=[];
+ if(plain(daily))Object.keys(daily).forEach(day=>{
+  if(isDcKey(day)||!isRealDay(day))return;
+  const e=daily[day];
+  const list=e&&Array.isArray(e.answers)?e.answers.filter(a=>a&&a.id!=null):[];
+  const fin=dayCompleted(e)&&Number(e.doneAt)>0?Number(e.doneAt):0;
+  const k=fin?trailDayAt(fin):day,t=fin||-Infinity;
+  const mine=list.map((a,i)=>({qid:String(a.id),ok:!!a.ok,k:k,t:t,n:i}));
+  mine.forEach(r=>recs.push(r));
+  if(dayCompleted(e)&&mine.length)stones.push({kind:"night",topic:"",day:day,k:k,t:t,n:0,ans:mine.slice(0,4)});
+ });
+ let answers=[];
+ try{answers=challengeAcceptedAnswers(Array.isArray(events)?events:[])}catch(e){answers=[]}
+ const per=Object.create(null);
+ answers.forEach(a=>{
+  if(!a||a.qid==null||!isRealDay(a.localDay))return;
+  const r={qid:String(a.qid),ok:!!a.ok,k:a.localDay,t:Number(a.at)||0,n:0};
+  recs.push(r);
+  const id=String(a.session);
+  const s=per[id]||(per[id]={kind:a.schema===2?"mix":"topic",topic:a.schema===2?"":String(a.topic||""),ans:[]});
+  s.ans.push(r);
+  if(s.ans.length%4===0)stones.push({kind:s.kind,topic:s.topic,day:a.localDay,k:r.k,t:r.t,n:0,ans:s.ans.slice(-4)});
+ });
+ const cmp=(a,b)=>a.k<b.k?-1:a.k>b.k?1:a.t!==b.t?(a.t<b.t?-1:1):a.n-b.n;
+ recs.sort(cmp);stones.sort(cmp);
+ const lastOk=Object.create(null);
+ recs.forEach((r,i)=>{r.i=i;if(r.ok)lastOk[r.qid]=i});
+ // f: right in this stone. x: wrong here, right later. o: wrong here, still open.
+ const dot=r=>r.ok?"f":lastOk[r.qid]!=null&&lastOk[r.qid]>r.i?"x":"o";
+ const out=stones.map((s,i)=>({i:i,kind:s.kind,topic:s.topic,day:s.day,dots:s.ans.map(dot).join("")}));
+ const ends=trailEnds(),count=out.length;
+ let reached=0,leg=-1,to=0;
+ for(let L=0;L<ends.length;L++){if(count>=ends[L])reached=L+1;else if(leg<0){leg=L;to=ends[L]-count}}
+ return {stones:out,count:count,reached:reached,leg:leg,toLandmark:to,done:leg<0,ends:ends};
+}
+// The next stone (T3): a suggestion, never a lock.
+function trailNext(){
+ let route={started:false,complete:false};
+ try{route=islandRoute(dayKey())}catch(e){}
+ let open=null,finished=false;
+ try{const ev=missionEvents();open=challengeSessionInfo(ev);if(open)finished=missionModel(ev).done}catch(e){}
+ if(route.started&&!route.complete)return {kind:"night",cta:"ממשיכים במסלול הלילה",go:"dailyStart()"};
+ if(open&&!finished&&open.mix)return {kind:"mix",cta:"ממשיכים במסע",go:"journeyResume()"};
+ if(open&&!finished)return {kind:"topic",cta:"ממשיכים במשלחת",go:"missionOpen()",topic:open.topic};
+ if(!route.complete)return {kind:"night",cta:"יוצאים למסלול הלילה",go:"dailyStart()"};
+ // Its four answers are in, so it is already a stone. The next stone opens its summary, which closes it.
+ if(open&&open.mix)return {kind:"mix",cta:"מסיימים את המסע",go:"journeyResume()"};
+ if(open)return {kind:"topic",cta:"מסיימים את המשלחת",go:"challengeOpen()",topic:open.topic};
+ if(journeyPlanNow().ok)return {kind:"mix",cta:"יוצאים למשלחת מעורבת",go:"journeyOpen()"};
+ const sub=trailSuggestTopic();
+ if(sub)return {kind:"topic",cta:"משלחת: "+trailTopicName(sub),go:"islandMission('"+sub+"')",topic:sub};
+ return {kind:"rest",cta:"",go:""};
+}
+// The topic with a mission ready and the fewest mission answers so far; ties keep the station order.
+function trailSuggestTopic(){
+ let events=[];
+ try{events=missionEvents()}catch(e){return null}
+ const tally=Object.create(null);
+ try{challengeAcceptedAnswers(events).forEach(a=>{tally[a.topic]=(tally[a.topic]||0)+1})}catch(e){}
+ let best=null,bestN=Infinity;
+ islandStations().forEach(s=>{
+  let ready=false;
+  try{ready=missionAvailable(s.sub,events).length>=4}catch(e){}
+  if(!ready)return;
+  const n=tally[s.sub]||0;
+  if(n<bestN){best=s.sub;bestN=n}
+ });
+ return best;
+}
+function trailGoalLine(){
+ const t=trailModel();
+ if(t.done)return TRAIL_AFTER;
+ const L=TRAIL_LEGS[t.leg];
+ return t.toLandmark===1?"הצעד הזה מגיע אל "+L.name+".":"עוד "+t.toLandmark+" צעדים בשביל עד "+L.name+".";
+}
+function trailArriveLine(){
+ const t=trailModel();
+ const at=t.ends.indexOf(t.count);
+ if(at>=0)return TRAIL_LEGS[at].line;
+ if(t.done)return TRAIL_MORE;
+ const L=TRAIL_LEGS[t.leg];
+ return t.toLandmark===1?"עוד צעד בשביל. הצעד הבא מגיע אל "+L.name+".":"עוד צעד בשביל. עוד "+t.toLandmark+" צעדים עד "+L.name+".";
+}
+function trailChestItems(L){return TRAIL_LEGS[L].chest.map(c=>({part:c[0],id:c[1],name:ISLAND_PARTS[c[0]].names[c[1]]}))}
+function trailChestOf(part,id){
+ for(let L=0;L<TRAIL_LEGS.length;L++)if(TRAIL_LEGS[L].chest.some(c=>c[0]===part&&c[1]===id))return L;
+ return -1;
+}
+function trailItemName(id){
+ for(const L of TRAIL_LEGS)for(const c of L.chest)if(c[1]===id)return ISLAND_PARTS[c[0]].names[id];
+ return "";
+}
+function islandChooseChest(L,id){
+ L=Number(L);
+ if(!(L>=0&&L<TRAIL_LEGS.length))return;
+ if(L>=trailModel().reached)return;
+ const key=String(L+1);
+ if(islandState().chests[key])return;
+ if(!TRAIL_LEGS[L].chest.some(c=>c[1]===id))return;
+ const chests={};chests[key]=id;
+ const seen={};seen["land:"+key]=1;
+ islandSave({chests:chests,seen:seen});
+ islandRefresh();
+}
+function trailChestButtons(model,L){
+ return trailChestItems(L).map(it=>{
+  const look=Object.assign({},islandLook(model));look[it.part]=it.id;
+  return `<button type="button" class="tap" onclick="islandChooseChest(${L},'${it.id}')">${islandBug(look,{cls:"trl-try"})}<span>${esc(it.name)}</span></button>`;
+ }).join("");
+}
+function islandTabSet(t){islandTab=t==="map"?"map":"trail";trailSel=null;home()}
+function trailOpen(kind,i){
+ trailSel=trailSel&&trailSel.kind===kind&&trailSel.i===i?null:{kind:kind,i:i};
+ home();
+ try{const el=$("trlSheet");if(el&&el.scrollIntoView)el.scrollIntoView({behavior:"smooth",block:"nearest"})}catch(e){}
+}
+// A redraw of the trail (a tapped stone, a chest, another tab) keeps the child's place. The trail moves to the
+// next stone when it is first shown, after another screen or the map, or when a stone was added.
+function trailScroll(keep){
+ try{
+  const box=document.querySelector?document.querySelector(".trl-scroll"):null;
+  if(!box)return;
+  if(keep!=null&&trailDrawn===trailScrolled){box.scrollTop=keep;return}
+  const cur=box.querySelector?box.querySelector(".trl-hit.cur"):null;
+  if(cur){
+   const H=box.clientHeight,k=box.clientWidth>0?Math.min(box.clientWidth,360)/360:1,c=cur.offsetTop;
+   // The next landmark is the nearest one above the next stone (the trail climbs up).
+   let land=-Infinity;
+   const lands=box.querySelectorAll?box.querySelectorAll(".trl-hit.land"):[];
+   for(let n=0;n<lands.length;n++){const y=lands[n].offsetTop;if(y<c&&y>land)land=y}
+   const low=c+86*k-H;
+   const show=land>-Infinity?land-48*k:Infinity;
+   box.scrollTop=Math.max(0,low,Math.min(c-H*0.55,show));
+  }
+  trailScrolled=trailDrawn;
+ }catch(e){}
+}
+function trailTopicName(sub){
+ const s=islandStations().find(x=>x.sub===sub);
+ if(s)return s.name;
+ for(const c in CH)if(CH[c]&&plain(CH[c].subs)&&Object.prototype.hasOwnProperty.call(CH[c].subs,sub))return CH[c].subs[sub];
+ return "";
+}
+function trailKindName(st){
+ if(st.kind==="night")return "מסלול הלילה";
+ if(st.kind==="mix")return "משלחת מעורבת";
+ const name=trailTopicName(st.topic);
+ return name?"משלחת: "+name:"משלחת לפי נושא";
+}
+function trailStepsLeft(n){return n===1?"עוד צעד אחד":"עוד "+n+" צעדים"}
+function trailCounts(d){return {f:(d.match(/f/g)||[]).length,x:(d.match(/x/g)||[]).length,o:(d.match(/o/g)||[]).length}}
+function trailDotsText(d){const c=trailCounts(d);return "נכונות "+c.f+(c.x?", תוקנו אחר כך "+c.x:"")+(c.o?", מחכות לתיקון "+c.o:"")}
+function trailDay(day){return Number(day.slice(8))+"."+Number(day.slice(5,7))}
+function trailRand(seed){let s=(seed*2654435761)>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296}}
+function trailCurve(p){
+ if(!p.length)return "";
+ let d="M"+p[0][0].toFixed(1)+" "+p[0][1].toFixed(1);
+ for(let i=0;i<p.length-1;i++){
+  const a=p[i-1]||p[i],b=p[i],c=p[i+1],e=p[i+2]||c;
+  d+=" C"+(b[0]+(c[0]-a[0])/6).toFixed(1)+" "+(b[1]+(c[1]-a[1])/6).toFixed(1)+","+(c[0]-(e[0]-b[0])/6).toFixed(1)+" "+(c[1]-(e[1]-b[1])/6).toFixed(1)+","+c[0].toFixed(1)+" "+c[1].toFixed(1);
+ }
+ return d;
+}
+function trailDeco(kind,x,y,r){
+ const T=`transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${r.toFixed(2)})"`;
+ if(kind==="shore"||kind==="shells")return `<g ${T} opacity=".7"><ellipse rx="26" ry="8" fill="#1f5fa8"/><ellipse cx="8" cy="-3" rx="12" ry="4" fill="#4f9be6"/></g>`;
+ if(kind==="forest")return `<g ${T} opacity=".8"><path d="M-10 10 0-16 10 10Z" fill="#1f6b5e"/><path d="M4 12 14-10 24 12Z" fill="#23806f"/></g>`;
+ if(kind==="bridge"||kind==="rocks"||kind==="foot")return `<g ${T} opacity=".75"><ellipse rx="13" ry="8" fill="#55608f"/><ellipse cx="14" cy="4" rx="9" ry="6" fill="#6b75a8"/></g>`;
+ if(kind==="camp")return `<g ${T} opacity=".75"><path d="M-12 10 0-12 12 10Z" fill="#a8603a"/><path d="M-3 10 0 2 3 10Z" fill="#2a1a33"/></g>`;
+ if(kind==="cave")return `<g ${T} opacity=".8"><path d="M-18 10Q0-22 18 10Z" fill="#3a3f73"/><path d="M-6 10Q0-2 6 10Z" fill="#141a3a"/></g>`;
+ if(kind==="mill")return `<g ${T} opacity=".7"><path d="M-30 10Q0-12 30 10Z" fill="#244a3a"/></g>`;
+ if(kind==="spring")return `<g ${T} opacity=".8"><ellipse rx="20" ry="7" fill="#2a8fd8"/><ellipse rx="10" ry="3" fill="#8fd8ff"/></g>`;
+ if(kind==="stairs")return `<g ${T} opacity=".6"><path d="M-14 10H-4V2H6V-6H16" fill="none" stroke="#8b93c8" stroke-width="3"/></g>`;
+ return `<g ${T} opacity=".7"><path d="M-20 10Q0-6 20 10Z" fill="#c46a6a"/></g>`;
+}
+function trailLandIcon(L,lit){
+ const leg=TRAIL_LEGS[L];
+ if(leg.region)return `<g transform="scale(.95)">${islandLandmark(leg.region)}</g>`;
+ if(leg.kind==="shells")return `<g transform="scale(2)">${islandGiftSvg("shell")}</g>`;
+ if(leg.kind==="rocks")return `<ellipse cx="-10" cy="6" rx="14" ry="10" fill="#6b75a8"/><ellipse cx="10" cy="2" rx="12" ry="14" fill="#8b93c8"/>`;
+ if(leg.kind==="spring")return `<ellipse cy="8" rx="24" ry="9" fill="#2a8fd8"/><ellipse cy="6" rx="12" ry="4" fill="#8fd8ff"/><path d="M0-18q-8 10 0 16 8-6 0-16z" fill="#8fd8ff"/>`;
+ const s=leg.kind==="top"?1.2:leg.kind==="stairs"?1.05:.9;
+ return `<g transform="scale(${s})">${lit?`<path d="M-58-18Q0-40 58-18" fill="#ffe680" fill-opacity=".3"/>`:""}<path d="M-9 26-6-12H6L9 26Z" fill="#dfe4fb"/><path d="M-8 14H8L7.4 4H-7.4Z" fill="#c9506f"/><rect x="-8" y="-24" width="16" height="12" rx="2" fill="${lit?"#ffe680":"#9aa3d6"}"/><path d="M-10-24 0-34 10-24Z" fill="#c9506f"/></g>`;
+}
+function trailChestSvg(state){
+ const lid=state==="open"?`<path d="M-14-6 11-17 14-11-11 0Z" fill="#8a6430" stroke="#ffd77a" stroke-width="1.6"/>`:`<rect x="-14" y="-10" width="28" height="8" rx="3" fill="${state==="ready"?"#ffcf5a":"#8a6430"}" stroke="#ffd77a" stroke-width="1.6"/>`;
+ return `${state==="ready"?`<circle class="trl-pulse" r="22" fill="#ffd45e" fill-opacity=".3"/>`:""}<rect x="-14" y="-4" width="28" height="16" rx="3" fill="${state==="shut"?"#5a3f22":"#c98b2e"}" stroke="#ffd77a" stroke-width="1.6"/>${lid}<rect x="-3" y="-2" width="6" height="6" rx="1" fill="#ffd77a"/>`;
+}
+function trailIcon(kind,x,y,c){
+ if(kind==="night")return `<path d="M${x+5} ${y-11}a12 12 0 1 0 6 17 10 10 0 1 1-6-17z" fill="${c}"/>`;
+ if(kind==="mix")return `<path d="M${x} ${y-12}L${x+5} ${y}L${x} ${y+12}L${x-5} ${y}ZM${x-12} ${y}L${x} ${y-4}L${x+12} ${y}L${x} ${y+4}Z" fill="${c}"/>`;
+ if(kind==="topic")return `<rect x="${x-8}" y="${y-8}" width="16" height="16" transform="rotate(45 ${x} ${y})" fill="${c}"/>`;
+ return `<text x="${x}" y="${y+7}" text-anchor="middle" font-size="20" font-weight="700" fill="${c}">z</text>`;
+}
+function trailStoneSvg(x,y,state,kind,dots,num){
+ const X=+x.toFixed(1),Y=+y.toFixed(1);
+ let g="";
+ if(state==="cur")g+=`<circle class="trl-pulse" cx="${X}" cy="${Y}" r="44" fill="#ffd45e" fill-opacity=".35"/>`;
+ const r=state==="cur"?32:state==="done"?26:23;
+ g+=`<circle cx="${X}" cy="${Y}" r="${r}" fill="${state==="done"?"#ffcf5a":state==="cur"?"#ffe08a":"#232d63"}" stroke="${state==="ahead"?"#4d58a0":"#fff2c4"}" stroke-width="${state==="ahead"?3:4}"/>`;
+ if(state==="ahead")g+=`<text x="${X}" y="${Y+6}" text-anchor="middle" font-size="17" font-weight="700" fill="#7f89c4">${num}</text>`;
+ else g+=trailIcon(kind,X,Y,"#5a3b00");
+ if(dots)dots.split("").forEach((c,k)=>{g+=`<circle cx="${(X+19.5-k*13).toFixed(1)}" cy="${Y+38}" r="5.2" fill="${c==="f"?"#ffd45e":c==="x"?"#2ee6c5":"#0d1636"}" stroke="${c==="o"?"#a9b1dc":"none"}" stroke-width="2"/>`});
+ return g;
+}
+function trailSheetHtml(model,t,nx){
+ if(!trailSel)return "";
+ const close=`<button type="button" class="tap" onclick="trailOpen('${trailSel.kind}',${trailSel.i})">סגירה</button>`;
+ if(trailSel.kind==="land"){
+  const li=trailSel.i,L=TRAIL_LEGS[li];
+  if(!L)return "";
+  const reached=li<t.reached,chosen=model.isl.chests[String(li+1)],crew=ISLAND_REGIONS[L.crew];
+  let chest;
+  if(!reached)chest=`<p>בתיבה: אחד משניים, ${trailChestItems(li).map(x=>esc(x.name)).join(" או ")}.</p>`;
+  else if(chosen)chest=`<p>מהתיבה: ${esc(trailItemName(chosen))}. עכשיו בכרטיס שלי.</p>`;
+  else chest=`<p>התיבה מחכה. בוחרים אחד משניים, והבחירה נשמרת.</p><div class="isl-giftrow">${trailChestButtons(model,li)}</div>`;
+  const head=reached?`<p>${esc(L.line)}</p>`:`<p>${esc(trailStepsLeft(t.ends[li]-t.count))} עד כאן.</p>`;
+  return `<section class="card isl-sheet trl-sheet" id="trlSheet" aria-label="${escAttr(L.name)}"><div class="isl-sheethead"><h2>${esc(L.name)}</h2>${close}</div>${head}<div class="isl-crewline">${islandBug(ISLAND_CREW_LOOK[L.crew],{cls:"isl-mini"})}<p><b>${esc(crew.crew)}:</b> ${esc(crew.way)}</p></div><h3>תיבה</h3>${chest}</section>`;
+ }
+ const i=trailSel.i,st=t.stones[i];
+ if(!st){
+  const body=i===t.count?(nx&&nx.kind!=="rest"?"הצעד הבא: "+nx.cta+".":TRAIL_OUT):"הצעד הזה מגיע אחרי "+trailStepsLeft(i-t.count)+".";
+  return `<section class="card isl-sheet trl-sheet" id="trlSheet"><div class="isl-sheethead"><h2>צעד ${i+1}</h2>${close}</div><p>${esc(body)}</p></section>`;
+ }
+ const c=trailCounts(st.dots);
+ const dots=st.dots.split("").map(d=>`<i class="${d}"></i>`).join("");
+ return `<section class="card isl-sheet trl-sheet" id="trlSheet"><div class="isl-sheethead"><h2>צעד ${i+1} · ${esc(trailKindName(st))}</h2>${close}</div><p>${trailDay(st.day)} · <span class="trl-dots" aria-hidden="true">${dots}</span></p><p>נכונות: ${c.f}${c.x?` · תוקנו אחר כך: ${c.x}`:""}${c.o?` · מחכות לתיקון: ${c.o}`:""}</p>${c.o?`<p class="small">${c.o===1?"אם השאלה הזו תחזור ותצליחו בה, הנקודה שלה תידלק בטורקיז.":"אם אחת מהשאלות האלה תחזור ותצליחו בה, הנקודה שלה תידלק בטורקיז."}</p>`:""}</section>`;
+}
+function islandTrailHtml(){
+ const model=islandModel(),t=trailModel(),nx=trailNext(),isl=model.isl;
+ trailDrawn=t.count;
+ const W=360,STEP=96,BOTTOM=74,TOP=150;
+ const items=[];
+ let s=0;
+ for(let L=0;L<TRAIL_LEGS.length;L++){
+  for(let k=0;k<TRAIL_LEGS[L].len;k++)items.push({type:"stone",i:s++,leg:L});
+  items.push({type:"land",leg:L});
+  if(s>t.count)break;
+ }
+ if(t.done)for(let i=s;i<=t.count;i++)items.push({type:"stone",i:i,leg:-1});
+ const n=items.length,H=TOP+BOTTOM+(n-1)*STEP;
+ const pt=k=>[W/2+Math.sin(k*0.82+0.4)*92,H-BOTTOM-k*STEP];
+ const curK=items.findIndex(it=>it.type==="stone"&&it.i===t.count);
+ let svg=`<svg viewBox="0 0 ${W} ${H}" aria-hidden="true" focusable="false"><rect width="${W}" height="${H}" fill="#0b1236"/>`;
+ TRAIL_LEGS.forEach((L,li)=>{
+  const a=items.findIndex(it=>it.leg===li),b=items.findIndex(it=>it.type==="land"&&it.leg===li);
+  if(a<0)return;
+  const yTop=b<0?0:pt(b)[1]-STEP/2,yBot=li===0?H:pt(a)[1]+STEP/2;
+  svg+=`<rect y="${yTop.toFixed(1)}" width="${W}" height="${(yBot-yTop).toFixed(1)}" fill="${TRAIL_SKY[li]}"/>`;
+  const r=trailRand(li+1);
+  for(let k=0;k<6;k++){const side=k%2?1:-1;svg+=trailDeco(L.kind,W/2+side*(122+r()*38),yTop+28+r()*Math.max(10,yBot-yTop-56),.8+r()*.5)}
+  for(let k=0;k<7;k++)svg+=`<circle class="isl-star" cx="${(r()*W).toFixed(1)}" cy="${(yTop+r()*(yBot-yTop)).toFixed(1)}" r="${(1+r()*1.5).toFixed(1)}" fill="#fff6c9"/>`;
+ });
+ const pts=items.map((it,k)=>pt(k));
+ svg+=`<path d="${trailCurve(pts.slice(0,curK+1))}" fill="none" stroke="#ffd77a" stroke-width="10" stroke-linecap="round" opacity=".9"/>`;
+ if(curK<n-1)svg+=`<path d="${trailCurve(pts.slice(curK))}" fill="none" stroke="#7f89c4" stroke-width="8" stroke-dasharray="2 16" stroke-linecap="round"/>`;
+ let list="";
+ items.forEach((it,k)=>{
+  const x=pts[k][0],y=pts[k][1],pos=`left:${(x/W*100).toFixed(2)}%;top:${(y/H*100).toFixed(3)}%`;
+  if(it.type==="land"){
+   const L=TRAIL_LEGS[it.leg],reached=it.leg<t.reached,chosen=isl.chests[String(it.leg+1)],side=x<W/2?1:-1;
+   svg+=`<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)})"><circle r="36" fill="${reached?"#2b3a85":"#1c2558"}" stroke="${reached?"#ffd45e":"#5c67a8"}" stroke-width="4"/>${trailLandIcon(it.leg,reached)}</g>`;
+   svg+=islandBugAt(ISLAND_CREW_LOOK[L.crew],x+side*62,y-8,36,{});
+   svg+=`<g transform="translate(${(x-side*64).toFixed(1)} ${(y+6).toFixed(1)})">${trailChestSvg(!reached?"shut":chosen?"open":"ready")}</g>`;
+   const lab="נקודת נוף: "+L.name+(reached?(chosen?"":". התיבה מחכה"):". עוד לא");
+   list+=`<li><button type="button" class="trl-hit land" style="${pos}" aria-label="${escAttr(lab)}" onclick="trailOpen('land',${it.leg})"><span class="trl-name">${esc(L.name)}</span></button></li>`;
+   return;
+  }
+  const i=it.i,state=i<t.count?"done":i===t.count?"cur":"ahead";
+  const st=state==="done"?t.stones[i]:null;
+  svg+=trailStoneSvg(x,y,state,st?st.kind:state==="cur"?nx.kind:"",st?st.dots:"",i+1);
+  let lab;
+  if(st)lab="צעד "+(i+1)+": "+trailKindName(st)+". "+trailDotsText(st.dots);
+  else if(state==="cur")lab="הצעד הבא, צעד "+(i+1)+": "+(nx.kind==="rest"?"השביל נח עד מחר":nx.cta);
+  else lab="צעד "+(i+1)+", עוד לא";
+  const act=state==="cur"&&nx.go?nx.go:`trailOpen('stone',${i})`;
+  list+=`<li><button type="button" class="trl-hit${state==="cur"?" cur":""}" style="${pos}" aria-label="${escAttr(lab)}" onclick="${act}"></button></li>`;
+  if(state==="cur"){
+   const bx=Math.max(100,Math.min(W-100,x));
+   list+=`<li aria-hidden="true"><span class="trl-bub" style="left:${(bx/W*100).toFixed(2)}%;top:${((y+52)/H*100).toFixed(3)}%">${esc(nx.kind==="rest"?"השביל נח עד מחר":nx.cta)}</span></li>`;
+  }
+ });
+ svg+=`<defs><linearGradient id="trlFog" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b1236"/><stop offset="1" stop-color="#0b1236" stop-opacity="0"/></linearGradient></defs><rect width="${W}" height="${TOP+10}" fill="url(#trlFog)"/></svg>`;
+ const left=t.done?0:TRAIL_LEGS.length-t.leg-1;
+ const fog=t.done?TRAIL_AFTER:left>1?"בערפל: עוד "+left+" נקודות נוף, עד המגדלור.":left===1?"מעבר לערפל: המגדלור.":"בקצה השביל: המגדלור.";
+ const box=`<div class="trl-scroll"><div class="trl-box">${svg}<p class="trl-fog">${esc(fog)}</p><ol class="trl-list" aria-label="שביל הגחליליות">${list}</ol></div></div>`;
+ const cta=nx.kind==="rest"?`<p class="status">${esc(TRAIL_OUT)}</p><button type="button" class="primary tap cta" onclick="dailyStart()">לסיכום הלילה</button>`:`<button type="button" class="primary tap hero-btn cta" onclick="${nx.go}">${esc(nx.cta)}</button>`;
+ const to=t.done?TRAIL_AFTER:(t.toLandmark===1?"הצעד הבא מגיע אל ":"עוד "+t.toLandmark+" צעדים עד ")+TRAIL_LEGS[t.leg].name+". "+TRAIL_WHY;
+ const panel=`<div class="card trl-panel"><div class="trl-cta">${cta}</div><p class="small" id="trailTo">${esc(to)}</p></div>`;
+ const other=`<p class="small trl-other">בחירה אחרת: <button type="button" class="tap" onclick="islandTabSet('map')">המפה</button> <button type="button" class="tap" onclick="missionTopics()">תרגול לפי נושא</button></p>`;
+ return `<section class="isl-home trl-home">${islandHudHtml(model)}${persistNote()}${panel}${box}${other}${trailSheetHtml(model,t,nx)}${weeklyBarHtml()}<p class="isl-links"><button type="button" class="tap" onclick="openCabinet()">ארון הגביעים</button><button type="button" class="tap" onclick="openTopics()">עוד תרגול: פרקים וסימולציה</button></p></section>${islandRevealHtml(model,true)}`;
+}
+function islandWorldHtml(){
+ const tab=islandTab==="map"?"map":"trail";
+ const tabs=`<div class="trl-tabs" role="tablist" aria-label="האי"><button type="button" role="tab" class="tap" aria-selected="${tab==="trail"}" onclick="islandTabSet('trail')">שביל</button><button type="button" role="tab" class="tap" aria-selected="${tab==="map"}" onclick="islandTabSet('map')">מפה</button></div>`;
+ return tabs+(tab==="map"?islandHomeHtml():islandTrailHtml());
 }
 function worldNow(){
  if(sessionWorld==="island"||sessionWorld==="none")return sessionWorld;
